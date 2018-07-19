@@ -15,7 +15,7 @@ ACCEPTOR = resource_filename('eis', 'models/Acceptor.h5')
 DONOR_INTRON = resource_filename('eis', 'models/Intron5.h5')
 
 class Eis(object):
-    """ Load modules of EIS model, perform prediction with inputs come from a dataloader.
+    """ Load modules of eis model, perform prediction with inputs come from a dataloader.
 
     Args: 
         acceptor_intronM: acceptor intron model, score acceptor intron sequence.

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Top-level package for EIS."""
+"""Top-level package for eis."""
 
 __author__ = """Jun Cheng"""
 __email__ = 'chengju@in.tum.de'
