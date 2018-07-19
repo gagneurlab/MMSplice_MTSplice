@@ -1,55 +1,48 @@
-import kipoi
-from kipoi.model import BaseModel
 from keras.models import load_model
-from kipoi.data_utils import numpy_collate
-import concise
 import warnings
 from concise.preprocessing import encodeDNA
 import pandas as pd
-from tqdm import tqdm
-
-import inspect
-import os
-filename = inspect.getframeinfo(inspect.currentframe()).filename
-this_path = os.path.dirname(os.path.abspath(filename))
-import sys
-sys.path.append(this_path)
-
-clip = lambda x: np.clip(x, 0.00001, 0.99999)
-def logit(x):
-    x = clip(x)
-    return np.log(x)-np.log(1-x)
-
-## A exon skipping scoring model
-model_dir = "/data/ouga/home/ag_gagneur/chengju/project/recods/Data/Models/"
 import numpy as np
+from tqdm import tqdm
+from .generic import logit
 
-class SE(BaseModel):
-    """    
-    Args: exon_cut_l: when extract exon feature, how many base pair to cut out at the begining of an exon
-    exon_cut_r: when extract exon feature, how many base pair to cut out at the end of an exon 
-    (cut out the part that is considered as acceptor site or donor site)
-    acceptor_intron_cut: how many bp to cut out at the end of acceptor intron that consider as acceptor site
-    donor_intron_cut: how many bp to cut out at the end of donor intron that consider as donor site
-    intronl_len: intron length at the acceptor side
-    intronr_len: intron length at the donor side
-    acceptor_intron_len: what length in acceptor intron to consider for acceptor site model
-    acceptor_exon_len: what length in acceptor exon to consider for acceptor site model
-    donor_intron_len: what length in donor intron to consider for donor site model
-    donor_exon_len: what length in donor exon to consider for donor site model
-    scale_factor: scale factor for exon and intron models trained from MPRA data. 
-    Should be length 5 corresponding to weights of five modules.
+# import inspect
+# import os
+# filename = inspect.getframeinfo(inspect.currentframe()).filename
+# this_path = os.path.dirname(os.path.abspath(filename))
+# import sys
+# sys.path.append(this_path)
+
+model_dir = "/data/ouga/home/ag_gagneur/chengju/project/EIS/models/"
+
+class EIS(object):
+    """ Load modules of EIS model, perform prediction with inputs come from a dataloader.
+
+    Args: 
+        acceptor_intronM: acceptor intron model, score acceptor intron sequence.
+        acceptorM: accetpor splice site model. Score acceptor sequence with 50bp from intron, 3bp from exon.
+        exonM: exon model, score exon sequence.
+        donorM: donor splice site model, score donor sequence with 13bp in the intron, 5bp in the exon.
+        donor_intronM: donor intron model, score donor intron sequence.
+        exon_cut_l: when extract exon feature, how many base pair to cut out at the begining of an exon
+        exon_cut_r: when extract exon feature, how many base pair to cut out at the end of an exon 
+           (cut out the part that is considered as acceptor site or donor site)
+        acceptor_intron_cut: how many bp to cut out at the end of acceptor intron that consider as acceptor site
+        donor_intron_cut: how many bp to cut out at the end of donor intron that consider as donor site
+        acceptor_intron_len: what length in acceptor intron to consider for acceptor site model
+        acceptor_exon_len: what length in acceptor exon to consider for acceptor site model
+        donor_intron_len: what length in donor intron to consider for donor site model
+        donor_exon_len: what length in donor exon to consider for donor site model
     """
 
     def __init__(self, 
-                 acceptor_intronM=model_dir+"Intron_Joint/Intron_Model_prime3.h5",
-                 acceptorM=model_dir+"A3SS/Acceptor_Classification_conv_23_Acceptor0.5NoneAG0.001_32_0.h5",
-                 exonM=model_dir+"A5SS_Exon/Exon_Model_prime3.h5",
-                 donorM=model_dir+"A5SS/SD_best.h5",
-                 donor_intronM=model_dir+"Intron_Joint/Intron_Model_prime5.h5",
+                 acceptor_intronM=model_dir+"Intron3.h5",
+                 acceptorM=model_dir+"Acceptor.h5",
+                 exonM=model_dir+"Exon.h5",
+                 donorM=model_dir+"Donor.h5",
+                 donor_intronM=model_dir+"Intron5.h5",
                  
                  # parameters to split the sequence
-
                  exon_cut_l=3,
                  exon_cut_r=3,
                  acceptor_intron_cut=20,
@@ -57,10 +50,7 @@ class SE(BaseModel):
                  acceptor_intron_len=20,
                  acceptor_exon_len=3,
                  donor_exon_len=3,
-                 donor_intron_len=6,
-                 encode=True,
-                 split_seq=True,
-                 scale_factor=np.array([0,4.338,1,4.338,1,4.338])
+                 donor_intron_len=6
                 ):
         
         self.exon_cut_l = exon_cut_l
@@ -78,19 +68,6 @@ class SE(BaseModel):
         self.donorM = load_model(donorM)
         self.donor_intronM = load_model(donor_intronM)
         
-        self.split_seq = split_seq
-        self.encode = encode
-        if scale_factor is not None:
-            assert len(scale_factor) == 6
-        self.scale_factor = scale_factor
-              
-    # def predict_on_batch(self, **kwargs):
-    #     pred = []
-    #     for x in self.batch_predict_iter(**kwargs):
-    #         pred1 = self.predict(x)
-    #         pred.append(pred1)
-    #     pred = np.array(pred).flatten()
-    #     return pred
     
     def predict_on_batch(self, x, **kwargs):
         ''' Use when load batch with sequence already splited. 
@@ -98,8 +75,6 @@ class SE(BaseModel):
         x is a batch with sequence not encoded. 
         Need to be encoded here for collate function to work
         '''
-        # if self.split_seq:
-        #     fts = list(map(self.split, zip(x['seq'], x['intronl_len'], x['intronr_len'])))
         fts = x['seq']
         acceptor_intron = encodeDNA(fts['acceptor_intron'].tolist(), seq_align="end")
         acceptor = encodeDNA(fts['acceptor'].tolist(), seq_align="end")
@@ -125,9 +100,10 @@ class SE(BaseModel):
         return pred
     
     def predict(self, x):
-        ''' x: a sequence to split
+        ''' Use when incomming sequence is not splited. 
+        In this way, sequence with different length are one-hot encoded to the same length through padding. 
+        x: a sequence to split
         '''
-        #TODO: scalling factor and whether logit scale need to be adjusted
         seq = x['seq']
         intronl_len = x['intronl_len']
         intronr_len = x['intronr_len']
@@ -135,16 +111,12 @@ class SE(BaseModel):
             fts = seq
         else:
             fts = self.split(seq, intronl_len, intronr_len)
-        # score += self.donorM.predict(fts['donor'])
         score = pd.Series([self.acceptor_intronM.predict(fts['acceptor_intron'])[0][0],
                                logit(self.acceptorM.predict(fts['acceptor']))[0][0],
                                self.exonM.predict(fts['exon'])[0][0],
                                logit(self.donorM.predict(fts['donor']))[0][0],
                                self.donor_intronM.predict(fts['donor_intron'])[0][0]])
-        if self.scale_factor is None:
-            return score
-        else:
-            return np.dot(score, self.scale_factor[1:]) + self.scale_factor[0]
+        return score
     
     def split(self, x, intronl_len=100, intronr_len=80):
         ''' x: a sequence to split
@@ -167,41 +139,16 @@ class SE(BaseModel):
         if acceptor[self.acceptor_intron_len-2:self.acceptor_intron_len] != "AG":
             warnings.warn("None AG donor", UserWarning)
             
-        if self.encode: 
-            return {
-                "acceptor_intron": encodeDNA([acceptor_intron]),
-                "acceptor": encodeDNA([acceptor]),
-                "exon": encodeDNA([exon]),
-                "donor": encodeDNA([donor]),
-                "donor_intron": encodeDNA([donor_intron])
-            }
-        else:
-            return {
-                "acceptor_intron": acceptor_intron,
-                "acceptor": acceptor,
-                "exon": exon,
-                "donor": donor,
-                "donor_intron": donor_intron
-            }
+        return {
+            "acceptor_intron": encodeDNA([acceptor_intron]),
+            "acceptor": encodeDNA([acceptor]),
+            "exon": encodeDNA([exon]),
+            "donor": encodeDNA([donor]),
+            "donor_intron": encodeDNA([donor_intron])
+        }
         
 
-def popup_dim(list_np):
-    """ Pop up one dimension of a list of numpy arrays
-    """
-    return [a[np.newaxis] for a in list_np]
 
-
-def predict_one_batch(batch, model, assembly_fn):
-    ref_pred = model.predict_on_batch(batch['inputs'])
-    alt_pred = model.predict_on_batch(batch['inputs_mut'])
-    ID = batch['metadata']['variant']['ID']
-    exon = x['metadata']['annotation']
-    pred = assembly_fn(alt_pred - ref_pred)
-    pred = pred.astype(str)
-    return np.array([ID, exon, pred])
-
-
-import multiprocessing
 def predict_all(model, dataloader, batch_size=256, assembly_fn='sum'):
     ''' TODO: multithreading
     TODO: pack into an object that has method convert predictions to a dataframe
@@ -226,6 +173,7 @@ def predict_all(model, dataloader, batch_size=256, assembly_fn='sum'):
     predictions = predictions.groupby(['ID'],as_index=False).agg(lambda x: ','.join(set(x)))
     predictions = dict(zip(predictions.ID, predictions.predicts))
     return predictions
+
 
 def predict_all_table(model, 
                     dataloader, 

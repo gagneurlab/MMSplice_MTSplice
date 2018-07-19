@@ -1,8 +1,12 @@
 import numpy as np
 import sys
-import pdb
 import warnings
 import pandas as pd
+
+clip = lambda x: np.clip(x, 0.00001, 0.99999)
+def logit(x):
+    x = clip(x)
+    return np.log(x)-np.log(1-x)
 
 class Variant(object):
 
@@ -168,12 +172,6 @@ class Exon(SpliceSite):
 
             seq = self.get_seq(fasta)
             p = self._var_pos()
-
-            ###########
-            # seq[p] is variant for snp
-            ############
-            # if self.variant.POS == 91731667:
-            # pdb.set_trace()
 
             if p < 0 or p >= len(seq):  # p is 1 based, len(seq) 0 based
                 return seq

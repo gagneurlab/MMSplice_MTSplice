@@ -1,16 +1,48 @@
 import numpy as np
 from kipoi.metadata import GenomicRanges
 
-import inspect
-import os
-import sys
-filename = inspect.getframeinfo(inspect.currentframe()).filename
-this_path = os.path.dirname(os.path.abspath(filename))
-sys.path.append(this_path)
+# import inspect
+# import os
+# import sys
+# filename = inspect.getframeinfo(inspect.currentframe()).filename
+# this_path = os.path.dirname(os.path.abspath(filename))
+# sys.path.append(this_path)
 
-from generic import Variant, onehot
-
+from .generic import Variant, onehot
 from IntervalTree import IntervalTree, Interval
+
+# Write vcf centric dataloader
+from kipoi.data import Dataset, BatchIterator, SampleIterator
+from concise.preprocessing import encodeDNA
+from cyvcf2 import VCF
+from .IntervalTree import IntervalTree, Interval
+import pickle
+import gffutils
+from pyfaidx import Fasta
+import warnings
+import functools
+
+
+def get_var_side(var):
+    ''' Get exon variant side
+    '''
+    varstart, ref, start, end, strand = var
+    varend = varstart + len(ref) - 1
+    if strand == "+":
+        if varstart < start:
+            return "left"
+        elif varend > end:
+            return "right"
+        else:
+            return None
+    else:
+        if varstart < start:
+            return "right"
+        elif varend > end:
+            return "left"
+        else:
+            return None
+
 
 class VariantInterval(Interval):
     
@@ -47,18 +79,6 @@ class VariantInterval(Interval):
         var.side = side
         return var
 
-
-# Write vcf centric dataloader
-from kipoi.data import Dataset, BatchIterator, SampleIterator
-from concise.preprocessing import encodeDNA
-from cyvcf2 import VCF
-from IntervalTree import IntervalTree, Interval
-import pickle
-import gffutils
-from Genomic_dataloader import get_var_side
-from pyfaidx import Fasta
-import warnings
-import functools
 
 class ExonInterval(gffutils.Feature):
 
