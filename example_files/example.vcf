@@ -1,0 +1,39 @@
+##fileformat=VCFv4.0
+##contig=<ID=chr1,length=249250621>
+##contig=<ID=chr2,length=243199373>
+##contig=<ID=chr3,length=198022430>
+##contig=<ID=chr4,length=191154276>
+##contig=<ID=chr5,length=180915260>
+##contig=<ID=chr6,length=171115067>
+##contig=<ID=chr7,length=159138663>
+##contig=<ID=chr8,length=146364022>
+##contig=<ID=chr9,length=141213431>
+##contig=<ID=chr10,length=135534747>
+##contig=<ID=chr11,length=135006516>
+##contig=<ID=chr12,length=133851895>
+##contig=<ID=chr13,length=115169878>
+##contig=<ID=chr14,length=107349540>
+##contig=<ID=chr15,length=102531392>
+##contig=<ID=chr16,length=90354753>
+##contig=<ID=chr17,length=81195210>
+##contig=<ID=chr18,length=78077248>
+##contig=<ID=chr19,length=59128983>
+##contig=<ID=chr20,length=63025520>
+##contig=<ID=chr21,length=48129895>
+##contig=<ID=chr22,length=51304566>
+##contig=<ID=chrX,length=155270560>
+##contig=<ID=chrY,length=59373566>
+##contig=<ID=chrMT,length=16569>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	114161116	chr1_114161116_C_A	C	A	.	.	.
+chr1	114161130	chr1_114161130_T_C	T	C	.	.	.
+chr1	114161136	chr1_114161136_AT_A	AT	A	.	.	.
+chr1	114161147	chr1_114161147_C_T	C	T	.	.	.
+chr1	114161148	chr1_114161148_G_A	G	A	.	.	.
+chr1	114161167	chr1_114161167_G_A	G	A	.	.	.
+chr1	114161181	chr1_114161181_G_A	G	A	.	.	.
+chr1	114161186	chr1_114161186_G_A	G	A	.	.	.
+chr1	114161197	chr1_114161197_G_A	G	A	.	.	.
+chr1	114161213	chr1_114161213_C_T	C	T	.	.	.
+chr1	114161214	chr1_114161214_G_A	G	A	.	.	.
+chr1	114161249	chr1_114161249_T_A	T	A	.	.	.
