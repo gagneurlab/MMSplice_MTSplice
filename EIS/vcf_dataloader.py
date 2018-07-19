@@ -9,7 +9,7 @@ from kipoi.metadata import GenomicRanges
 # sys.path.append(this_path)
 
 from .generic import Variant, onehot
-from IntervalTree import IntervalTree, Interval
+from .IntervalTree import IntervalTree, Interval
 
 # Write vcf centric dataloader
 from kipoi.data import Dataset, BatchIterator, SampleIterator
