@@ -46,14 +46,14 @@ setup(
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
-    package_data={
-        'eis.models':
-        ['Acceptor.h5',
-        'Donor.h5',
-        'Exon.h5',
-        'Intron3.h5',
-        'Intron5.h5']
-    },
+    # package_data={
+    #     'eis.models':
+    #     ['Acceptor.h5',
+    #     'Donor.h5',
+    #     'Exon.h5',
+    #     'Intron3.h5',
+    #     'Intron5.h5']
+    # }, # Done with MANIFEST.in
     include_package_data=True,
     keywords='eis',
     name='eis',

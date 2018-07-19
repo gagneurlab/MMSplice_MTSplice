@@ -8,7 +8,7 @@ from .generic import logit
 
 from pkg_resources import resource_filename
 
-ACCEPTOR_INTRON = resource_filename('eis', 'models/intron3.h5')
+ACCEPTOR_INTRON = resource_filename('eis', 'models/Intron3.h5')
 DONOR = resource_filename('eis', 'models/Donor.h5')
 EXON = resource_filename('eis', 'models/Exon.h5')
 ACCEPTOR = resource_filename('eis', 'models/Acceptor.h5')

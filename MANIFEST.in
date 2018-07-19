@@ -3,6 +3,8 @@ include CONTRIBUTING.rst
 include HISTORY.rst
 include LICENSE
 include README.rst
+include eis/models/*.h5
+include eis/example_files/*.vcf
 
 recursive-include tests *
 recursive-exclude * __pycache__
