@@ -46,14 +46,22 @@ setup(
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
+    package_data={
+        'eis.models':
+        ['Acceptor.h5',
+        'Donor.h5',
+        'Exon.h5',
+        'Intron3.h5',
+        'Intron5.h5']
+    },
     include_package_data=True,
-    keywords='EIS',
-    name='EIS',
-    packages=find_packages(include=['EIS']),
+    keywords='eis',
+    name='eis',
+    packages=find_packages(include=['eis']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/s6juncheng/EIS',
+    url='https://github.com/s6juncheng/eis',
     version='0.1.0',
     zip_safe=False,
 )

@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use EIS in a project::
+To use eis in a project::
 
-    import EIS
+    import eis

@@ -6,16 +6,15 @@ import numpy as np
 from tqdm import tqdm
 from .generic import logit
 
-# import inspect
-# import os
-# filename = inspect.getframeinfo(inspect.currentframe()).filename
-# this_path = os.path.dirname(os.path.abspath(filename))
-# import sys
-# sys.path.append(this_path)
+from pkg_resources import resource_filename
 
-model_dir = "/data/ouga/home/ag_gagneur/chengju/project/EIS/models/"
+ACCEPTOR_INTRON = resource_filename('eis', 'models/intron3.h5')
+DONOR = resource_filename('eis', 'models/Donor.h5')
+EXON = resource_filename('eis', 'models/Exon.h5')
+ACCEPTOR = resource_filename('eis', 'models/Acceptor.h5')
+DONOR_INTRON = resource_filename('eis', 'models/Intron5.h5')
 
-class EIS(object):
+class Eis(object):
     """ Load modules of EIS model, perform prediction with inputs come from a dataloader.
 
     Args: 
@@ -36,11 +35,11 @@ class EIS(object):
     """
 
     def __init__(self, 
-                 acceptor_intronM=model_dir+"Intron3.h5",
-                 acceptorM=model_dir+"Acceptor.h5",
-                 exonM=model_dir+"Exon.h5",
-                 donorM=model_dir+"Donor.h5",
-                 donor_intronM=model_dir+"Intron5.h5",
+                 acceptor_intronM=ACCEPTOR_INTRON,
+                 acceptorM=ACCEPTOR,
+                 exonM=EXON,
+                 donorM=DONOR,
+                 donor_intronM=DONOR_INTRON,
                  
                  # parameters to split the sequence
                  exon_cut_l=3,
@@ -245,28 +244,4 @@ def writeEIS(vcf_in, vcf_out, predictions):
         w.write_record(var)
     w.close(); vcf.close()
 
-## Test implementation
-
-# seq = 'AACTAG GCTCCATTACA GTACAC'
-seq = 'AACTAGGCTCCATTACAGTACAC'
-
-test = SE(
-          exon_cut_l=1,
-          exon_cut_r=1,
-          acceptor_intron_cut=2,
-          donor_intron_cut=2,
-          acceptor_intron_len=2,
-          acceptor_exon_len=3,
-          donor_exon_len=3,
-          donor_intron_len=2,
-         encode=False)
-
-seqsplit = test.split(seq, intronl_len=6,
-          intronr_len=6,)
-assert seqsplit['acceptor_intron'] == "AACT"
-assert seqsplit['acceptor'] == "AGGCT"
-assert seqsplit['exon'] == "CTCCATTAC"
-assert seqsplit['donor'] == "ACAGT"
-assert seqsplit['donor_intron'] == "ACAC"
-assert seqsplit['acceptor_intron'] == "AACT"
 

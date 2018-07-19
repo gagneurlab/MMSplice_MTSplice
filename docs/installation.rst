@@ -8,13 +8,13 @@ Installation
 Stable release
 --------------
 
-To install EIS, run this command in your terminal:
+To install eis, run this command in your terminal:
 
 .. code-block:: console
 
-    $ pip install EIS
+    $ pip install eis
 
-This is the preferred method to install EIS, as it will always install the most recent stable release.
+This is the preferred method to install eis, as it will always install the most recent stable release.
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
@@ -26,19 +26,19 @@ you through the process.
 From sources
 ------------
 
-The sources for EIS can be downloaded from the `Github repo`_.
+The sources for eis can be downloaded from the `Github repo`_.
 
 You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/s6juncheng/EIS
+    $ git clone git://github.com/s6juncheng/eis
 
 Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl  -OL https://github.com/s6juncheng/EIS/tarball/master
+    $ curl  -OL https://github.com/s6juncheng/eis/tarball/master
 
 Once you have a copy of the source, you can install it with:
 
@@ -47,5 +47,5 @@ Once you have a copy of the source, you can install it with:
     $ python setup.py install
 
 
-.. _Github repo: https://github.com/s6juncheng/EIS
-.. _tarball: https://github.com/s6juncheng/EIS/tarball/master
+.. _Github repo: https://github.com/s6juncheng/eis
+.. _tarball: https://github.com/s6juncheng/eis/tarball/master

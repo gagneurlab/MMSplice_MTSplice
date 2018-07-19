@@ -51,7 +51,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 lint: ## check style with flake8
-	flake8 EIS tests
+	flake8 eis tests
 
 test: ## run tests quickly with the default Python
 	py.test
@@ -60,15 +60,15 @@ test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source EIS -m pytest
+	coverage run --source eis -m pytest
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
 docs: ## generate Sphinx HTML documentation, including API docs
-	rm -f docs/EIS.rst
+	rm -f docs/eis.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ EIS
+	sphinx-apidoc -o docs/ eis
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html

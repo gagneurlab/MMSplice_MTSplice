@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `EIS` package."""
+"""Tests for `eis` package."""
 
 import pytest
 
 
-from EIS import EIS
+from eis import eis
 
 
 @pytest.fixture

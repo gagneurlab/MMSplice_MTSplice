@@ -25,5 +25,5 @@ deploy:
     secure: PLEASE_REPLACE_ME
   on:
     tags: true
-    repo: s6juncheng/EIS
+    repo: s6juncheng/eis
     python: 3.6
