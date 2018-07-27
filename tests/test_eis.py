@@ -5,8 +5,7 @@
 
 import pytest
 
-
-from eis import eis
+from eis import Eis
 
 
 @pytest.fixture
@@ -23,3 +22,14 @@ def test_content(response):
     """Sample pytest test function with the pytest fixture as an argument."""
     # from bs4 import BeautifulSoup
     # assert 'GitHub' in BeautifulSoup(response.content).title.string
+    pass
+
+     
+def test_eis():
+    x = {'seq': "ATGCGACGTACCCAGTAAAT",
+     'intronl_len': 4,
+    'intronr_len': 4}
+    model = Eis()
+    pred = model.predict(x)
+    assert len(pred) == 5
+    
