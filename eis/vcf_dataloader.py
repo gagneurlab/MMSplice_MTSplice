@@ -179,8 +179,10 @@ class ExonInterval(gffutils.Feature):
         if p < 0 or p >= len(seq):  # p is 1 based, len(seq) 0 based
             return seq
         elif variant.len_diff == 0:
-            # SNP
-            mut_seq = seq[:max(0, p)] + variant.ALT + seq[p + len(variant.REF):]
+            # SNP, or more than one nt equal length substitution
+            mut_seq = seq[:max(0, p)] + variant.ALT + seq[p + len(variant.ALT):]
+            if len(mut_seq) > len(seq):
+                mut_seq = mut_seq[:len(seq)]
             assert len(mut_seq) == len(seq), variant
             return mut_seq
         elif variant.len_diff < 0:
