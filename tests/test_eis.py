@@ -1,11 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """Tests for `eis` package."""
 
 import pytest
 
-from eis import Eis
+from eis import Eis, predict_all_table
+from eis.vcf_dataloader import SplicingVCFDataloader, GenerateExonIntervalTree
 
 
 @pytest.fixture
@@ -33,3 +33,14 @@ def test_eis():
     pred = model.predict(x)
     assert len(pred) == 5
     
+## test vcf dataloader
+# clinvar_20180429.filtered.BRCA1.vcf.gz
+# clinvar_20180429.filtered.BRCA1.vcf.gz.tbi
+# Homo_sapiens.GRCh37.75.uniq_exon.BRCA1.gtf
+
+# def test_GenerateExonIntervalTree():
+#     gtf = 'data/test.gtf'
+#     # fasta = 'data/hg19.nochr.chr17.fa'
+#     exonTree = GenerateExonIntervalTree(gtf, 
+#         out_file = 'data/gtfIntervalTree.pkl')
+#     return exonTree
