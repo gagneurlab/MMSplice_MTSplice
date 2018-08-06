@@ -4,7 +4,7 @@ include HISTORY.rst
 include LICENSE
 include README.rst
 include eis/models/*.h5
-include eis/example_files/*.vcf
+include eis/utils/*.py
 
 recursive-include tests *
 recursive-exclude * __pycache__
