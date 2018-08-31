@@ -42,14 +42,14 @@ class Eis(object):
                  donor_intronM=DONOR_INTRON,
                  
                  # parameters to split the sequence
-                 exon_cut_l=3,
-                 exon_cut_r=3,
-                 acceptor_intron_cut=20,
+                 exon_cut_l=0,
+                 exon_cut_r=0,
+                 acceptor_intron_cut=6,
                  donor_intron_cut=6,
-                 acceptor_intron_len=20,
+                 acceptor_intron_len=50,
                  acceptor_exon_len=3,
-                 donor_exon_len=3,
-                 donor_intron_len=6
+                 donor_exon_len=5,
+                 donor_intron_len=13
                 ):
         
         self.exon_cut_l = exon_cut_l
