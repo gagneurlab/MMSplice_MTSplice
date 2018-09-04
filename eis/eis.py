@@ -95,7 +95,7 @@ class Eis(object):
         Each loop split sequence and apply the model.
         '''
         dt = pd.DataFrame.from_dict(inputs)
-        pred = dt.apply(self.predict, axis=1).as_matrix()
+        pred = dt.apply(self.predict, axis=1).values
         return pred
     
     def predict(self, x):
@@ -216,8 +216,8 @@ def predict_all_table(model,
     exons = np.concatenate(exons)
     pred = pd.DataFrame({'ID': ID, 'exons': exons})
     if assembly:
-        ref_pred = ref_pred.as_matrix()
-        alt_pred = alt_pred.as_matrix()
+        ref_pred = ref_pred.values
+        alt_pred = alt_pred.values
         X = alt_pred-ref_pred
         exon_overlap = np.logical_or(np.logical_and(X[:,1]!=0, X[:,2]!=0), np.logical_and(X[:,2]!=0, X[:,3]!=0))
         X = np.hstack([X, (X[:,2]*exon_overlap).reshape(-1,1)])

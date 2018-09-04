@@ -59,11 +59,15 @@ class VariantInterval(Interval):
         # Only support one alternative. 
         # If multiple alternative, need to split into multiple variants
         assert len(variant.ALT) == 1, "Only one alternative sequence is allowed, split into mutliple variants"
+        if variant.ID is None:
+            ID = '.'
+        else:
+            ID = variant.ID
         return cls(chrom=variant.CHROM,
                  start=variant.POS,
                  end=variant.POS,
                  strand="*",
-                 name=variant.ID,
+                 name=ID,
                   REF=variant.REF,
                   ALT=variant.ALT[0])
     
