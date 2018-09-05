@@ -49,6 +49,6 @@ def psi_score():
         'intronr_len': int(request.json['intronr_len'])
     }
 
-    score = float(psi_model.predict(x)[0][0])
+    scores = psi_model.predict(x)
 
-    return jsonify(score)
+    return ','.join(map(str, scores.tolist()))

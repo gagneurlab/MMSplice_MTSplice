@@ -80,7 +80,6 @@ sub new {
   $self->init_params();
   $self->init_api();
 
-  # $DB::single = 1;
 
   return $self;
 }
@@ -91,11 +90,18 @@ sub feature_types {
 }
 
 sub get_header_info {
-  return {
-    psi_ref => "PSI reference sequence score",
-    psi_alt => "PSI alternate sequence score",
-    psi_diff => "PSI score difference",
-  };
+    return {
+      acceptor_intron_ref => "acceptor intron ref",
+      acceptor_ref => "acceptor ref",
+      exon_ref => "exon ref",
+      donor_ref => "donor ref",
+      donor_intron_ref => "donor intron ref",
+      acceptor_intron_alt => "acceptor intron alt",
+      acceptor_alt => "acceptor alt",
+      exon_alt => "exon alt",
+      donor_alt => "alt donor",
+      donor_intron_alt => "alt donor intron"
+    };
 }
 
 sub init_params {
@@ -103,15 +109,15 @@ sub init_params {
   my $params = $self->params;
 
   $self->{overhang_l} = shift @$params || 100;
-  $self->{overhang_r} = shift @$params || 80;
+  $self->{overhang_r} = shift @$params || 100;
   $self->{exon_cut_l} = shift @$params || 0;
   $self->{exon_cut_r} = shift @$params || 0;
   $self->{acceptor_intron_cut} = shift @$params || 6;
-  $self->{donor_intron_cut} = shift @$params || 3;
-  $self->{acceptor_intron_len} = shift @$params || 20;
+  $self->{donor_intron_cut} = shift @$params || 6;
+  $self->{acceptor_intron_len} = shift @$params || 50;
   $self->{acceptor_exon_len} = shift @$params || 3;
-  $self->{donor_exon_len} = shift @$params || 3;
-  $self->{donor_intron_len} = shift @$params || 6;
+  $self->{donor_exon_len} = shift @$params || 5;
+  $self->{donor_intron_len} = shift @$params || 13;
   $self->{api_port} = shift @$params || 5000;
 }
 
@@ -189,13 +195,20 @@ sub run {
     my $ref_seq = $self->fetch_seq($tva, $splicing_start, $splicing_end);
     my $alt_seq = $self->fetch_variant_seq($tva, $exon, $splicing_start, $splicing_end);
 
-    my $ref_score = $self->req_psi_score($ref_seq);
-    my $alt_score = $self->req_psi_score($alt_seq);
+    my @ref_scores = $self->req_psi_score($ref_seq);
+    my @alt_scores = $self->req_psi_score($alt_seq);
 
     return {
-      psi_ref => $ref_score,
-      psi_alt => $alt_score,
-      psi_diff => $alt_score - $ref_score
+      acceptor_intron_ref => $ref_scores[0],
+      acceptor_ref => $ref_scores[1],
+      exon_ref => $ref_scores[2],
+      donor_ref => $ref_scores[3],
+      donor_intron_ref => $ref_scores[4],
+      acceptor_intron_alt => $alt_scores[0],
+      acceptor_alt => $alt_scores[1],
+      exon_alt => $alt_scores[2],
+      donor_alt => $alt_scores[3],
+      donor_intron_alt => $alt_scores[4]
     }
   }
 
@@ -329,8 +342,12 @@ sub req_psi_score {
 
   my $resp = $self->{ua}->request($req);
   if ($resp->is_success) {
-      my $score = $resp->decoded_content;
-      return $score;
+
+      my $decoded_content = $resp->decoded_content;
+
+      my @scores = split(',', $decoded_content);
+
+      return @scores;
   }
   else {
       print "HTTP POST error code: ", $resp->code, "\n";
