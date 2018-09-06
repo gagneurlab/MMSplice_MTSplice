@@ -108,6 +108,13 @@ sub init_params {
   my $self = shift;
   my $params = $self->params;
 
+  $self->{acceptor_intronM} = shift @$params || "";
+  $self->{acceptorM} = shift @$params || "";
+  $self->{exonM} = shift @$params || "";
+  $self->{donorM} = shift @$params || "";
+  $self->{donor_intronM} = shift @$params || "";
+  $self->{api_port} = shift @$params || 5000;
+
   $self->{overhang_l} = shift @$params || 100;
   $self->{overhang_r} = shift @$params || 100;
   $self->{exon_cut_l} = shift @$params || 0;
@@ -118,7 +125,6 @@ sub init_params {
   $self->{acceptor_exon_len} = shift @$params || 3;
   $self->{donor_exon_len} = shift @$params || 5;
   $self->{donor_intron_len} = shift @$params || 13;
-  $self->{api_port} = shift @$params || 5000;
 }
 
 sub init_api {
@@ -159,6 +165,12 @@ sub create_model {
   $req->header('content-type' => 'application/json');
 
   my $content = qq{{
+  "acceptor_intronM": "$self->{acceptor_intronM}",
+  "acceptorM": "$self->{acceptorM}",
+  "exonM": "$self->{exonM}",
+  "donorM": "$self->{donorM}",
+  "donor_intronM": "$self->{donor_intronM}",
+
   "exon_cut_l": $self->{exon_cut_l},
   "exon_cut_r": $self->{exon_cut_r},
   "acceptor_intron_cut": $self->{acceptor_intron_cut},
@@ -173,7 +185,7 @@ sub create_model {
 
   my $resp = $self->{ua}->request($req);
   if ($resp->is_success) {
-      $self->{model_id} = $resp->decoded_content;
+      return;
   }
   else {
       print "HTTP GET error code: ", $resp->code, "\n";
@@ -332,7 +344,6 @@ sub req_psi_score {
   $req->header('content-type' => 'application/json');
 
   my $content = qq{{
-  "model_id": $self->{model_id},
   "intronl_len": $self->{overhang_l},
   "intronr_len": $self->{overhang_r},
   "seq": "$seq"
