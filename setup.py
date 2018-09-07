@@ -11,16 +11,20 @@ with open('README.md') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [ 
+requirements = [
+    'setuptools<=39.1.0',
+    'numpy<=1.14.5',
+    'tensorflow',
     'keras',
     'kipoi',
-    'numpy',
     'pandas',
     'concise',
     'cyvcf2',
     'gffutils',
     'pyfaidx',
-    'tqdm'
+    'tqdm',
+    'click',
+    'flask',
 ]
 
 setup_requirements = ['pytest-runner', ]
@@ -54,6 +58,12 @@ setup(
     #     'Intron3.h5',
     #     'Intron5.h5']
     # }, # Done with MANIFEST.in
+
+    entry_points='''
+        [console_scripts]
+        eis=eis.main:cli
+    ''',
+
     include_package_data=True,
     keywords='eis',
     name='eis',
