@@ -13,6 +13,7 @@ DONOR = resource_filename('eis', 'models/Donor.h5')
 EXON = resource_filename('eis', 'models/Exon.h5')
 ACCEPTOR = resource_filename('eis', 'models/Acceptor.h5')
 DONOR_INTRON = resource_filename('eis', 'models/Intron5.h5')
+LINEAR_MODEL = resource_filename('eis', 'models/linear_model.h5')
 
 class Eis(object):
     """ Load modules of eis model, perform prediction with inputs come from a dataloader.
@@ -137,6 +138,8 @@ class Eis(object):
             warnings.warn("None GT donor", UserWarning)
         if acceptor[self.acceptor_intron_len-2:self.acceptor_intron_len] != "AG":
             warnings.warn("None AG donor", UserWarning)
+        if len(exon) == 0:
+            exon = 'N'
             
         return {
             "acceptor_intron": encodeDNA([acceptor_intron]),
@@ -182,7 +185,7 @@ def predict_all_table(model,
                     progress=True,
                     exon_scale_factor=5.354345):
     ''' Return the prediction as a table
-        exon_scale_factor: can be determined through cross validation. Default 5.354345 is a good choice.
+        exon_scale_factor: can be determined through cross validation. 
     '''
     ID = []
     ref_pred = []

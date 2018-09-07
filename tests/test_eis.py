@@ -44,3 +44,4 @@ def test_eis():
 #     exonTree = GenerateExonIntervalTree(gtf, 
 #         out_file = 'data/gtfIntervalTree.pkl')
 #     return exonTree
+# 17:41267742:CTT:['C'] 

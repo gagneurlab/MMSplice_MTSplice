@@ -176,7 +176,7 @@ class Exon(SpliceSite):
             if p < 0 or p >= len(seq):  # p is 1 based, len(seq) 0 based
                 return seq
             elif self.variant.len_diff == 0:
-                # SNP
+                # substitution
                 mut_seq = seq[:max(0, p)] + self.variant.ALT + seq[p + len(self.variant.REF):]
                 assert len(mut_seq) == len(seq)
                 return mut_seq

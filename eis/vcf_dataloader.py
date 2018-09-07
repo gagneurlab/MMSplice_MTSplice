@@ -26,8 +26,15 @@ import functools
 def get_var_side(var):
     ''' Get exon variant side
     '''
-    varstart, ref, start, end, strand = var
+    varstart, ref, alt, start, end, strand = var
     varend = varstart + len(ref) - 1
+    # for insertion deletion, find the actual start of variant
+    # e.g. A->AGG: start from G position, CA->CAGG:start from G position, 
+    # ATT->A: start from T position, CAT->CA: start from T position
+    # For SNP var.POS is the actual mutation position
+    if len(ref) != len(alt):
+    	# indels
+    	varstart = varstart + min(len(ref), len(alt)) 
     if strand == "+":
         if varstart < start:
             return "left"
@@ -367,7 +374,7 @@ class SplicingVCFDataloader(SampleIterator):
             if len(matches) == 0:
                 continue
             for match in matches:
-                side = get_var_side((var.POS, var.REF, match.Exon_Start, match.Exon_End, match.strand))
+                side = get_var_side((var.POS, var.REF, var.ALT, match.Exon_Start, match.Exon_End, match.strand))
                 var = iv.to_Variant(match.strand, side) # to my Variant class               
                 yield match, var
 
