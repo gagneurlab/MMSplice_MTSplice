@@ -13,6 +13,7 @@ DONOR = resource_filename('eis', 'models/Donor.h5')
 EXON = resource_filename('eis', 'models/Exon.h5')
 ACCEPTOR = resource_filename('eis', 'models/Acceptor.h5')
 DONOR_INTRON = resource_filename('eis', 'models/Intron5.h5')
+LINEAR_MODEL = resource_filename('eis', 'models/linear_model.h5')
 
 
 class Eis(object):
@@ -97,7 +98,7 @@ class Eis(object):
         Each loop split sequence and apply the model.
         '''
         dt = pd.DataFrame.from_dict(inputs)
-        pred = dt.apply(self.predict, axis=1).as_matrix()
+        pred = dt.apply(self.predict, axis=1).values
         return pred
 
     def predict(self, x):
@@ -146,7 +147,9 @@ class Eis(object):
             warnings.warn("None GT donor", UserWarning)
         if acceptor[self.acceptor_intron_len - 2:self.acceptor_intron_len] != "AG":
             warnings.warn("None AG donor", UserWarning)
-
+        if len(exon) == 0:
+            exon = 'N'
+            
         return {
             "acceptor_intron": encodeDNA([acceptor_intron]),
             "acceptor": encodeDNA([acceptor]),
@@ -192,7 +195,7 @@ def predict_all_table(model,
                       progress=True,
                       exon_scale_factor=5.354345):
     ''' Return the prediction as a table
-        exon_scale_factor: can be determined through cross validation. Default 5.354345 is a good choice.
+        exon_scale_factor: can be determined through cross validation. 
     '''
     ID = []
     ref_pred = []
@@ -226,12 +229,11 @@ def predict_all_table(model,
     exons = np.concatenate(exons)
     pred = pd.DataFrame({'ID': ID, 'exons': exons})
     if assembly:
-        ref_pred = ref_pred.as_matrix()
-        alt_pred = alt_pred.as_matrix()
-        X = alt_pred - ref_pred
-        exon_overlap = np.logical_or(np.logical_and(
-            X[:, 1] != 0, X[:, 2] != 0), np.logical_and(X[:, 2] != 0, X[:, 3] != 0))
-        X = np.hstack([X, (X[:, 2] * exon_overlap).reshape(-1, 1)])
+        ref_pred = ref_pred.values
+        alt_pred = alt_pred.values
+        X = alt_pred-ref_pred
+        exon_overlap = np.logical_or(np.logical_and(X[:,1]!=0, X[:,2]!=0), np.logical_and(X[:,2]!=0, X[:,3]!=0))
+        X = np.hstack([X, (X[:,2]*exon_overlap).reshape(-1,1)])
         s = exon_scale_factor
         delt_pred = np.dot(X, np.array([1, 1, s, 1, 1, -s]))
         pred['EIS_Diff'] = delt_pred
