@@ -19,14 +19,17 @@ from .vcf_dataloader import ExonInterval, FastaSeq
 
 def readExon(exonfile, **kwargs):
     exons = pd.read_csv(exonfile, **kwargs)
-    exons = exons.rename(columns={"hg19_variant_position": "POS", 
-                                  "reference": "REF",
-                                  "variant": "ALT",
-                                 "start": "Exon_Start",
-                                 "end": "Exon_End",
-                                 "chr": "CHROM",
-                                 "seqnames": "CHROM",
-                                 "chromosome":"CHROM"})
+    exons = exons.rename(columns={"hg19_variant_position": "POS",
+                                "variant_position": "POS", 
+                                "reference": "REF",
+                                "variant": "ALT",
+                                "start": "Exon_Start",
+                                "end": "Exon_End",
+                                "exon_start": "Exon_Start",
+                                "exon_end": "Exon_End",
+                                "chr": "CHROM",
+                                "seqnames": "CHROM",
+                                "chromosome":"CHROM"})
     return exons
 
 

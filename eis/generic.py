@@ -8,6 +8,8 @@ def logit(x):
     x = clip(x)
     return np.log(x)-np.log(1-x)
 
+def expit(x): return 1. / (1. + np.exp(-x))
+
 def get_var_side(var):
     ''' Get exon variant side
     '''
@@ -49,7 +51,7 @@ def onehot(seq):
 def reverse_complement(dna):
     complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N':'N'}
     return ''.join([complement[base] for base in dna[::-1]])
-    
+
 
 class Variant(object):
 
@@ -164,173 +166,5 @@ class SpliceSite(object):
             return onehot(seq.upper())
         else:
             return seq.upper()
-
-
-class Exon(SpliceSite):
-
-    def __init__(self,
-                 *args,
-                 **kwargs):
-        ''' Exon with flanking intron
-        Args:
-            order: order of splice site (donor or acceptor) in a transcript counted from 5' to 3'. 
-        '''
-        super().__init__(*args, **kwargs)
-
-    def get_seq(self, fasta):
-        seq = fasta.get_seq(self.chrom,
-                            self.grange,
-                            self.strand)
-        return seq.upper()
-
-    def get_mut_seq(self, fasta):
-        if self.variant is None:
-            warnings.warn("Variant not known, return empty string", UserWarning)
-            return ""
-        else:
-            assert self.variant.side in (None, "left", "right")
-
-            # check reference
-            ref_check = fasta.get_seq(self.chrom,
-                                      (self.variant.POS, self.variant.POS + len(self.variant.REF) - 1),  # -1 because 1 based
-                                      self.strand)
-            if ref_check != self.variant.REF:
-                warnings.warn("Reference not match, cannot mutate, return original sequence.", UserWarning)
-                print(self.variant)
-                return self.get_seq(fasta)
-
-            seq = self.get_seq(fasta)
-            p = self._var_pos()
-
-            if p < 0 or p >= len(seq):  # p is 1 based, len(seq) 0 based
-                return seq
-            elif self.variant.len_diff == 0:
-                # substitution
-                mut_seq = seq[:max(0, p)] + self.variant.ALT + seq[p + len(self.variant.REF):]
-                assert len(mut_seq) == len(seq)
-                return mut_seq
-            elif self.variant.len_diff < 0:
-                # insertion
-                mut_seq = seq[:max(0, p)] + self.variant.ALT + seq[p + len(self.variant.REF):]
-                seq = self.get_seq(fasta)
-                assert len(seq) - len(mut_seq) == self.variant.len_diff
-                if self.variant.side is None:
-                    # only substitute
-                    return mut_seq
-                elif self.variant.side == 'left':
-                    return mut_seq[-self.variant.len_diff:]
-                else:
-                    return mut_seq[:self.variant.len_diff]
-            elif self.variant.len_diff > 0:
-                # deletion
-                if self.variant.side is None:
-                    mut_seq = seq[:max(0, p)] + self.variant.ALT + seq[p + self.variant.len_diff + 1:]
-                    assert len(seq) - len(mut_seq) == self.variant.len_diff
-                    return mut_seq
-                elif self.variant.side == 'left':
-                    if self.strand == "+":
-                        mut_seq = fasta.get_seq(self.chrom,
-                                                (self.grange[0] - self.variant.len_diff, self.grange[1]),
-                                                self.strand)
-                    else:
-                        mut_seq = fasta.get_seq(self.chrom,
-                                                (self.grange[0], self.grange[1] + self.variant.len_diff),
-                                                self.strand)
-                    mut_seq = mut_seq[:p + self.variant.len_diff] + self.variant.ALT + seq[p + self.variant.len_diff + 1:]
-                    assert len(mut_seq) == len(seq)
-                    return mut_seq
-                else:
-                    if self.strand == "+":
-                        mut_seq = fasta.get_seq(self.chrom,
-                                                (self.grange[0], self.grange[1] + self.variant.len_diff),
-                                                self.strand)
-                    else:
-                        mut_seq = fasta.get_seq(self.chrom,
-                                                (self.grange[0] - self.variant.len_diff, self.grange[1]),
-                                                self.strand)
-                    mut_seq = seq[:p] + self.variant.ALT + mut_seq[p + self.variant.len_diff + 1:]
-                    assert len(mut_seq) == len(seq)
-                    return mut_seq
-
-    def _var_pos(self):
-        """ Get variant relative position in the sequence
-        """
-        if self.strand == "+":
-            return self.variant.POS - self.grange[0]
-        else:
-            return self.grange[1] - self.variant.POS - len(self.variant.REF) + 1
-
-
-def mutate_seq(seq, valrel, base, is_rc):
-    """ valrel: variant relative position on the sequence
-    base: base to substitute
-    is_rc: is reverse complement
-    """
-    pass
-
-
-class Target(object):
-    """ Read (miso) target file, counts or PSI
-    """
-
-    def __init__(self,
-                 target_file,
-                 label_col='event_name',
-                 iscounts=True):
-        self.label_col = label_col
-        self._read_target(target_file)
-
-    def _read_target(self, target_file):
-        dt = pd.read_csv(target_file, index_col=0)
-        event_names = dt[self.label_col].tolist()
-        self._index = event_names
-        dt = dt.drop(self.label_col, axis=1)
-        tissues = dt.columns
-        dt = dt.as_matrix()
-        dt = np.stack((dt, 1 - dt), axis=2)  # might bug if only one tissue
-        self.target = dt
-        self.tissues = tissues
-
-    def get_target(self, name):
-        try:
-            inx = self._index.index(name)
-            return self.target[inx]
-        except:
-            dim = self.target.shape
-            return nans((dim[1:]))
-
-
-def nans(shape, dtype=float):
-    a = np.empty(shape, dtype)
-    a.fill(np.nan)
-    return a
-
-
-class HiddenPrints:
-    def __enter__(self):
-        self._original_stdout = sys.stdout
-        sys.stdout = None
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout = self._original_stdout
-
-
-def clip(x): return np.clip(x, 0.00001, 0.99999)
-def logit(x):
-    x = clip(x)
-    return np.log(x) - np.log(1 - x)
-
-
-def expit(x): return 1. / (1. + np.exp(-x))
-
-def scale_factor(delta_score, ref_psi, delta_psi):
-    # delta_score: predicted delta_score on logit scale
-    # delta_psi: measured delta_psi
-    delta_score_true = logit(ref_psi + delta_psi) - logit(ref_psi)  # measured delta logit
-    # remove NAs
-    keep = np.isfinite(delta_score_true)
-    return np.dot(delta_score[keep], delta_score_true[keep]) / np.dot(delta_score[keep], delta_score[keep])
-
-
 
 
