@@ -14,6 +14,7 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'setuptools<=39.1.0',
     'numpy<=1.14.5',
+    'sklearn',
     'tensorflow',
     'keras',
     'kipoi',

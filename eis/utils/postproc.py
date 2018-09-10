@@ -1,26 +1,29 @@
 import pandas as pd
 import numpy as np
+from sklearn.externals import joblib
+from pkg_resources import resource_filename
+LINEAR_MODEL = joblib.load(resource_filename('eis', 'models/linear_model.pkl'))
 
-def max_varEff(df, combine_fn=lambda x: np.sum(x, axis=1)):
+def max_varEff(df):
     """ Summarize largest absolute effect per variant across all affected exons.
     Args:
         df: result of `predict_all_table`
-        combine_fn: Maximum effect size is calculated by calculating 
-        the combined effect size of all 5 modules.
     """
     if isinstance(df, str):
         df = pd.read_csv(df, index_col=0)
     ref_list = ['EIS_ref_acceptorIntron', 'EIS_ref_acceptor', 'EIS_ref_exon', 'EIS_ref_donor', 'EIS_ref_donorIntron']
     alt_list = ['EIS_alt_acceptorIntron', 'EIS_alt_acceptor', 'EIS_alt_exon', 'EIS_alt_donor', 'EIS_alt_donorIntron']
-    EIS_diff = df[alt_list].values - df[ref_list].values
-    df['EIS_diff'] = combine_fn(EIS_diff)
+    if 'EIS_diff' not in df.columns:
+        X = df[alt_list].values - df[ref_list].values
+        X = _transform(X)
+        df['EIS_diff'] = LINEAR_MODEL.predict(X)
     dfMax = df.groupby(['ID'], as_index=False).agg({'EIS_diff': lambda x: max(x, key=abs)})
     dfMax = dfMax.merge(df, how='left', on = ['ID', 'EIS_diff'])
     dfMax = dfMax.drop_duplicates(subset=['ID', 'EIS_diff'])
     # dfMax = dfMax.drop("EIS_diff", axis=1)
     return dfMax
 
-def _not_close0(arr):
+def not_close0(arr):
     return ~np.isclose(arr, 0)
 
 def _transform(X, region_only=False):

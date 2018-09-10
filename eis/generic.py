@@ -8,6 +8,49 @@ def logit(x):
     x = clip(x)
     return np.log(x)-np.log(1-x)
 
+def get_var_side(var):
+    ''' Get exon variant side
+    '''
+    varstart, ref, alt, start, end, strand = var
+    varend = varstart + len(ref) - 1
+    # for insertion deletion, find the actual start of variant
+    # e.g. A->AGG: start from G position, CA->CAGG:start from G position, 
+    # ATT->A: start from T position, CAT->CA: start from T position
+    # For SNP var.POS is the actual mutation position
+    if len(ref) != len(alt):
+    	# indels
+    	varstart = varstart + min(len(ref), len(alt)) 
+    if strand == "+":
+        if varstart < start:
+            return "left"
+        elif varend > end:
+            return "right"
+        else:
+            return None
+    else:
+        if varstart < start:
+            return "right"
+        elif varend > end:
+            return "left"
+        else:
+            return None
+
+bases = ['A', 'C', 'G', 'T']
+
+def onehot(seq):
+    X = np.zeros((len(seq), len(bases)))
+    for i, char in enumerate(seq):
+        if char == "N":
+            pass
+        else:
+            X[i, bases.index(char.upper())] = 1
+    return X
+
+def reverse_complement(dna):
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N':'N'}
+    return ''.join([complement[base] for base in dna[::-1]])
+    
+
 class Variant(object):
 
     def __init__(self,
@@ -75,20 +118,6 @@ class Variant(object):
         return "Variant(CHROM={0}, POS={1}, REF={2}, ALT={3}, ID={4})".format(self.CHROM, self.POS, self.REF, self.ALT, self.ID)
 
 
-bases = ['A', 'C', 'G', 'T']
-
-def onehot(seq):
-    X = np.zeros((len(seq), len(bases)))
-    for i, char in enumerate(seq):
-        if char == "N":
-            pass
-        else:
-            X[i, bases.index(char.upper())] = 1
-    return X
-
-def reverse_complement(dna):
-    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N':'N'}
-    return ''.join([complement[base] for base in dna[::-1]])
 
 class SpliceSite(object):
     ''' A splice site with flanking intron and exon sequence

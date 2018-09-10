@@ -8,7 +8,7 @@ from kipoi.metadata import GenomicRanges
 # this_path = os.path.dirname(os.path.abspath(filename))
 # sys.path.append(this_path)
 
-from .generic import Variant, onehot
+from .generic import Variant, onehot, get_var_side
 from .IntervalTree import IntervalTree, Interval
 
 # Write vcf centric dataloader
@@ -21,34 +21,6 @@ import gffutils
 from pyfaidx import Fasta
 import warnings
 import functools
-
-
-def get_var_side(var):
-    ''' Get exon variant side
-    '''
-    varstart, ref, alt, start, end, strand = var
-    varend = varstart + len(ref) - 1
-    # for insertion deletion, find the actual start of variant
-    # e.g. A->AGG: start from G position, CA->CAGG:start from G position, 
-    # ATT->A: start from T position, CAT->CA: start from T position
-    # For SNP var.POS is the actual mutation position
-    if len(ref) != len(alt):
-    	# indels
-    	varstart = varstart + min(len(ref), len(alt)) 
-    if strand == "+":
-        if varstart < start:
-            return "left"
-        elif varend > end:
-            return "right"
-        else:
-            return None
-    else:
-        if varstart < start:
-            return "right"
-        elif varend > end:
-            return "left"
-        else:
-            return None
 
 
 class VariantInterval(Interval):
@@ -167,6 +139,26 @@ class ExonInterval(gffutils.Feature):
             iv.end = iv.Exon_End + overhang[0]
         iv.overhang = overhang
         return iv
+
+    @classmethod
+    def from_exonfile(cls, exon, attributes, overhang=(0,0)):
+        iv = cls(seqid=exon.CHROM,
+                    source='',
+                    start=exon.Exon_Start,  # exon start
+                    end=exon.Exon_End,  # exon end
+                    strand=exon.strand,
+                    frame='',
+                    attributes=attributes,
+                    order=attributes['order'])
+        if iv.strand == "+":
+            iv.start = iv.Exon_Start - overhang[0]
+            iv.end = iv.Exon_End + overhang[1]
+        else:
+            iv.start = iv.Exon_Start - overhang[1]
+            iv.end = iv.Exon_End + overhang[0]
+        iv.overhang = overhang
+        return iv
+
     
     def get_seq(self, fasta, use_strand=True):
         seq = self.sequence(fasta, use_strand=use_strand)
@@ -273,9 +265,14 @@ def GenerateExonIntervalTree(gtf_file,
     """
     Build IntervalTree object from gtf file for one feature unit (e.g. gene, exon)
     If give out_file, pickle it
-    firstLastNoExtend: do no extend 5' for first exon, do not extend 3' for last exon. 
-    However, some exons can be first/last only for certain transcript, the tree cannot distinguish them.
-    TODO: Filters, such as filter for protein coding genes
+    gtf_file: gtf format file or pickled Intervaltree object.
+    overhang: flanking intron length to take along with exon. Corresponding to left (acceptor side) and right (donor side)
+    gtf_db_path: (optional) gtf database path. Database for one gtf file only need to be created once 
+    out_file: (optional) file path to store the pickled Intervaltree obejct. Next time run it can be given to `gtf_file`  
+    disable_infer_transcripts: option to disable infering transcripts. Can be True if the gtf file has transcripts annotated.
+    disable_infer_genes: option to disable infering genes. Can be True if the gtf file has genes annotated.
+    firstLastNoExtend: if True, overhang is not taken for 5' of the first exon, or 3' of the last exon of a gene. 
+    source_filter: gene source filters, such as "protein_coding" filter for protein coding genes
     """
     try:
         gtf_db = gffutils.interface.FeatureDB(gtf_db_path)
@@ -316,29 +313,34 @@ class SplicingVCFDataloader(SampleIterator):
     Args:
     gtf: gtf file or pickled gtf IntervalTree. Can be dowloaded from MISO or ensembl.
     fasta_file: file path; Genome sequence
-    side: 5prime or 3prime
-    lengthes: tuple, length to take from left and right of splice site.
-    For donor would corresponding to exon and intron, acceptor intron and exon.
-    target_file: file path; path to the targets in MISO summary format.
-    MISO_AS: whether the used annotation file is from MISO alternative splicing annotation.
-    label_col: column name in target file which has PSI.
-    spit_seq: whether split sequence into intron, exon, ss, bp. Set to False if mutate the sequence after. And do the spliting upon model prediction.
-    split_to: split into. Returned sequence ordered in this order.
+    vcf_file: vcf file, each line should contain one and only one variant, left-normalized
+    spit_seq: whether or not already split the sequence when loading the data. Otherwise it can be done in the model class.
+    endcode: if split sequence, should it be one-hot-encoded
+    exon_cut_l: when extract exon feature, how many base pair to cut out at the begining of an exon
+    exon_cut_r: when extract exon feature, how many base pair to cut out at the end of an exon
+       (cut out the part that is considered as acceptor site or donor site)
+    acceptor_intron_cut: how many bp to cut out at the end of acceptor intron that consider as acceptor site
+    donor_intron_cut: how many bp to cut out at the end of donor intron that consider as donor site
+    acceptor_intron_len: what length in acceptor intron to consider for acceptor site model
+    acceptor_exon_len: what length in acceptor exon to consider for acceptor site model
+    donor_intron_len: what length in donor intron to consider for donor site model
+    donor_exon_len: what length in donor exon to consider for donor site model
+    **kwargs: kwargs for `GenerateExonIntervalTree` object
     """
 
     def __init__(self,
                  gtf,
                  fasta_file,
                  vcf_file=None,
-                 exon_cut_l=3,
-                 exon_cut_r=3,
-                 acceptor_intron_cut=20,
-                 donor_intron_cut=6,
-                 acceptor_intron_len=20,
-                 acceptor_exon_len=3,
-                 donor_exon_len=3,
-                 donor_intron_len=6,
                  split_seq=True,
+                 exon_cut_l=0,
+                 exon_cut_r=0,
+                 acceptor_intron_cut=6,
+                 donor_intron_cut=6,
+                 acceptor_intron_len=50,
+                 acceptor_exon_len=3,
+                 donor_exon_len=5,
+                 donor_intron_len=13,
                  encode=True,
                  **kwargs
                  ):

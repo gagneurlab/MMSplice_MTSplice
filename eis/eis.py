@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from .generic import logit
+from .utils.postproc import _transform
+from sklearn.externals import joblib
 
 from pkg_resources import resource_filename
 
@@ -13,7 +15,8 @@ DONOR = resource_filename('eis', 'models/Donor.h5')
 EXON = resource_filename('eis', 'models/Exon.h5')
 ACCEPTOR = resource_filename('eis', 'models/Acceptor.h5')
 DONOR_INTRON = resource_filename('eis', 'models/Intron5.h5')
-LINEAR_MODEL = resource_filename('eis', 'models/linear_model.h5')
+LINEAR_MODEL = joblib.load(resource_filename('eis', 'models/linear_model.pkl'))
+LOGISTIC_MODEL = joblib.load(resource_filename('eis', 'models/Pathogenicity.pkl'))
 
 
 class Eis(object):
@@ -193,9 +196,17 @@ def predict_all_table(model,
                       assembly=True,
                       split_seq=True,
                       progress=True,
-                      exon_scale_factor=5.354345):
+                      #assembly_fn=LINEAR_MODEL,
+                      pathogenicity=False):
     ''' Return the prediction as a table
         exon_scale_factor: can be determined through cross validation. 
+        Args:
+            The EIS model object
+            dataloader: dataloader object.
+            split_seq: is the input sequence from dataloader splited?
+            progress: show progress bar?
+            assembly_fn: function to assemble modular predictions. 
+            pathogenicity: to predict pathogenicity? If so, use logistic regression model and _transform(region_only=True).
     '''
     ID = []
     ref_pred = []
@@ -232,11 +243,15 @@ def predict_all_table(model,
         ref_pred = ref_pred.values
         alt_pred = alt_pred.values
         X = alt_pred-ref_pred
-        exon_overlap = np.logical_or(np.logical_and(X[:,1]!=0, X[:,2]!=0), np.logical_and(X[:,2]!=0, X[:,3]!=0))
-        X = np.hstack([X, (X[:,2]*exon_overlap).reshape(-1,1)])
-        s = exon_scale_factor
-        delt_pred = np.dot(X, np.array([1, 1, s, 1, 1, -s]))
-        pred['EIS_Diff'] = delt_pred
+        if pathogenicity:
+            X = _transform(X, region_only=True)
+            # design matrix for logistic model to predict pathogenicity
+            X = np.concatenate([ref_pred, alt_pred, X[:,-3:]], axis=-1)
+            delt_pred = LOGISTIC_MODEL.predict_proba(X)[:,1]
+        else:
+            X = _transform(X, region_only=False)
+            delt_pred = LINEAR_MODEL.predict(X)
+        pred['EIS_diff'] = delt_pred
     else:
         pred = pd.concat([pred, ref_pred, alt_pred], axis=1)
     return pred
