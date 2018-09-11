@@ -1,5 +1,5 @@
 import click
-from eis.api import app
+from mmsplice.api import app
 
 
 @click.group()

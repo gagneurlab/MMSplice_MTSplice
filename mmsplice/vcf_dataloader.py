@@ -1,13 +1,6 @@
 import numpy as np
 from kipoi.metadata import GenomicRanges
 
-# import inspect
-# import os
-# import sys
-# filename = inspect.getframeinfo(inspect.currentframe()).filename
-# this_path = os.path.dirname(os.path.abspath(filename))
-# sys.path.append(this_path)
-
 from .generic import Variant, onehot, get_var_side
 from .IntervalTree import IntervalTree, Interval
 

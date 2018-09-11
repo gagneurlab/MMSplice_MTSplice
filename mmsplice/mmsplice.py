@@ -10,17 +10,17 @@ from sklearn.externals import joblib
 
 from pkg_resources import resource_filename
 
-ACCEPTOR_INTRON = resource_filename('eis', 'models/Intron3.h5')
-DONOR = resource_filename('eis', 'models/Donor.h5')
-EXON = resource_filename('eis', 'models/Exon.h5')
-ACCEPTOR = resource_filename('eis', 'models/Acceptor.h5')
-DONOR_INTRON = resource_filename('eis', 'models/Intron5.h5')
-LINEAR_MODEL = joblib.load(resource_filename('eis', 'models/linear_model.pkl'))
-LOGISTIC_MODEL = joblib.load(resource_filename('eis', 'models/Pathogenicity.pkl'))
+ACCEPTOR_INTRON = resource_filename('mmsplice', 'models/Intron3.h5')
+DONOR = resource_filename('mmsplice', 'models/Donor.h5')
+EXON = resource_filename('mmsplice', 'models/Exon.h5')
+ACCEPTOR = resource_filename('mmsplice', 'models/Acceptor.h5')
+DONOR_INTRON = resource_filename('mmsplice', 'models/Intron5.h5')
+LINEAR_MODEL = joblib.load(resource_filename('mmsplice', 'models/linear_model.pkl'))
+LOGISTIC_MODEL = joblib.load(resource_filename('mmsplice', 'models/Pathogenicity.pkl'))
 
 
-class Eis(object):
-    """ Load modules of eis model, perform prediction with inputs come from a dataloader.
+class MMSplice(object):
+    """ Load modules of mmsplice model, perform prediction with inputs come from a dataloader.
 
     Args:
         acceptor_intronM: acceptor intron model, score acceptor intron sequence.
@@ -141,9 +141,9 @@ class Eis(object):
             intronr_len += lackr + 1
 
         acceptor_intron = x[:intronl_len - self.acceptor_intron_cut]
-        acceptor = x[(intronl_len - self.acceptor_intron_len)                     : (intronl_len + self.acceptor_exon_len)]
-        exon = x[(intronl_len + self.exon_cut_l)                 : (-intronr_len - self.exon_cut_r)]
-        donor = x[(-intronr_len - self.donor_exon_len)                  : (-intronr_len + self.donor_intron_len)]
+        acceptor = x[(intronl_len - self.acceptor_intron_len):(intronl_len + self.acceptor_exon_len)]
+        exon = x[(intronl_len + self.exon_cut_l):(-intronr_len - self.exon_cut_r)]
+        donor = x[(-intronr_len - self.donor_exon_len):(-intronr_len + self.donor_intron_len)]
         donor_intron = x[-intronr_len + self.donor_intron_cut:]
 
         if donor[self.donor_exon_len:self.donor_exon_len + 2] != "GT":
@@ -201,7 +201,7 @@ def predict_all_table(model,
     ''' Return the prediction as a table
         exon_scale_factor: can be determined through cross validation. 
         Args:
-            The EIS model object
+            The mmsplice model object
             dataloader: dataloader object.
             split_seq: is the input sequence from dataloader splited?
             progress: show progress bar?
@@ -227,16 +227,16 @@ def predict_all_table(model,
     ID = np.concatenate(ID)
     ref_pred = np.concatenate(ref_pred)
     alt_pred = np.concatenate(alt_pred)
-    ref_pred = pd.DataFrame(ref_pred, columns=['EIS_ref_acceptorIntron',
-                                               'EIS_ref_acceptor',
-                                               'EIS_ref_exon',
-                                               'EIS_ref_donor',
-                                               'EIS_ref_donorIntron'])
-    alt_pred = pd.DataFrame(alt_pred, columns=['EIS_alt_acceptorIntron',
-                                               'EIS_alt_acceptor',
-                                               'EIS_alt_exon',
-                                               'EIS_alt_donor',
-                                               'EIS_alt_donorIntron'])
+    ref_pred = pd.DataFrame(ref_pred, columns=['mmsplice_ref_acceptorIntron',
+                                               'mmsplice_ref_acceptor',
+                                               'mmsplice_ref_exon',
+                                               'mmsplice_ref_donor',
+                                               'mmsplice_ref_donorIntron'])
+    alt_pred = pd.DataFrame(alt_pred, columns=['mmsplice_alt_acceptorIntron',
+                                               'mmsplice_alt_acceptor',
+                                               'mmsplice_alt_exon',
+                                               'mmsplice_alt_donor',
+                                               'mmsplice_alt_donorIntron'])
     exons = np.concatenate(exons)
     pred = pd.DataFrame({'ID': ID, 'exons': exons})
     if assembly:
@@ -251,26 +251,24 @@ def predict_all_table(model,
         else:
             X = _transform(X, region_only=False)
             delt_pred = LINEAR_MODEL.predict(X)
-        pred['EIS_diff'] = delt_pred
+        pred['mmsplice_diff'] = delt_pred
     else:
         pred = pd.concat([pred, ref_pred, alt_pred], axis=1)
     return pred
 
 
 from cyvcf2 import Writer, VCF
-
-
-def writeEIS(vcf_in, vcf_out, predictions):
+def writeVCF(vcf_in, vcf_out, predictions):
     vcf = VCF(vcf_in)
-    vcf.add_info_to_header({'ID': 'EIS', 'Description':
-                            'EIS splice variant effect',
+    vcf.add_info_to_header({'ID': 'mmsplice', 'Description':
+                            'mmsplice splice variant effect',
                             'Type': 'Character',
                             'Number': '.'})
     w = Writer(vcf_out, vcf)
     for var in vcf:
         pred = predictions.get(var.ID)
         if pred is not None:
-            var.INFO['EIS'] = pred
+            var.INFO['mmsplice'] = pred
         w.write_record(var)
     w.close()
     vcf.close()

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-"""Tests for `eis` package."""
+"""Tests for `mmsplice` package."""
 
 import pytest
 
-from eis import Eis, predict_all_table
-from eis.vcf_dataloader import SplicingVCFDataloader, GenerateExonIntervalTree
+from mmsplice import MMSplice, predict_all_table
+from mmsplice.vcf_dataloader import SplicingVCFDataloader, GenerateExonIntervalTree
 
 
 @pytest.fixture
@@ -25,11 +25,11 @@ def test_content(response):
     pass
 
      
-def test_eis():
+def test_mmsplice():
     x = {'seq': "ATGCGACGTACCCAGTAAAT",
      'intronl_len': 4,
     'intronr_len': 4}
-    model = Eis()
+    model = MMSplice()
     pred = model.predict(x)
     assert len(pred) == 5
     

@@ -1,7 +1,7 @@
-# eis
+# mmsplice
 
-[![pypi](https://img.shields.io/pypi/v/eis.svg)](https://pypi.python.org/pypi/eis)
-[![travis](https://img.shields.io/travis/s6juncheng/eis.svg)](https://travis-ci.org/s6juncheng/eis)
+[![pypi](https://img.shields.io/pypi/v/mmsplice.svg)](https://pypi.python.org/pypi/mmsplice)
+[![travis](https://img.shields.io/travis/s6juncheng/mmsplice.svg)](https://travis-ci.org/s6juncheng/mmsplice)
 
 Predict splicing variant effect from VCF
 
@@ -15,9 +15,9 @@ Check notebooks/example.ipynb
 
 ```python
 # Import
-from eis.vcf_dataloader import SplicingVCFDataloader
-from eis import Eis, predict_all_table
-from eis.utils import max_varEff
+from mmsplice.vcf_dataloader import SplicingVCFDataloader
+from mmsplice import MMSplice, predict_all_table
+from mmsplice.utils import max_varEff
 
 # example files
 gtf = 'tests/data/test.gtf'
@@ -33,7 +33,7 @@ dl = SplicingVCFDataloader(gtf,
                           split_seq=False)
 
 # Specify model
-model = Eis(
+model = MMSplice(
     exon_cut_l=0,
     exon_cut_r=0,
     acceptor_intron_cut=6,

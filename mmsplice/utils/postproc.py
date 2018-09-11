@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.externals import joblib
 from pkg_resources import resource_filename
-LINEAR_MODEL = joblib.load(resource_filename('eis', 'models/linear_model.pkl'))
+LINEAR_MODEL = joblib.load(resource_filename('mmsplice', 'models/linear_model.pkl'))
 
 def max_varEff(df):
     """ Summarize largest absolute effect per variant across all affected exons.
@@ -11,16 +11,16 @@ def max_varEff(df):
     """
     if isinstance(df, str):
         df = pd.read_csv(df, index_col=0)
-    ref_list = ['EIS_ref_acceptorIntron', 'EIS_ref_acceptor', 'EIS_ref_exon', 'EIS_ref_donor', 'EIS_ref_donorIntron']
-    alt_list = ['EIS_alt_acceptorIntron', 'EIS_alt_acceptor', 'EIS_alt_exon', 'EIS_alt_donor', 'EIS_alt_donorIntron']
-    if 'EIS_diff' not in df.columns:
+    ref_list = ['mmsplice_ref_acceptorIntron', 'mmsplice_ref_acceptor', 'mmsplice_ref_exon', 'mmsplice_ref_donor', 'mmsplice_ref_donorIntron']
+    alt_list = ['mmsplice_alt_acceptorIntron', 'mmsplice_alt_acceptor', 'mmsplice_alt_exon', 'mmsplice_alt_donor', 'mmsplice_alt_donorIntron']
+    if 'mmsplice_diff' not in df.columns:
         X = df[alt_list].values - df[ref_list].values
         X = _transform(X)
-        df['EIS_diff'] = LINEAR_MODEL.predict(X)
-    dfMax = df.groupby(['ID'], as_index=False).agg({'EIS_diff': lambda x: max(x, key=abs)})
-    dfMax = dfMax.merge(df, how='left', on = ['ID', 'EIS_diff'])
-    dfMax = dfMax.drop_duplicates(subset=['ID', 'EIS_diff'])
-    # dfMax = dfMax.drop("EIS_diff", axis=1)
+        df['mmsplice_diff'] = LINEAR_MODEL.predict(X)
+    dfMax = df.groupby(['ID'], as_index=False).agg({'mmsplice_diff': lambda x: max(x, key=abs)})
+    dfMax = dfMax.merge(df, how='left', on = ['ID', 'mmsplice_diff'])
+    dfMax = dfMax.drop_duplicates(subset=['ID', 'mmsplice_diff'])
+    # dfMax = dfMax.drop("mmsplice_diff", axis=1)
     return dfMax
 
 def not_close0(arr):
@@ -37,9 +37,9 @@ def _transform(X, region_only=False):
     donor_intron_overlap = np.logical_and(not_close0(X[:,3]), not_close0(X[:,4]))
 
     if region_only:
-        X = np.hstack([X, (X[:,2]*exon_overlap).reshape(-1,1)])
-        X = np.hstack([X, (X[:,4]*donor_intron_overlap).reshape(-1,1)]) 
-        X = np.hstack([X, (X[:,0]*acceptor_intron_overlap).reshape(-1,1)])
+        X = np.hstack([X, exon_overlap.reshape(-1,1)])
+        X = np.hstack([X, donor_intron_overlap.reshape(-1,1)]) 
+        X = np.hstack([X, acceptor_intron_overlap.reshape(-1,1)])
     else:
         X = np.hstack([X, (X[:,2]*exon_overlap).reshape(-1,1)])
         X = np.hstack([X, (X[:,4]*donor_intron_overlap).reshape(-1,1)]) 

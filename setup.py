@@ -52,7 +52,7 @@ setup(
     license="MIT license",
     long_description=readme + '\n\n' + history,
     # package_data={
-    #     'eis.models':
+    #     'mmsplice.models':
     #     ['Acceptor.h5',
     #     'Donor.h5',
     #     'Exon.h5',
@@ -62,17 +62,17 @@ setup(
 
     entry_points='''
         [console_scripts]
-        eis=eis.main:cli
+        mmsplice=mmsplice.main:cli
     ''',
 
     include_package_data=True,
-    keywords='eis',
-    name='eis',
-    packages=find_packages(include=['eis']),
+    keywords='mmsplice',
+    name='mmsplice',
+    packages=find_packages(include=['mmsplice']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/s6juncheng/eis',
+    url='https://github.com/s6juncheng/mmsplice',
     version='0.2.0',
     zip_safe=False,
 )
