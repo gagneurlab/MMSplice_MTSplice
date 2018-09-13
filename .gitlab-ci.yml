@@ -1,10 +1,14 @@
-image: "python:3.6"
+image: python:3.6
 
 stages:
   - test
 
 test_async:
   stage: test
+
+  tags:
+    - docker
+
   script:
     - python -V
-    - "python setup.py test"
+    - python setup.py test
