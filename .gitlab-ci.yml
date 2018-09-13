@@ -1,0 +1,10 @@
+image: "python:3.6"
+
+stages:
+  - test
+
+test_async:
+  stage: test
+  script:
+    - python -V
+    - "python setup.py test"
