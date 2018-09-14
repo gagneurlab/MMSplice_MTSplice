@@ -13,14 +13,12 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'setuptools<=39.1.0',
-    'numpy<=1.14.5',
     'sklearn',
     'tensorflow',
-    'keras',
     'kipoi',
     'pandas',
     'concise',
-    'cyvcf2',
+    'cyvcf2==0.9.0',
     'gffutils',
     'pyfaidx',
     'tqdm',

@@ -1,0 +1,23 @@
+image: python:3.6
+
+stages:
+  - test
+
+test_async:
+  stage: test
+
+  tags:
+    - docker
+
+  before_script:
+    - python -V
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+    - pip install -e .
+
+  script:
+    - python setup.py test
+
+  after_script:
+    - rm -rf *.egg-info .eggs venv
