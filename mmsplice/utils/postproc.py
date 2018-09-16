@@ -26,7 +26,7 @@ def max_varEff(df):
 def not_close0(arr):
     return ~np.isclose(arr, 0)
 
-def _transform(X, region_only=False):
+def transform(X, region_only=False):
     ''' Make interaction terms for the overlapping prediction region
     Args:
         X: modular prediction. Shape (, 5)
