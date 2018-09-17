@@ -1,0 +1,41 @@
+from mmsplice.vcf_dataloader import SplicingVCFDataloader
+from mmsplice import MMSplice, predict_all_table
+
+rule all:
+    input:
+        "data/pred.csv"
+        
+rule mmsplice:
+    input:
+        vcf = "data/test.vcf.gz"
+    output:
+        csv = "data/pred.csv"
+    run:
+        fasta = "data/hg19.nochr.chr17.fa"
+        gtf = "data/test.gtf"
+        gtfIntervalTree = "data/test.pkl"
+        
+        dl = SplicingVCFDataloader(gtf,
+                          fasta,
+                          input.vcf,
+                          out_file=gtfIntervalTree,
+                           split_seq=False,
+                           overhang=(100,100))
+
+        # model_dir = "/data/ouga/home/ag_gagneur/chengju/project/recods/Data/Models/"
+        # #acceptor_intronM = load_model(model_dir+"Intron_Joint/Intron_Model_prime3.h5")
+        # donorM = load_model('../mmsplice/models/Donor.h5')
+        # donor_intronM = load_model(model_dir+"Intron_Joint/Intron_Model_prime5.h5")
+        # acceptorM = load_model(model_dir+"Acceptor/Acceptor_Conv_long.h5")
+
+        model = MMSplice(
+            exon_cut_l=0,
+            exon_cut_r=0,
+            acceptor_intron_cut=6,
+            donor_intron_cut=6,
+            acceptor_intron_len=50,
+            acceptor_exon_len=3,
+            donor_exon_len=5,
+            donor_intron_len=13)
+        predictions = predict_all_table(model, dl, batch_size=1024, split_seq=False, assembly=False)
+        predictions.to_csv(output.csv)    

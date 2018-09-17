@@ -1,4 +1,5 @@
 from keras.models import load_model
+from keras import backend as K
 import warnings
 from concise.preprocessing import encodeDNA
 import pandas as pd
@@ -57,6 +58,7 @@ class MMSplice(object):
                  donor_intron_len=13
                  ):
 
+        K.clear_session()
         self.exon_cut_l = exon_cut_l
         self.exon_cut_r = exon_cut_r
         self.acceptor_intron_cut = acceptor_intron_cut
