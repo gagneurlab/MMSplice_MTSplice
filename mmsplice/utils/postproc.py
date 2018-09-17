@@ -15,7 +15,7 @@ def max_varEff(df):
     alt_list = ['mmsplice_alt_acceptorIntron', 'mmsplice_alt_acceptor', 'mmsplice_alt_exon', 'mmsplice_alt_donor', 'mmsplice_alt_donorIntron']
     if 'mmsplice_diff' not in df.columns:
         X = df[alt_list].values - df[ref_list].values
-        X = _transform(X)
+        X = transform(X)
         df['mmsplice_diff'] = LINEAR_MODEL.predict(X)
     dfMax = df.groupby(['ID'], as_index=False).agg({'mmsplice_diff': lambda x: max(x, key=abs)})
     dfMax = dfMax.merge(df, how='left', on = ['ID', 'mmsplice_diff'])
