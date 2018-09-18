@@ -129,11 +129,12 @@ sub start_api {
   die if not defined $pid;
 
   if ($pid == 0) {
-      exec("mmsplice run_api");
+      exec("mmsplice run_api --port=$self->{api_port}");
   }
   else {
       $self->{api_pid} = $pid;
   }
+
   sleep(10);
 }
 
