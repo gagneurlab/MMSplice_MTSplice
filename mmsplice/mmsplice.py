@@ -1,11 +1,12 @@
 from keras.models import load_model
+from keras import backend as K
 import warnings
 from concise.preprocessing import encodeDNA
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from .generic import logit
-from .utils.postproc import _transform
+from .utils.postproc import transform
 from sklearn.externals import joblib
 
 from pkg_resources import resource_filename
@@ -57,6 +58,7 @@ class MMSplice(object):
                  donor_intron_len=13
                  ):
 
+        K.clear_session()
         self.exon_cut_l = exon_cut_l
         self.exon_cut_r = exon_cut_r
         self.acceptor_intron_cut = acceptor_intron_cut
@@ -206,7 +208,7 @@ def predict_all_table(model,
             split_seq: is the input sequence from dataloader splited?
             progress: show progress bar?
             assembly_fn: function to assemble modular predictions. 
-            pathogenicity: to predict pathogenicity? If so, use logistic regression model and _transform(region_only=True).
+            pathogenicity: to predict pathogenicity? If so, use logistic regression model and transform(region_only=True).
     '''
     ID = []
     ref_pred = []
@@ -244,12 +246,12 @@ def predict_all_table(model,
         alt_pred = alt_pred.values
         X = alt_pred-ref_pred
         if pathogenicity:
-            X = _transform(X, region_only=True)
+            X = transform(X, region_only=True)
             # design matrix for logistic model to predict pathogenicity
             X = np.concatenate([ref_pred, alt_pred, X[:,-3:]], axis=-1)
             delt_pred = LOGISTIC_MODEL.predict_proba(X)[:,1]
         else:
-            X = _transform(X, region_only=False)
+            X = transform(X, region_only=False)
             delt_pred = LINEAR_MODEL.predict(X)
         pred['mmsplice_diff'] = delt_pred
     else:
