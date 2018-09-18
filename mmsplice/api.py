@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
+from keras import backend as K
 
-from eis import Eis
+from .mmsplice import MMSplice
 
 app = Flask(__name__)
 
@@ -11,7 +12,8 @@ psi_model = None
 def create_model():
     global psi_model
 
-    psi_model = Eis(**{
+    K.clear_session()
+    psi_model = MMSplice(**{
         k: v
         for k, v in request.json.items()
         if v
