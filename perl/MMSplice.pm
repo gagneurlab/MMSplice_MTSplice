@@ -135,7 +135,7 @@ sub start_api {
       $self->{api_pid} = $pid;
   }
 
-  sleep(10);
+  sleep(60);
 }
 
 sub create_model {
