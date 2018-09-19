@@ -24,6 +24,7 @@ requirements = [
     'tqdm',
     'click',
     'flask',
+    'gevent'
 ]
 
 setup_requirements = ['pytest-runner', ]
