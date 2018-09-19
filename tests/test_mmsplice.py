@@ -34,6 +34,7 @@ def test_mmsplice():
     assert len(pred) == 5
     
 ## test vcf dataloader
+# 13:32953886:GTT:['AA']
 # clinvar_20180429.filtered.BRCA1.vcf.gz
 # clinvar_20180429.filtered.BRCA1.vcf.gz.tbi
 # Homo_sapiens.GRCh37.75.uniq_exon.BRCA1.gtf
