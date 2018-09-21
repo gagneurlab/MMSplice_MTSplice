@@ -325,7 +325,7 @@ class SplicingVCFDataloader(SampleIterator):
                  gtf,
                  fasta_file,
                  vcf_file=None,
-                 split_seq=True,
+                 split_seq=False,
                  exon_cut_l=0,
                  exon_cut_r=0,
                  acceptor_intron_cut=6,
