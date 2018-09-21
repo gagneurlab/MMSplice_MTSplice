@@ -14,7 +14,7 @@ import mmsplice.exon_dataloader
 from .utils import postproc
 
 # export modules
-from mmsplice.mmsplice import ACCEPTOR_INTRON, ACCEPTOR, EXON, DONOR, DONOR_INTRON, LINEAR_MODEL, LOGISTIC_MODEL
+from mmsplice.mmsplice import ACCEPTOR_INTRON, ACCEPTOR, EXON, EXON3, DONOR, DONOR_INTRON, LINEAR_MODEL, LOGISTIC_MODEL
 from keras.models import load_model
 
 ACCEPTOR_INTRON_MODULE = load_model(ACCEPTOR_INTRON)

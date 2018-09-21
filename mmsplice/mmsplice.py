@@ -14,6 +14,7 @@ from pkg_resources import resource_filename
 ACCEPTOR_INTRON = resource_filename('mmsplice', 'models/Intron3.h5')
 DONOR = resource_filename('mmsplice', 'models/Donor.h5')
 EXON = resource_filename('mmsplice', 'models/Exon.h5')
+EXON3 = resource_filename('mmsplice', 'models/Exon_prime3.h5')
 ACCEPTOR = resource_filename('mmsplice', 'models/Acceptor.h5')
 DONOR_INTRON = resource_filename('mmsplice', 'models/Intron5.h5')
 LINEAR_MODEL = joblib.load(resource_filename('mmsplice', 'models/linear_model.pkl'))
