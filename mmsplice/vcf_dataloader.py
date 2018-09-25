@@ -245,7 +245,6 @@ class FastaSeq(Fasta):
         seq = self.get_seq(iv.chrom, iv.start, iv.end, iv.strand=='-')
         return seq.seq.upper()
 
-
 @functools.lru_cache(maxsize=1)    
 def GenerateExonIntervalTree(gtf_file,
                              overhang=(100, 100),  # overhang from the exon
