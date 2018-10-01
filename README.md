@@ -11,6 +11,8 @@ Predict splicing variant effect from VCF
 ## Usage example
 ------
 
+NOTE: make sure you split and left-normalize the input VCF file.
+
 Check notebooks/example.ipynb
 
 ```python
