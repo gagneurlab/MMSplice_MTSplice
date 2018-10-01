@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'setuptools>=39.1.0',
+    'setuptools<=39.1.0',
     'sklearn',
     'tensorflow',
     'kipoi',

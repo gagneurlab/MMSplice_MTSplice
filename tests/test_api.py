@@ -7,8 +7,9 @@ def test_api():
         assert resp.status_code == 200
 
         resp = c.post('/psi-score', json={
-            'seq': "ATGCGACGTACCCAGTAAAT",
+            'ref_seq': "ATGCGACGTACCCAGTAAAT",
+            'alt_seq': "TTGCGACGTACCCAGTAAAT",
             'intronl_len': 4,
             'intronr_len': 4
         })
-        assert len(resp.data.decode("utf-8").split(',')) == 5
+        assert len(resp.data.decode("utf-8").split(',')) == 12

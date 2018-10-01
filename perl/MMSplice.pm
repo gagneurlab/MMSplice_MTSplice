@@ -187,20 +187,21 @@ sub run {
     my $ref_seq = $self->fetch_seq($tva, $splicing_start, $splicing_end);
     my $alt_seq = $self->fetch_variant_seq($tva, $exon, $splicing_start, $splicing_end);
 
-    my @ref_scores = $self->req_psi_score($ref_seq);
-    my @alt_scores = $self->req_psi_score($alt_seq);
+    my @scores = $self->req_psi_score($ref_seq, $alt_seq);
 
     return {
-      ref_acceptor_intron => $ref_scores[0],
-      ref_acceptor => $ref_scores[1],
-      ref_exon => $ref_scores[2],
-      ref_donor => $ref_scores[3],
-      ref_donor_intron => $ref_scores[4],
-      alt_acceptor_intron => $alt_scores[0],
-      alt_acceptor => $alt_scores[1],
-      alt_exon => $alt_scores[2],
-      alt_donor => $alt_scores[3],
-      alt_donor_intron => $alt_scores[4]
+      mmsplice_ref_acceptor_intron => $scores[0],
+      mmsplice_ref_acceptor => $scores[1],
+      mmsplice_ref_exon => $scores[2],
+      mmsplice_ref_donor => $scores[3],
+      mmsplice_ref_donor_intron => $scores[4],
+      mmsplice_alt_acceptor_intron => $scores[5],
+      mmsplice_alt_acceptor => $scores[6],
+      mmsplice_alt_exon => $scores[7],
+      mmsplice_alt_donor => $scores[8],
+      mmsplice_alt_donor_intron => $scores[9],
+      mmsplice_delta_psi => $scores[10],
+      mmsplice_pathogenicity => $scores[11]      
     }
   }
 
@@ -318,7 +319,7 @@ sub fetch_variant_seq {
 }
 
 sub req_psi_score {
-  my ($self, $seq) = @_;
+  my ($self, $ref_seq, $alt_seq) = @_;
 
   my $req = HTTP::Request->new(POST => $self->{server_endpoint} . "/psi-score");
   $req->header('content-type' => 'application/json');
@@ -326,7 +327,8 @@ sub req_psi_score {
   my $content = qq{{
   "intronl_len": $self->{overhang_l},
   "intronr_len": $self->{overhang_r},
-  "seq": "$seq"
+  "ref_seq": "$ref_seq",
+  "alt_seq": "$alt_seq"
 }};
 
   $req->content($content);

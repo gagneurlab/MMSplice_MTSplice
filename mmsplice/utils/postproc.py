@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.externals import joblib
 from pkg_resources import resource_filename
 LINEAR_MODEL = joblib.load(resource_filename('mmsplice', 'models/linear_model.pkl'))
+LOGISTIC_MODEL = joblib.load(resource_filename('mmsplice', 'models/Pathogenicity.pkl'))
 
 def max_varEff(df):
     """ Summarize largest absolute effect per variant across all affected exons.
@@ -46,3 +47,12 @@ def transform(X, region_only=False):
         X = np.hstack([X, (X[:,0]*acceptor_intron_overlap).reshape(-1,1)])
     
     return X
+
+
+def predict_deltaLogitPsi(X_ref, X_alt, region_only=False):
+    return LINEAR_MODEL.predict(transform(X_alt - X_ref, region_only=region_only))
+
+def predict_pathogenicity(X_ref, X_alt, region_only=False):
+    X = transform(X_alt - X_ref)
+    X = np.concatenate([X_ref, X_alt, X[:,-3:]], axis=-1)
+    return LOGISTIC_MODEL.predict(X)
