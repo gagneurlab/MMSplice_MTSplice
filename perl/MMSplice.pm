@@ -74,18 +74,20 @@ sub feature_types {
 }
 
 sub get_header_info {
-    return {
-      ref_acceptor_intron => "acceptor intron ref",
-      ref_acceptor => "acceptor ref",
-      ref_exon => "exon ref",
-      ref_donor => "donor ref",
-      ref_donor_intron => "donor intron ref",
-      alt_acceptor_intron => "acceptor intron alt",
-      alt_acceptor => "acceptor alt",
-      alt_exon => "exon alt",
-      alt_donor => "alt donor",
-      alt_donor_intron => "alt donor intron"
-    };
+  return {
+    mmsplice_ref_acceptor_intron => "acceptor intron ref",
+    mmsplice_ref_acceptor => "acceptor ref",
+    mmsplice_ref_exon => "exon ref",
+    mmsplice_ref_donor => "donor ref",
+    mmsplice_ref_donor_intron => "donor intron ref",
+    mmsplice_alt_acceptor_intron => "acceptor intron alt",
+    mmsplice_alt_acceptor => "acceptor alt",
+    mmsplice_alt_exon => "exon alt",
+    mmsplice_alt_donor => "alt donor",
+    mmsplice_alt_donor_intron => "alt donor intron",
+    mmsplice_delta_psi => "delta_psi score",
+    mmsplice_pathogenicity => "pathogenicity value"
+  };
 }
 
 sub init_params {
@@ -201,7 +203,7 @@ sub run {
       mmsplice_alt_donor => $scores[8],
       mmsplice_alt_donor_intron => $scores[9],
       mmsplice_delta_psi => $scores[10],
-      mmsplice_pathogenicity => $scores[11]      
+      mmsplice_pathogenicity => $scores[11]
     }
   }
 
