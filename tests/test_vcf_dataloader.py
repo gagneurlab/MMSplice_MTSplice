@@ -1,7 +1,24 @@
+from collections import namedtuple
 import tempfile
 
 import pytest
-from mmsplice.vcf_dataloader import SplicingVCFDataloader
+from mmsplice.vcf_dataloader import SplicingVCFDataloader, FastaSeq
+
+gtf_file = 'tests/data/test.gtf'
+fasta_file = 'tests/data/hg19.nochr.chr17.fa'
+
+
+def test_FastSeq_getSeq():
+    IV = namedtuple('iv', 'chrom start end strand')
+    fasta = FastaSeq(fasta_file)
+
+    iv = IV(chrom='17', start=41267742, end=41267752, strand='+')
+    seq = fasta.getSeq(iv)
+    assert seq == 'CTTGCAAAATA'
+
+    iv = IV(chrom='17', start=41267742, end=41267752, strand='-')
+    seq = fasta.getSeq(iv)
+    assert seq == 'TATTTTGCAAG'
 
 
 snps = [
@@ -32,8 +49,6 @@ variants = [
     *insertion
 ]
 
-gtf_file = 'tests/data/test.gtf'
-fasta_file = 'tests/data/hg19.nochr.chr17.fa'
 
 
 def parse_vcf_id(vcf_id):
