@@ -49,10 +49,10 @@ def transform(X, region_only=False):
     return X
 
 
-def predict_deltaLogitPsi(X_ref, X_alt, region_only=False):
-    return LINEAR_MODEL.predict(transform(X_alt - X_ref, region_only=region_only))
+def predict_deltaLogitPsi(X_ref, X_alt):
+    return LINEAR_MODEL.predict(transform(X_alt - X_ref, region_only=False))
 
-def predict_pathogenicity(X_ref, X_alt, region_only=False):
-    X = transform(X_alt - X_ref)
+def predict_pathogenicity(X_ref, X_alt):
+    X = transform(X_alt - X_ref, region_only=True)
     X = np.concatenate([X_ref, X_alt, X[:,-3:]], axis=-1)
     return LOGISTIC_MODEL.predict(X)
