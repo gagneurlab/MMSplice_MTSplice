@@ -1,7 +1,9 @@
+import numpy as np
 from flask import Flask, jsonify, request
 from keras import backend as K
 
 from .mmsplice import MMSplice
+from .utils import predict_deltaLogitPsi, predict_pathogenicity
 
 app = Flask(__name__)
 
@@ -32,7 +34,23 @@ def create_model():
 @app.route('/psi-score', methods=['POST'])
 def psi_score():
     global psi_model
+    
+    ref_scores, alt_scores = [
+        np.matrix(
+            psi_model.predict({
+                "intronl_len": request.json['intronl_len'],
+                "intronr_len": request.json['intronr_len'],
+                "seq": request.json[seq]
+            }).values
+        )
+        for seq in ['ref_seq', 'alt_seq'] 
+    ]
 
-    scores = psi_model.predict(request.json)
+    scores = np.hstack([ref_scores, alt_scores]).tolist()[0]
 
-    return ','.join(map(str, scores.tolist()))
+    scores.extend([
+        predict_deltaLogitPsi(ref_scores, alt_scores)[0],
+        int(predict_pathogenicity(ref_scores, alt_scores)[0])
+    ])
+    
+    return ','.join(map(str, scores))
