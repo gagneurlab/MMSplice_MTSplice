@@ -24,8 +24,10 @@ class VariantInterval(Interval):
     def from_Variant(cls, variant):
         # Only support one alternative.
         # If multiple alternative, need to split into multiple variants
-        assert len(
-            variant.ALT) == 1, "Only one alternative sequence is allowed, split into mutliple variants"
+        if len(variant.ALT) != 1:
+            warnings.warn('%s has more than one alternative sequence,'
+                         'only the first one was taken,'
+                         'split into mutliple variants with bedtools' % variant.__repr__(), UserWarning)
         if variant.ID is None:
             ID = '.'
         else:
