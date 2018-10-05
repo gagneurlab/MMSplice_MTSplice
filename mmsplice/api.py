@@ -34,7 +34,7 @@ def create_model():
 @app.route('/psi-score', methods=['POST'])
 def psi_score():
     global psi_model
-    
+
     ref_scores, alt_scores = [
         np.matrix(
             psi_model.predict({
@@ -43,7 +43,7 @@ def psi_score():
                 "seq": request.json[seq]
             }).values
         )
-        for seq in ['ref_seq', 'alt_seq'] 
+        for seq in ['ref_seq', 'alt_seq']
     ]
 
     scores = np.hstack([ref_scores, alt_scores]).tolist()[0]
@@ -52,5 +52,5 @@ def psi_score():
         predict_deltaLogitPsi(ref_scores, alt_scores)[0],
         int(predict_pathogenicity(ref_scores, alt_scores)[0])
     ])
-    
+
     return ','.join(map(str, scores))

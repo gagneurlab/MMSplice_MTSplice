@@ -2,10 +2,10 @@
 Accept GenomicInterval object, with attributes chrom, start, end, strand (optional).
 In case of unstranded data, interval.strand == '.'
 """
-
 import math
 import random
 import warnings
+
 
 class Interval(object):
     ''' Compatible with pybedtools Interval
@@ -25,7 +25,9 @@ class Interval(object):
         self.strand = strand
 
     def __repr__(self):
-        return "{0}, {1}:{2}-{3},{4}".format(self.name, self.chrom, self.start, self.end, self.strand)
+        return "{0}, {1}:{2}-{3},{4}".format(
+            self.name, self.chrom, self.start, self.end, self.strand)
+
 
 class IntervalTree(object):
     def __init__(self):
@@ -34,14 +36,16 @@ class IntervalTree(object):
     def insert(self, interval):
         # This interval is the interval to construct the tree, e.g. gtf annotations
         if interval.chrom in self.chroms:
-            self.chroms[interval.chrom] = self.chroms[interval.chrom].insert(interval)
+            self.chroms[interval.chrom] = self.chroms[interval.chrom].insert(
+                interval)
         else:
             self.chroms[interval.chrom] = IntervalNode(interval)
 
     def intersect(self, interval, report_func, ignore_strand=False):
         # This interval from the query
         if interval.chrom in self.chroms:
-            self.chroms[interval.chrom].intersect(interval, report_func, ignore_strand=ignore_strand)
+            self.chroms[interval.chrom].intersect(
+                interval, report_func, ignore_strand=ignore_strand)
         else:
             warnings.warn("Interval chromosome name no match", UserWarning)
 
@@ -49,9 +53,11 @@ class IntervalTree(object):
         for item in self.chroms.itervalues():
             item.traverse(func)
 
+
 class IntervalNode(object):
     def __init__(self, interval):
-        self.priority = math.ceil((-1.0 / math.log(.5)) * math.log(-1.0 / (random.uniform(0, 1) - 1)))
+        self.priority = math.ceil(
+            (-1. / math.log(.5)) * math.log(-1. / (random.uniform(0, 1) - 1)))
         self.interval = interval
         self.start = interval.start
         self.end = interval.end
@@ -123,16 +129,19 @@ class IntervalNode(object):
         return root
 
     def intersect(self, interval, report_func, ignore_strand=False):
-        if interval.strand == '*' or ignore_strand:  # unstranded data, not going to compare strand
+        # unstranded data, not going to compare strand
+        if interval.strand == '*' \
+           or ignore_strand \
+           or interval.strand == self.strand:
             if interval.start <= self.end and interval.end >= self.start:
                 report_func(self)
-        else:
-            if interval.start <= self.end and interval.end >= self.start and interval.strand == self.strand:
-                report_func(self)
+
         if self.left and interval.start <= self.left.maxend:
-            self.left.intersect(interval, report_func, ignore_strand=ignore_strand)
+            self.left.intersect(interval, report_func,
+                                ignore_strand=ignore_strand)
         if self.right and interval.end >= self.start:
-            self.right.intersect(interval, report_func, ignore_strand=ignore_strand)
+            self.right.intersect(interval, report_func,
+                                 ignore_strand=ignore_strand)
 
     def traverse(self, func):
         if self.left:

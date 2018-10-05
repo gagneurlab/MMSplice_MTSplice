@@ -2,34 +2,30 @@ from kipoi.data import Dataset
 from kipoi.metadata import GenomicRanges
 
 from concise.preprocessing import encodeDNA
-
-import os
-import numpy as np
 import pandas as pd
-import inspect
-import pdb
-import itertools
 import warnings
 from pyfaidx import Fasta
 import six
 
-from .generic import Variant, onehot, get_var_side
-from .vcf_dataloader import ExonInterval, FastaSeq
+from .generic import Variant, get_var_side
+from .vcf_dataloader import ExonInterval
 
 
 def readExon(exonfile, **kwargs):
     exons = pd.read_csv(exonfile, **kwargs)
-    exons = exons.rename(columns={"hg19_variant_position": "POS",
-                                "variant_position": "POS", 
-                                "reference": "REF",
-                                "variant": "ALT",
-                                "start": "Exon_Start",
-                                "end": "Exon_End",
-                                "exon_start": "Exon_Start",
-                                "exon_end": "Exon_End",
-                                "chr": "CHROM",
-                                "seqnames": "CHROM",
-                                "chromosome":"CHROM"})
+    exons = exons.rename(columns={
+        "hg19_variant_position": "POS",
+        "variant_position": "POS",
+        "reference": "REF",
+        "variant": "ALT",
+        "start": "Exon_Start",
+        "end": "Exon_End",
+        "exon_start": "Exon_Start",
+        "exon_end": "Exon_End",
+        "chr": "CHROM",
+        "seqnames": "CHROM",
+        "chromosome": "CHROM"
+    })
     return exons
 
 
@@ -61,12 +57,10 @@ class ExonDataset(Dataset):
             fasta = Fasta(fasta_file, as_raw=False)
         self.fasta = fasta
         self.overhang = overhang
-        #self.overhang_l, self.overhang_r = overhang
         self.sep = sep
         self.split_seq = split_seq
-        import pandas as pd
         exons = readExon(exonfile, sep=self.sep)
-        
+
         self.encode = encode
         self.exon_cut_l = exon_cut_l
         self.exon_cut_r = exon_cut_r
@@ -84,14 +78,10 @@ class ExonDataset(Dataset):
                                  zip(exons['POS'],
                                      exons['REF'],
                                      exons['ALT'],
-                                     exons['Exon_Start'], 
+                                     exons['Exon_Start'],
                                      exons['Exon_End'],
                                      exons['strand'])))
         ########
-
-        # shit coordinates based on overhang
-        #exons["start"] = np.where(exons['strand'] == "+", exons['Exon_Start'] - self.overhang_l, exons['Exon_Start'] - self.overhang_r)
-        #exons["end"] = np.where(exons['strand'] == "+", exons['Exon_End'] + self.overhang_r, exons['Exon_End'] + self.overhang_l)
         self.exons = exons
 
     def __len__(self):
@@ -103,11 +93,11 @@ class ExonDataset(Dataset):
         # Specific part for Vex-seq
         # variant side
         variant = Variant(CHROM=exon.CHROM,
-                          POS=exon.POS, 
-                          REF=exon.REF, 
-                          ALT=exon.ALT, 
+                          POS=exon.POS,
+                          REF=exon.REF,
+                          ALT=exon.ALT,
                           ID=exon.ID,
-                          strand=exon.strand, 
+                          strand=exon.strand,
                           side=exon.side)
         ########
 
@@ -121,7 +111,8 @@ class ExonDataset(Dataset):
         except:
             attributes['gene_id'] = [""]
         try:
-            attributes['exon_id'] = [exon.CHROM+':'+exon.Exon_Start+'-'+exon.Exon_End]
+            attributes['exon_id'] = [exon.CHROM + ':' +
+                                     exon.Exon_Start + '-' + exon.Exon_End]
         except:
             attributes['exon_id'] = [""]
         try:
@@ -133,17 +124,20 @@ class ExonDataset(Dataset):
         except:
             attributes['order'] = ""
 
-        exon = ExonInterval.from_exonfile(exon, attributes, overhang=self.overhang)
+        exon = ExonInterval.from_exonfile(
+            exon, attributes, overhang=self.overhang)
 
         out = {}
         out['inputs'] = {}
         out['mut_inputs'] = {}
         if self.split_seq:
             out['inputs']['seq'] = self.split(exon.get_seq(self.fasta))
-            out['mut_inputs']['seq'] = self.split(exon.get_mut_seq(self.fasta, variant).upper())
+            out['mut_inputs']['seq'] = self.split(
+                exon.get_mut_seq(self.fasta, variant).upper())
         else:
             out['inputs']['seq'] = exon.get_seq(self.fasta)
-            out['mut_inputs']['seq'] = exon.get_mut_seq(self.fasta, variant).upper()
+            out['mut_inputs']['seq'] = exon.get_mut_seq(
+                self.fasta, variant).upper()
         out['inputs']['intronl_len'] = self.overhang[0]
         out['inputs']['intronr_len'] = self.overhang[1]
         out['mut_inputs']['intronl_len'] = self.overhang[0]
@@ -154,9 +148,9 @@ class ExonDataset(Dataset):
         out['metadata']['transcript_id'] = exon.transcript_id
         out['metadata']['biotype'] = attributes['biotype']
         out['metadata']['order'] = exon.order
-        out['metadata']['ranges'] = GenomicRanges(exon.seqid, # exon is now object of class ExonInterval
-                                                  exon.start - 1, # for kipoi 0-base
-                                                  exon.end, #actual got sequence coordinates
+        out['metadata']['ranges'] = GenomicRanges(exon.seqid,  # exon is now object of class ExonInterval
+                                                  exon.start - 1,  # for kipoi 0-base
+                                                  exon.end,  # actual got sequence coordinates
                                                   exon.gene_id,
                                                   exon.strand)
         return out
@@ -165,25 +159,26 @@ class ExonDataset(Dataset):
         ''' x: a sequence to split
         '''
         intronl_len, intronr_len = overhang
-        lackl = self.acceptor_intron_len - intronl_len # need to pad N if left seq not enough long
+        # need to pad N if left seq not enough long
+        lackl = self.acceptor_intron_len - intronl_len
         if lackl >= 0:
-            x = "N"*(lackl+1) + x
-            intronl_len += lackl+1
+            x = "N" * (lackl + 1) + x
+            intronl_len += lackl + 1
         lackr = self.donor_intron_len - intronr_len
         if lackr >= 0:
-            x = x + "N"*(lackr+1)
+            x = x + "N" * (lackr + 1)
             intronr_len += lackr + 1
-        acceptor_intron = x[:intronl_len-self.acceptor_intron_cut]
-        acceptor = x[(intronl_len-self.acceptor_intron_len) : (intronl_len+self.acceptor_exon_len)]
-        exon = x[(intronl_len+self.exon_cut_l) : (-intronr_len-self.exon_cut_r)]
-        donor = x[(-intronr_len-self.donor_exon_len) : (-intronr_len+self.donor_intron_len)]
-        donor_intron = x[-intronr_len+self.donor_intron_cut:]
-        if donor[self.donor_exon_len:self.donor_exon_len+2] != "GT":
+        acceptor_intron = x[:intronl_len - self.acceptor_intron_cut]
+        acceptor = x[(intronl_len - self.acceptor_intron_len): (intronl_len + self.acceptor_exon_len)]
+        exon = x[(intronl_len + self.exon_cut_l): (-intronr_len - self.exon_cut_r)]
+        donor = x[(-intronr_len - self.donor_exon_len): (-intronr_len + self.donor_intron_len)]
+        donor_intron = x[-intronr_len + self.donor_intron_cut:]
+        if donor[self.donor_exon_len:self.donor_exon_len + 2] != "GT":
             warnings.warn("None GT donor", UserWarning)
-        if acceptor[self.acceptor_intron_len-2:self.acceptor_intron_len] != "AG":
+        if acceptor[self.acceptor_intron_len - 2:self.acceptor_intron_len] != "AG":
             warnings.warn("None AG donor", UserWarning)
 
-        if self.encode: 
+        if self.encode:
             return {
                 "acceptor_intron": encodeDNA([acceptor_intron]),
                 "acceptor": encodeDNA([acceptor]),

@@ -1,15 +1,18 @@
-from keras.models import load_model
-from keras import backend as K
 import warnings
-from concise.preprocessing import encodeDNA
-import pandas as pd
-import numpy as np
+from pkg_resources import resource_filename
+
 from tqdm import tqdm
+import numpy as np
+import pandas as pd
+from cyvcf2 import Writer, VCF
+from keras import backend as K
+from keras.models import load_model
+from sklearn.externals import joblib
+from concise.preprocessing import encodeDNA
+
 from .generic import logit
 from .utils.postproc import transform
-from sklearn.externals import joblib
 
-from pkg_resources import resource_filename
 
 ACCEPTOR_INTRON = resource_filename('mmsplice', 'models/Intron3.h5')
 DONOR = resource_filename('mmsplice', 'models/Donor.h5')
@@ -17,8 +20,10 @@ EXON = resource_filename('mmsplice', 'models/Exon.h5')
 EXON3 = resource_filename('mmsplice', 'models/Exon_prime3.h5')
 ACCEPTOR = resource_filename('mmsplice', 'models/Acceptor.h5')
 DONOR_INTRON = resource_filename('mmsplice', 'models/Intron5.h5')
-LINEAR_MODEL = joblib.load(resource_filename('mmsplice', 'models/linear_model.pkl'))
-LOGISTIC_MODEL = joblib.load(resource_filename('mmsplice', 'models/Pathogenicity.pkl'))
+LINEAR_MODEL = joblib.load(resource_filename(
+    'mmsplice', 'models/linear_model.pkl'))
+LOGISTIC_MODEL = joblib.load(resource_filename(
+    'mmsplice', 'models/Pathogenicity.pkl'))
 
 
 class MMSplice(object):
@@ -104,8 +109,7 @@ class MMSplice(object):
         Each loop split sequence and apply the model.
         '''
         dt = pd.DataFrame.from_dict(inputs)
-        pred = dt.apply(self.predict, axis=1).values
-        return pred
+        return dt.apply(self.predict, axis=1).values
 
     def predict(self, x):
         ''' Use when incomming sequence is not splited.
@@ -155,7 +159,7 @@ class MMSplice(object):
             warnings.warn("None AG donor", UserWarning)
         if len(exon) == 0:
             exon = 'N'
-            
+
         return {
             "acceptor_intron": encodeDNA([acceptor_intron]),
             "acceptor": encodeDNA([acceptor]),
@@ -199,16 +203,16 @@ def predict_all_table(model,
                       assembly=True,
                       split_seq=True,
                       progress=True,
-                      #assembly_fn=LINEAR_MODEL,
+                      # assembly_fn=LINEAR_MODEL,
                       pathogenicity=False):
     ''' Return the prediction as a table
-        exon_scale_factor: can be determined through cross validation. 
+        exon_scale_factor: can be determined through cross validation.
         Args:
             The mmsplice model object
             dataloader: dataloader object.
             split_seq: is the input sequence from dataloader splited?
             progress: show progress bar?
-            assembly_fn: function to assemble modular predictions. 
+            assembly_fn: function to assemble modular predictions.
             pathogenicity: to predict pathogenicity? If so, use logistic regression model and transform(region_only=True).
     '''
     ID = []
@@ -245,12 +249,12 @@ def predict_all_table(model,
     if assembly:
         ref_pred = ref_pred.values
         alt_pred = alt_pred.values
-        X = alt_pred-ref_pred
+        X = alt_pred - ref_pred
         if pathogenicity:
             X = transform(X, region_only=True)
             # design matrix for logistic model to predict pathogenicity
-            X = np.concatenate([ref_pred, alt_pred, X[:,-3:]], axis=-1)
-            delt_pred = LOGISTIC_MODEL.predict_proba(X)[:,1]
+            X = np.concatenate([ref_pred, alt_pred, X[:, -3:]], axis=-1)
+            delt_pred = LOGISTIC_MODEL.predict_proba(X)[:, 1]
         else:
             X = transform(X, region_only=False)
             delt_pred = LINEAR_MODEL.predict(X)
@@ -260,18 +264,18 @@ def predict_all_table(model,
     return pred
 
 
-from cyvcf2 import Writer, VCF
 def writeVCF(vcf_in, vcf_out, predictions):
-    vcf = VCF(vcf_in)
-    vcf.add_info_to_header({'ID': 'mmsplice', 'Description':
-                            'mmsplice splice variant effect',
-                            'Type': 'Character',
-                            'Number': '.'})
-    w = Writer(vcf_out, vcf)
-    for var in vcf:
-        pred = predictions.get(var.ID)
-        if pred is not None:
-            var.INFO['mmsplice'] = pred
-        w.write_record(var)
-    w.close()
-    vcf.close()
+    with VCF(vcf_in) as vcf:
+        vcf.add_info_to_header({
+            'ID': 'mmsplice',
+            'Description': 'mmsplice splice variant effect',
+            'Type': 'Character',
+            'Number': '.'
+        })
+
+        with Writer(vcf_out, vcf) as w:
+            for var in vcf:
+                pred = predictions.get(var.ID)
+                if pred is not None:
+                    var.INFO['mmsplice'] = pred
+                w.write_record(var)
