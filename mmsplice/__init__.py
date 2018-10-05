@@ -8,7 +8,7 @@ __version__ = '0.2.0'
 
 from keras.models import load_model
 import mmsplice.generic
-import mmsplice.IntervalTree
+import mmsplice.interval_tree
 import mmsplice.vcf_dataloader
 import mmsplice.exon_dataloader
 from .utils import postproc
@@ -26,6 +26,7 @@ from mmsplice.mmsplice import MMSplice, \
     LOGISTIC_MODEL
 
 __all__ = [
+    'load_model',
     'MMSplice',
     'predict_all',
     'writeVCF',

@@ -10,7 +10,7 @@ from kipoi.metadata import GenomicRanges
 from concise.preprocessing import encodeDNA
 
 from .generic import Variant, get_var_side
-from .IntervalTree import IntervalTree, Interval
+from .interval_tree import IntervalTree, Interval
 
 
 class VariantInterval(Interval):
@@ -386,14 +386,18 @@ class SplicingVCFDataloader(SampleIterator):
         for var in variants:
             iv = VariantInterval.from_Variant(var)
 
-            matches = []
-            exonTree.intersect(iv,
-                               lambda x: matches.append(x.interval),
-                               ignore_strand=True)
+            matches = map(lambda x: x.interval,
+                          exonTree.intersect(iv, ignore_strand=True))
 
             for match in matches:
-                side = get_var_side(
-                    (var.POS, var.REF, var.ALT, match.Exon_Start, match.Exon_End, match.strand))
+                side = get_var_side((
+                    var.POS,
+                    var.REF,
+                    var.ALT,
+                    match.Exon_Start,
+                    match.Exon_End,
+                    match.strand
+                ))
                 var = iv.to_Variant(match.strand, side)  # to my Variant class
                 yield match, var
 

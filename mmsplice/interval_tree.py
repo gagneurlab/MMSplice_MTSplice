@@ -41,17 +41,17 @@ class IntervalTree(object):
         else:
             self.chroms[interval.chrom] = IntervalNode(interval)
 
-    def intersect(self, interval, report_func, ignore_strand=False):
+    def intersect(self, interval, ignore_strand=False):
         # This interval from the query
         if interval.chrom in self.chroms:
-            self.chroms[interval.chrom].intersect(
-                interval, report_func, ignore_strand=ignore_strand)
+            yield from self.chroms[interval.chrom].intersect(
+                interval, ignore_strand=ignore_strand)
         else:
             warnings.warn("Interval chromosome name no match", UserWarning)
 
-    def traverse(self, func):
+    def traverse(self):
         for item in self.chroms.itervalues():
-            item.traverse(func)
+            yield from item.traverse()
 
 
 class IntervalNode(object):
@@ -128,24 +128,24 @@ class IntervalNode(object):
             self.minend = min(self.end, self.left.minend)
         return root
 
-    def intersect(self, interval, report_func, ignore_strand=False):
+    def intersect(self, interval, ignore_strand=False):
         # unstranded data, not going to compare strand
         if interval.strand == '*' \
            or ignore_strand \
            or interval.strand == self.strand:
             if interval.start <= self.end and interval.end >= self.start:
-                report_func(self)
+                yield self
 
         if self.left and interval.start <= self.left.maxend:
-            self.left.intersect(interval, report_func,
-                                ignore_strand=ignore_strand)
+            yield from self.left.intersect(
+                interval, ignore_strand=ignore_strand)
         if self.right and interval.end >= self.start:
-            self.right.intersect(interval, report_func,
-                                 ignore_strand=ignore_strand)
+            yield from self.right.intersect(
+                interval, ignore_strand=ignore_strand)
 
-    def traverse(self, func):
+    def traverse(self):
         if self.left:
-            self.left.traverse(func)
-        func(self)
+            yield from self.left.traverse()
+        yield self
         if self.right:
-            self.right.traverse(func)
+            yield from self.right.traverse()
