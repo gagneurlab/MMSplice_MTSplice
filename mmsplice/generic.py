@@ -1,14 +1,20 @@
 import numpy as np
-import sys
-import warnings
-import pandas as pd
 
-clip = lambda x: np.clip(x, 0.00001, 0.99999)
+bases = ['A', 'C', 'G', 'T']
+
+
+def clip(x):
+    return np.clip(x, 0.00001, 0.99999)
+
+
 def logit(x):
     x = clip(x)
-    return np.log(x)-np.log(1-x)
+    return np.log(x) - np.log(1 - x)
 
-def expit(x): return 1. / (1. + np.exp(-x))
+
+def expit(x):
+    return 1. / (1. + np.exp(-x))
+
 
 def get_var_side(var):
     ''' Get exon variant side
@@ -16,12 +22,12 @@ def get_var_side(var):
     varstart, ref, alt, start, end, strand = var
     varend = varstart + len(ref) - 1
     # for insertion deletion, find the actual start of variant
-    # e.g. A->AGG: start from G position, CA->CAGG:start from G position, 
+    # e.g. A->AGG: start from G position, CA->CAGG:start from G position,
     # ATT->A: start from T position, CAT->CA: start from T position
     # For SNP var.POS is the actual mutation position
     if len(ref) != len(alt):
-    	# indels
-    	varstart = varstart + min(len(ref), len(alt)) 
+        # indels
+        varstart = varstart + min(len(ref), len(alt))
     if strand == "+":
         if varstart < start:
             return "left"
@@ -37,7 +43,6 @@ def get_var_side(var):
         else:
             return None
 
-bases = ['A', 'C', 'G', 'T']
 
 def onehot(seq):
     X = np.zeros((len(seq), len(bases)))
@@ -48,8 +53,9 @@ def onehot(seq):
             X[i, bases.index(char.upper())] = 1
     return X
 
+
 def reverse_complement(dna):
-    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N':'N'}
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N'}
     return ''.join([complement[base] for base in dna[::-1]])
 
 
@@ -62,9 +68,8 @@ class Variant(object):
                  ALT,
                  ID=None,
                  strand="*",
-                 side=None
-                 ):
-        """ side: variant side of reference, e.g. splice juction. 
+                 side=None):
+        """ side: variant side of reference, e.g. splice juction.
         Sequence will be trimed or padded based on this for indels
         strand: specify if the variant is intepreted at any strand. e.g. in the case of splicing
         """
@@ -72,13 +77,9 @@ class Variant(object):
         self.POS = POS
         self.ID = ID
         self.strand = strand
-        if strand == "-":
-            self.REF = self._reverse_complement(REF.upper())
-            self.ALT = self._reverse_complement(ALT.upper())
-        else:
-            self.REF = REF.upper()
-            self.ALT = ALT.upper()
-        self._side = side
+        self.REF = reverse_complement(REF.upper()) if strand == '-' else REF
+        self.ALT = reverse_complement(ALT.upper()) if strand == '-' else ALT
+        self.side = side
         self.len_diff = len(self.REF) - len(self.ALT)
 
     @property
@@ -86,45 +87,27 @@ class Variant(object):
         return len(self.REF) == 1 and len(self.ALT) == 1
 
     @property
-    def side(self):
-        return self._side
-
-    @side.setter
-    def side(self, value):
-        self._side = value
-
-    @property
     def to_dict(self):
-        if self.strand == '-':
-            # convert back
-            REF = self._reverse_complement(self.REF)
-            ALT = self._reverse_complement(self.ALT)
-        else:
-            REF = self.REF
-            ALT = self.ALT
-        return {'CHROM': self.CHROM,
-               'POS': self.POS,
-               'ID': self.ID,
-               'REF': REF,
-               'ALT': ALT,
-               'STR':self.CHROM+ ":" + str(self.POS)+":" + REF + ":['" + ALT + "']"}
+        REF = reverse_complement(self.REF) if self.strand == '-' else self.REF
+        ALT = reverse_complement(self.ALT) if self.strand == '-' else self.ALT
+        return {
+            'CHROM': self.CHROM,
+            'POS': self.POS,
+            'ID': self.ID,
+            'REF': REF,
+            'ALT': ALT,
+            'STR': "%s:%s:%s:['%s']" % (self.CHROM, str(self.POS), REF, ALT)
+        }
 
-    def _reverse_complement(self, dna):
-        complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N':'N'}
-        return ''.join([complement[base] for base in dna[::-1]])
-
-    # def __str__(self):
-    #     return "{0}:{1}, REF={2}, ALT={3}".format(self.CHROM, self.POS, self.REF, self.ALT)
-    
     def __repr__(self):
-        return "Variant(CHROM={0}, POS={1}, REF={2}, ALT={3}, ID={4})".format(self.CHROM, self.POS, self.REF, self.ALT, self.ID)
-
+        return "Variant(CHROM={0}, POS={1}, REF={2}, ALT={3}, ID={4})".format(
+            self.CHROM, self.POS, self.REF, self.ALT, self.ID)
 
 
 class SpliceSite(object):
     ''' A splice site with flanking intron and exon sequence
     Args:
-    order: order of splice site (donor or acceptor) in a transcript counted from 5' to 3'. 
+    order: order of splice site (donor or acceptor) in a transcript counted from 5' to 3'.
     variant: Variant class instance. Variant associated with this site.
     '''
 
@@ -137,7 +120,7 @@ class SpliceSite(object):
                  gene_id,
                  biotype,
                  order=None,
-                 variant=None, 
+                 variant=None,
                  encode=True):
         self.chrom = chrom
         self.grange = (start, stop)
@@ -146,25 +129,10 @@ class SpliceSite(object):
         self.geneID = gene_id
         self.biotype = biotype
         self.order = order
-        self._seq = None
+        self.seq = None
         self.variant = variant
         self.encode = encode
 
-    @property
-    def seq(self):
-        return self._seq
-
-    @seq.setter
-    def seq(self, value):
-        self._seq = value
-
     def get_seq(self, fasta):
-        seq = fasta.get_seq(self.chrom,
-                            self.grange,
-                            self.strand)
-        if self.encode:
-            return onehot(seq.upper())
-        else:
-            return seq.upper()
-
-
+        seq = fasta.get_seq(self.chrom, self.grange, self.strand).upper()
+        return onehot(seq) if self.encode else seq

@@ -6,20 +6,37 @@ __author__ = """Jun Cheng"""
 __email__ = 'chengju@in.tum.de'
 __version__ = '0.2.0'
 
-from mmsplice.mmsplice import MMSplice, predict_all, writeVCF, predict_all_table
+from keras.models import load_model
 import mmsplice.generic
-import mmsplice.IntervalTree
+import mmsplice.interval_tree
 import mmsplice.vcf_dataloader
 import mmsplice.exon_dataloader
 from .utils import postproc
+from mmsplice.mmsplice import MMSplice, \
+    predict_all, \
+    writeVCF, \
+    predict_all_table, \
+    ACCEPTOR_INTRON, \
+    ACCEPTOR, \
+    EXON, \
+    EXON3,\
+    DONOR, \
+    DONOR_INTRON, \
+    LINEAR_MODEL, \
+    LOGISTIC_MODEL
 
-# export modules
-from mmsplice.mmsplice import ACCEPTOR_INTRON, ACCEPTOR, EXON, EXON3, DONOR, DONOR_INTRON, LINEAR_MODEL, LOGISTIC_MODEL
-from keras.models import load_model
-
-# ACCEPTOR_INTRON_MODULE = load_model(ACCEPTOR_INTRON)
-# ACCEPTOR_MODULE = load_model(ACCEPTOR)
-# EXON_MODULE = load_model(EXON)
-# EXON3_MODULE = load_model(EXON3)
-# DONOR_MODULE = load_model(DONOR)
-# DONOR_INTRON_MODULE = load_model(DONOR_INTRON)
+__all__ = [
+    'load_model',
+    'MMSplice',
+    'predict_all',
+    'writeVCF',
+    'predict_all_table',
+    'ACCEPTOR_INTRON',
+    'ACCEPTOR',
+    'EXON',
+    'EXON3',
+    'DONOR',
+    'DONOR_INTRON',
+    'LINEAR_MODEL',
+    'LOGISTIC_MODEL'
+]
