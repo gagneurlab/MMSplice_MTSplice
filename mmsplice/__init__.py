@@ -4,7 +4,7 @@
 
 __author__ = """Jun Cheng"""
 __email__ = 'chengju@in.tum.de'
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 from keras.models import load_model
 import mmsplice.generic
