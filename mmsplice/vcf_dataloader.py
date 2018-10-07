@@ -408,8 +408,8 @@ class SplicingVCFDataloader(SampleIterator):
 
     def __next__(self):
         ss, var = next(self.ssGenerator)
-        seq = ss.get_seq(self.fasta)
-        mut_seq = ss.get_mut_seq(self.fasta, var)
+        seq = ss.get_seq(self.fasta).upper()
+        mut_seq = ss.get_mut_seq(self.fasta, var).upper()
 
         if self.split_seq:
             seq = self.split(seq, ss.overhang)
