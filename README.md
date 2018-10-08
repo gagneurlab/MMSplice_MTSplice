@@ -11,7 +11,16 @@ Predict splicing variant effect from VCF
 ## Usage example
 ------
 
-NOTE: make sure you split and left-normalize the input VCF file.
+### Preparation
+#### 1. Prepare annotation file
+Standard human gene annotation file in GTF format can be downloaded
+#### 2 Prepare variant (VCF) file
+VCF filer quality, split, left-normalization
+#### 3. Prepare fasta file
+Make sure the chromosome name matches with GTF annotation file. 
+
+
+### Example code
 
 Check notebooks/example.ipynb
 
@@ -31,7 +40,7 @@ gtfIntervalTree = '../tests/data/test.pkl' # pickle exon interval Tree
 dl = SplicingVCFDataloader(gtf, 
                           fasta,
                           vcf,
-                          out_file=gtfIntervalTree,
+                          out_file=gtfIntervalTree, # same pikled gtf IntervalTree
                           split_seq=False)
 
 # Specify model

@@ -328,7 +328,7 @@ class SplicingVCFDataloader(SampleIterator):
     """
     Load genome annotation (gtf) file along with a vcf file, return wt sequence and mut sequence.
     Args:
-    gtf: gtf file or pickled gtf IntervalTree. Can be dowloaded from MISO or ensembl.
+    gtf: gtf file or pickled gtf IntervalTree. Can be dowloaded from ensembl/gencode. Filter for protein coding genes.
     fasta_file: file path; Genome sequence
     vcf_file: vcf file, each line should contain one and only one variant, left-normalized
     spit_seq: whether or not already split the sequence when loading the data. Otherwise it can be done in the model class.
@@ -342,6 +342,9 @@ class SplicingVCFDataloader(SampleIterator):
     acceptor_exon_len: what length in acceptor exon to consider for acceptor site model
     donor_intron_len: what length in donor intron to consider for donor site model
     donor_exon_len: what length in donor exon to consider for donor site model
+    out_file: file path to save pickle file for IntervalTree object derived from GTF annotation. 
+        Once the IntervalTree object is generated and saved as a pickle file, next run it can be directly provided to the `gtf` argument,
+        the program will save time by not generating it again.
     **kwargs: kwargs for `GenerateExonIntervalTree` object
     """
 
