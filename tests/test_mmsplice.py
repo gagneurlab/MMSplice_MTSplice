@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 
 """Tests for `mmsplice` package."""
@@ -32,7 +33,7 @@ def test_predict_all_table(vcf_path):
     df = predict_all_table(model, dl, batch_size=1024,
                            split_seq=False, assembly=True)
 
-    assert len(df['mmsplice_diff']) == len(variants) - 1
+    assert len(df['mmsplice_dlogitPsi']) == len(variants) - 1
 
     # dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
     # df = predict_all_table(model, dl, batch_size=1024,
