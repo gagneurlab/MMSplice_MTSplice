@@ -31,7 +31,8 @@ def test_predict_all_table(vcf_path):
 
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
     df = predict_all_table(model, dl, batch_size=1024,
-                           split_seq=False, assembly=True)
+                           split_seq=False, assembly=True,
+                           pathogenicity=True, splicing_efficiency=True)
 
     assert len(df['mmsplice_dlogitPsi']) == len(variants) - 1
 

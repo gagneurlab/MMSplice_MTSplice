@@ -262,7 +262,7 @@ def predict_all_table(model,
             pred['mmsplice_pathogenicity'] = delt_pred
         if splicing_efficiency:
             X_splicing_efficiency = transform(X, region_only=False)
-            X_splicing_efficiency = X_splicing_efficiency[:,:-2] # only work for exon now
+            X_splicing_efficiency = X_splicing_efficiency[:,[1,2,3,5]] # no intronic modules
             delt_pred = EFFICIENCY_MODEL.predict(X_splicing_efficiency)
             pred['mmsplice_dse'] = delt_pred
         X = transform(X, region_only=False)
