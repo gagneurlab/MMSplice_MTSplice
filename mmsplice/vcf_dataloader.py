@@ -345,6 +345,7 @@ class SplicingVCFDataloader(SampleIterator):
     out_file: file path to save pickle file for IntervalTree object derived from GTF annotation. 
         Once the IntervalTree object is generated and saved as a pickle file, next run it can be directly provided to the `gtf` argument,
         the program will save time by not generating it again.
+    variant_filter: if set True (default), variants with `FILTER` field other than `PASS` will be filtered out.
     **kwargs: kwargs for `GenerateExonIntervalTree` object
     """
 
