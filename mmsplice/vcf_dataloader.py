@@ -361,6 +361,7 @@ class SplicingVCFDataloader(SampleIterator):
                  acceptor_exon_len=3,
                  donor_exon_len=5,
                  donor_intron_len=13,
+                 variant_filter=True,
                  encode=True,
                  **kwargs):
         try:
@@ -372,7 +373,7 @@ class SplicingVCFDataloader(SampleIterator):
         if isinstance(fasta_file, six.string_types):
             fasta = Fasta(fasta_file, as_raw=False)
         self.fasta = fasta
-        self.ssGenerator = self.spliceSiteGenerator(vcf_file, self.exons)
+        self.ssGenerator = self.spliceSiteGenerator(vcf_file, self.exons, variant_filter)
 
         self.encode = encode
         self.split_seq = split_seq
@@ -386,9 +387,11 @@ class SplicingVCFDataloader(SampleIterator):
         self.donor_intron_len = donor_intron_len
 
     @staticmethod
-    def spliceSiteGenerator(vcf_file, exonTree):
+    def spliceSiteGenerator(vcf_file, exonTree, variant_filter=True):
         variants = VCF(vcf_file)
         for var in variants:
+            if variant_filter and var.FILTER:
+                next
             iv = VariantInterval.from_Variant(var)
 
             matches = map(lambda x: x.interval,
