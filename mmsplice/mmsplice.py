@@ -24,6 +24,8 @@ LINEAR_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/linear_model.pkl'))
 LOGISTIC_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/Pathogenicity.pkl'))
+EFFICIENCY_MODEL = joblib.load(resource_filename(
+    'mmsplice', 'models/splicing_efficiency.pkl'))
 
 
 class MMSplice(object):
@@ -204,7 +206,8 @@ def predict_all_table(model,
                       split_seq=True,
                       progress=True,
                       # assembly_fn=LINEAR_MODEL,
-                      pathogenicity=False):
+                      pathogenicity=False,
+                      splicing_efficiency=False):
     ''' Return the prediction as a table
         exon_scale_factor: can be determined through cross validation.
         Args:
@@ -213,7 +216,8 @@ def predict_all_table(model,
             split_seq: is the input sequence from dataloader splited?
             progress: show progress bar?
             assembly_fn: function to assemble modular predictions.
-            pathogenicity: to predict pathogenicity? If so, use logistic regression model and transform(region_only=True).
+            pathogenicity: whether output prediction of pathogenicity
+            splicing_efficiency: whether output prediction of splicing_efficiency
     '''
     ID = []
     ref_pred = []
@@ -251,14 +255,19 @@ def predict_all_table(model,
         alt_pred = alt_pred.values
         X = alt_pred - ref_pred
         if pathogenicity:
-            X = transform(X, region_only=True)
+            X_pathogenicity = transform(X, region_only=True)
             # design matrix for logistic model to predict pathogenicity
-            X = np.concatenate([ref_pred, alt_pred, X[:, -3:]], axis=-1)
-            delt_pred = LOGISTIC_MODEL.predict_proba(X)[:, 1]
-        else:
-            X = transform(X, region_only=False)
-            delt_pred = LINEAR_MODEL.predict(X)
-        pred['mmsplice_diff'] = delt_pred
+            X_pathogenicity = np.concatenate([ref_pred, alt_pred, X_pathogenicity[:, -3:]], axis=-1)
+            delt_pred = LOGISTIC_MODEL.predict_proba(X_pathogenicity)[:, 1]
+            pred['mmsplice_pathogenicity'] = delt_pred
+        if splicing_efficiency:
+            X_splicing_efficiency = transform(X, region_only=False)
+            X_splicing_efficiency = X_splicing_efficiency[:,:-2] # only work for exon now
+            delt_pred = EFFICIENCY_MODEL.predict(X_splicing_efficiency)
+            pred['mmsplice_dse'] = delt_pred
+        X = transform(X, region_only=False)
+        delt_pred = LINEAR_MODEL.predict(X)
+        pred['mmsplice_dlogitPsi'] = delt_pred
     else:
         pred = pd.concat([pred, ref_pred, alt_pred], axis=1)
     return pred
