@@ -23,7 +23,8 @@ from mmsplice.mmsplice import MMSplice, \
     DONOR, \
     DONOR_INTRON, \
     LINEAR_MODEL, \
-    LOGISTIC_MODEL
+    LOGISTIC_MODEL,\
+    EFFICIENCY_MODEL
 
 __all__ = [
     'load_model',
@@ -38,5 +39,6 @@ __all__ = [
     'DONOR',
     'DONOR_INTRON',
     'LINEAR_MODEL',
-    'LOGISTIC_MODEL'
+    'LOGISTIC_MODEL',
+    'EFFICIENCY_MODEL'
 ]
