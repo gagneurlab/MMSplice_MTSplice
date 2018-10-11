@@ -5,11 +5,17 @@
 
 Predict splicing variant effect from VCF
 
-* Free software: MIT license
+Paper: Cheng et al. https://doi.org/10.1101/438986
+
+![MMSplice](https://raw.githubusercontent.com/kipoi/models/master/MMSplice/Model.png)
 
 
 ## Usage example
 ------
+
+```bash
+pip install mmsplice
+```
 
 ### Preparation
 ------
