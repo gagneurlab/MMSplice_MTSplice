@@ -1,5 +1,7 @@
 # VEP MMSplice plugin user tutorial
 
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that runs MMSplice (modular modeling of splicing) which performs a set of prediction on splicing. The plugin requires MMSplice python package as an external dependency since it wraps mmsplice package as vep plugin. Thus, MMSplice package should be installed (check installation). Then, it automatically runs python server in background and analysis variant with python server.
+
 ## Installation
 
 Install ensemble vep, if you didn't already.
@@ -32,6 +34,8 @@ pip install mmsplice
 
 ## Usage
 
+if you are not already familiar with the usage of VEP plugins, please check [this documentation](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) first.
+
 Now, You can analyze your vcf with following comments using default mmsplice configuration.
 
 ```
@@ -45,9 +49,32 @@ For example, if your cache dir different then default please speficy it as follo
 vep -i test.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --port 3337 --cache --dir /ensembl-vep/92/cachedir/
 ```
 
+For further details about VEP plugin parameters, please check [this documentation](https://www.ensembl.org/info/docs/tools/vep/script/vep_options.html#opt_plugin).
+
 You may want to run mmsplice different then default parameter. The full list of parameters of mmsplice with their default is given below.
 Please be cautious changing parameters. If the corresponding mmsplice model don't support the parameters it will throw errors.
 
 ```
  ./vep -i variants.vcf --plugin MMSplice,[port_of_mmsplice_server=5000],[intronl_len=100],[intronr_len=80],[exon_cut_l=0],[exon_cut_r=0],[acceptor_intron_cut=6],[donor_intron_cut=3],[acceptor_intron_len=20],[acceptor_exon_len=3],[donor_exon_len=3],[donor_intron_len=6],[acceptor_intronM],[acceptorModelFile],[exonModelFile],[donorModelFile],[donor_intronModelFile]
 ```
+
+## Results
+
+If you are able to run the code above, it will produce an vcf file with following columns are added to INFO section:
+
+```
+mmsplice_ref_acceptor_intron => "acceptor intron score of reference sequence",
+mmsplice_ref_acceptor => "acceptor score of reference sequence",
+mmsplice_ref_exon => "exon score of reference sequence",
+mmsplice_ref_donor => "donor score of reference sequence",
+mmsplice_ref_donor_intron => "donor intron score of reference sequence",
+mmsplice_alt_acceptor_intron => "acceptor intron score of variant sequence ",
+mmsplice_alt_acceptor => "acceptor score of variant sequence",
+mmsplice_alt_exon => "exon score of variant sequence",
+mmsplice_alt_donor => "donor score of variant sequence",
+mmsplice_alt_donor_intron => "donor intron score of variant sequence",
+mmsplice_delta_logit_psi => "delta logit psi score of variant",
+mmsplice_pathogenicity => "pathogenicity effect of variant"
+```
+
+The plugin don't filters any variant. Some of the variants may not have prediction because they are not matched. In this case, emtpy values are returned.

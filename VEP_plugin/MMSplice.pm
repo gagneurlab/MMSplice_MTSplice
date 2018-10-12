@@ -35,10 +35,16 @@ limitations under the License.
 =head1 DESCRIPTION
 
  This is a plugin for the Ensembl Variant Effect Predictor (VEP) that
- runs MMSplice.
+ runs MMSplice (modular modeling of splicing) which performs a set of prediction
+ on splicing.
 
-Add more doc.
+ The plugin requires MMSplice python package as an external dependency since it wraps mmsplice package as vep plugin.
+ Thus, MMSplice package should be installed with `pip install mmsplice`.
+ Then, it automatically runs python server in background and analysis variant with python server.
 
+ The plugin predicts delta_logit_psi and pathogenicity values of variants in addition to the score of each component, for both reference and variant sequences, such as acceptor_intron, acceptor, exon, donor, and donor_intron.
+
+ The plugin don't filters any variant. Some of the variants may not have prediction because they are not matched. In this case, emtpy values are returned.
 =cut
 
 package MMSplice;
@@ -75,18 +81,18 @@ sub feature_types {
 
 sub get_header_info {
   return {
-    mmsplice_ref_acceptor_intron => "acceptor intron ref",
-    mmsplice_ref_acceptor => "acceptor ref",
-    mmsplice_ref_exon => "exon ref",
-    mmsplice_ref_donor => "donor ref",
-    mmsplice_ref_donor_intron => "donor intron ref",
-    mmsplice_alt_acceptor_intron => "acceptor intron alt",
-    mmsplice_alt_acceptor => "acceptor alt",
-    mmsplice_alt_exon => "exon alt",
-    mmsplice_alt_donor => "alt donor",
-    mmsplice_alt_donor_intron => "alt donor intron",
-    mmsplice_delta_psi => "delta_psi score",
-    mmsplice_pathogenicity => "pathogenicity value"
+    mmsplice_ref_acceptor_intron => "acceptor intron score of reference sequence",
+    mmsplice_ref_acceptor => "acceptor score of reference sequence",
+    mmsplice_ref_exon => "exon score of reference sequence",
+    mmsplice_ref_donor => "donor score of reference sequence",
+    mmsplice_ref_donor_intron => "donor intron score of reference sequence",
+    mmsplice_alt_acceptor_intron => "acceptor intron score of variant sequence ",
+    mmsplice_alt_acceptor => "acceptor score of variant sequence",
+    mmsplice_alt_exon => "exon score of variant sequence",
+    mmsplice_alt_donor => "donor score of variant sequence",
+    mmsplice_alt_donor_intron => "donor intron score of variant sequence",
+    mmsplice_delta_logit_psi => "delta logit psi score of variant",
+    mmsplice_pathogenicity => "pathogenicity effect of variant"
   };
 }
 
@@ -202,7 +208,7 @@ sub run {
       mmsplice_alt_exon => $scores[7],
       mmsplice_alt_donor => $scores[8],
       mmsplice_alt_donor_intron => $scores[9],
-      mmsplice_delta_psi => $scores[10],
+      mmsplice_delta_logit_psi => $scores[10],
       mmsplice_pathogenicity => $scores[11]
     }
   }
