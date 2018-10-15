@@ -9,7 +9,7 @@ def cli():
     pass
 
 
-@cli.command()
+@cli.command(name='run-api')
 @click.option('--port', default=5000, help='Port of python server')
 def run_api(port):
     monkey.patch_all()

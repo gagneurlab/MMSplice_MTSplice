@@ -51,14 +51,8 @@ package MMSplice;
 
 use strict;
 use warnings;
-
-use List::Util qw(max);
 use LWP::UserAgent;
-
-use Digest::MD5 qw(md5_hex);
-
-use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-use Bio::EnsEMBL::Variation::Utils::VariationEffect qw(overlap);
+use IPC::Open3;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
@@ -131,19 +125,14 @@ sub init_api {
 }
 
 sub start_api {
-  my $self = shift;
+    my $self = shift;
 
-  my $pid = fork();
-  die if not defined $pid;
-
-  if ($pid == 0) {
-      exec("mmsplice run-api --port=$self->{api_port}");
-  }
-  else {
-      $self->{api_pid} = $pid;
-  }
-
-  sleep(60);
+    eval {
+        $self->{api_pid} = open3(\*CHLD_IN, \*CHLD_OUT,  \*CHLD_ERR, "mmsplice run-api --port=$self->{api_port}");
+        sleep(60);
+    } or do {
+        die "\nERROR: VEP plugin cannot find mmsplice python package. It is not installed in this environment.\n";
+    }
 }
 
 sub create_model {
@@ -176,11 +165,10 @@ sub create_model {
       return;
   }
   else {
-      print "Model is not created correctly";
-      print "HTTP GET error code: ", $resp->code, "\n";
-      print "HTTP GET error message: ", $resp->message, "\n";
-      print "Probably either your version perl plugin or mmsplice package is not updated! Please update them and retry!";
-      exit 1;
+      print "ERROR: Model is not created correctly\n";
+      print "\t HTTP GET error code: ", $resp->code, "\n";
+      print "\t HTTP GET error message: ", $resp->message, "\n";
+      die "\nERROR: Probably either your version perl plugin or mmsplice package is not updated! Please update them and retry!\n";
   }
 }
 
@@ -375,9 +363,7 @@ sub fetch_seq {
 
 sub DESTROY {
     my $self = shift;
-
-    kill 2, $self->{api_pid};
-    print('api closed');
+    kill 2, $self->{api_pid} if (defined $self->{api_pid});
 }
 
 1;
