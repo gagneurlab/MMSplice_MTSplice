@@ -342,6 +342,7 @@ sub req_psi_score {
       return @scores;
   }
   else {
+      print "\n Warning: A variant out of many cannot be analyzed. If you see this warning in a few instances, don't take it too seriously.\n";
       print "HTTP POST error code: ", $resp->code, "\n";
       print "HTTP POST error message: ", $resp->message, "\n";
   }
