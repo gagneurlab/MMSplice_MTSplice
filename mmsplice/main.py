@@ -1,6 +1,8 @@
+from gevent import monkey
+monkey.patch_all()
+
 import click
 from gevent.pywsgi import WSGIServer
-from gevent import monkey
 from mmsplice.api import app
 
 
@@ -12,7 +14,6 @@ def cli():
 @cli.command(name='run-api')
 @click.option('--port', default=5000, help='Port of python server')
 def run_api(port):
-    monkey.patch_all()
     http_server = WSGIServer(('', port), app.wsgi_app)
     http_server.serve_forever()
 
