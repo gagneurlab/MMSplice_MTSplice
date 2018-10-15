@@ -66,7 +66,7 @@ fasta = 'tests/data/hg19.nochr.chr17.fa'
 gtfIntervalTree = '../tests/data/test.pkl' # pickle exon interval Tree
 
 # dataloader to load variants from vcf
-dl = SplicingVCFDataloader(gtf, 
+dl = SplicingVCFDataloader(gtf,
                           fasta,
                           vcf,
                           out_file=gtfIntervalTree, # same pikled gtf IntervalTree
@@ -89,3 +89,7 @@ model = MMSplice(
  # Summerize with maximum effect size
  predictionsMax = max_varEff(predictions)
 ```
+
+## VEP Plugin
+
+Please check documentation of vep plugin [under VEP_plugin/README.md](VEP_plugin/README.md).
