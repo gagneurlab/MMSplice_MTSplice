@@ -137,7 +137,7 @@ sub start_api {
   die if not defined $pid;
 
   if ($pid == 0) {
-      exec("mmsplice run_api --port=$self->{api_port}");
+      exec("mmsplice run-api --port=$self->{api_port}");
   }
   else {
       $self->{api_pid} = $pid;
@@ -176,8 +176,11 @@ sub create_model {
       return;
   }
   else {
+      print "Model is not created correctly";
       print "HTTP GET error code: ", $resp->code, "\n";
       print "HTTP GET error message: ", $resp->message, "\n";
+      print "Probably either your version perl plugin or mmsplice package is not updated! Please update them and retry!";
+      exit 1;
   }
 }
 
