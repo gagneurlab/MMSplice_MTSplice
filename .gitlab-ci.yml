@@ -1,4 +1,5 @@
 stages:
+  - test_perl
   - test_python
 
 test_python_package:
@@ -17,6 +18,24 @@ test_python_package:
 
   script:
     - python setup.py test
+
+  after_script:
+    - rm -rf *.egg-info .eggs venv
+
+test_vep_plugin:
+  stage: test_perl
+
+  before_script:
+    - module load i12g/ensembl-vep/92
+    - module load i12g/anaconda/3-5.0.1
+    - python -V
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+    - pip install -e .
+
+  script:
+    - vep -i tests/data/small_test.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --cache --dir /opt/modules/i12g/ensembl-vep/92/cachedir --port 3337 --dir_plugins VEP_plugin/
 
   after_script:
     - rm -rf *.egg-info .eggs venv

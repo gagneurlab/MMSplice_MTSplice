@@ -30,7 +30,7 @@ cp MMSplice.pm ~/.vep/Plugins/
 
 If your vep cache directory different then default, you need to copy MMSplice to your cachedir directory accordingly. For example:
 ```bash
-cp MMSplice.pm /ensembl-vep/92/cachedir/
+cp MMSplice.pm /ensembl-vep/92/cachedir/Plugins/
 ```
 
 Lastly, install mmsplice python package to your machine or virtualenv.
