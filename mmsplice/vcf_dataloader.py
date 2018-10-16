@@ -278,16 +278,16 @@ def GenerateExonIntervalTree(gtf_file,
                              firstLastNoExtend=True,
                              source_filter=None):
     """
-    Build IntervalTree object from gtf file for one feature unit (e.g. gene, exon)
-    If give out_file, pickle it
-    gtf_file: gtf format file or pickled Intervaltree object.
-    overhang: flanking intron length to take along with exon. Corresponding to left (acceptor side) and right (donor side)
-    gtf_db_path: (optional) gtf database path. Database for one gtf file only need to be created once
-    out_file: (optional) file path to store the pickled Intervaltree obejct. Next time run it can be given to `gtf_file`
-    disable_infer_transcripts: option to disable infering transcripts. Can be True if the gtf file has transcripts annotated.
-    disable_infer_genes: option to disable infering genes. Can be True if the gtf file has genes annotated.
-    firstLastNoExtend: if True, overhang is not taken for 5' of the first exon, or 3' of the last exon of a gene.
-    source_filter: gene source filters, such as "protein_coding" filter for protein coding genes
+    Build IntervalTree object from gtf file for one feature unit (e.g. gene, exon). If give out_file, pickle it.
+    Args:
+        gtf_file: gtf format file or pickled Intervaltree object.
+        overhang: flanking intron length to take along with exon. Corresponding to left (acceptor side) and right (donor side)
+        gtf_db_path: (optional) gtf database path. Database for one gtf file only need to be created once
+        out_file: (optional) file path to store the pickled Intervaltree obejct. Next time run it can be given to `gtf_file`
+        disable_infer_transcripts: option to disable infering transcripts. Can be True if the gtf file has transcripts annotated.
+        disable_infer_genes: option to disable infering genes. Can be True if the gtf file has genes annotated.
+        firstLastNoExtend: if True, overhang is not taken for 5' of the first exon, or 3' of the last exon of a gene.
+        source_filter: gene source filters, such as "protein_coding" filter for protein coding genes
     """
     try:
         gtf_db = gffutils.interface.FeatureDB(gtf_db_path)
@@ -328,25 +328,25 @@ class SplicingVCFDataloader(SampleIterator):
     """
     Load genome annotation (gtf) file along with a vcf file, return wt sequence and mut sequence.
     Args:
-    gtf: gtf file or pickled gtf IntervalTree. Can be dowloaded from ensembl/gencode. Filter for protein coding genes.
-    fasta_file: file path; Genome sequence
-    vcf_file: vcf file, each line should contain one and only one variant, left-normalized
-    spit_seq: whether or not already split the sequence when loading the data. Otherwise it can be done in the model class.
-    endcode: if split sequence, should it be one-hot-encoded
-    exon_cut_l: when extract exon feature, how many base pair to cut out at the begining of an exon
-    exon_cut_r: when extract exon feature, how many base pair to cut out at the end of an exon
-       (cut out the part that is considered as acceptor site or donor site)
-    acceptor_intron_cut: how many bp to cut out at the end of acceptor intron that consider as acceptor site
-    donor_intron_cut: how many bp to cut out at the end of donor intron that consider as donor site
-    acceptor_intron_len: what length in acceptor intron to consider for acceptor site model
-    acceptor_exon_len: what length in acceptor exon to consider for acceptor site model
-    donor_intron_len: what length in donor intron to consider for donor site model
-    donor_exon_len: what length in donor exon to consider for donor site model
-    out_file: file path to save pickle file for IntervalTree object derived from GTF annotation. 
-        Once the IntervalTree object is generated and saved as a pickle file, next run it can be directly provided to the `gtf` argument,
-        the program will save time by not generating it again.
-    variant_filter: if set True (default), variants with `FILTER` field other than `PASS` will be filtered out.
-    **kwargs: kwargs for `GenerateExonIntervalTree` object
+        gtf: gtf file or pickled gtf IntervalTree. Can be dowloaded from ensembl/gencode. Filter for protein coding genes.
+        fasta_file: file path; Genome sequence
+        vcf_file: vcf file, each line should contain one and only one variant, left-normalized
+        spit_seq: whether or not already split the sequence when loading the data. Otherwise it can be done in the model class.
+        endcode: if split sequence, should it be one-hot-encoded
+        exon_cut_l: when extract exon feature, how many base pair to cut out at the begining of an exon
+        exon_cut_r: when extract exon feature, how many base pair to cut out at the end of an exon
+           (cut out the part that is considered as acceptor site or donor site)
+        acceptor_intron_cut: how many bp to cut out at the end of acceptor intron that consider as acceptor site
+        donor_intron_cut: how many bp to cut out at the end of donor intron that consider as donor site
+        acceptor_intron_len: what length in acceptor intron to consider for acceptor site model
+        acceptor_exon_len: what length in acceptor exon to consider for acceptor site model
+        donor_intron_len: what length in donor intron to consider for donor site model
+        donor_exon_len: what length in donor exon to consider for donor site model
+        out_file: file path to save pickle file for IntervalTree object derived from GTF annotation. 
+            Once the IntervalTree object is generated and saved as a pickle file, next run it can be directly provided to the `gtf` argument,
+            the program will save time by not generating it again.
+        variant_filter: if set True (default), variants with `FILTER` field other than `PASS` will be filtered out.
+        **kwargs: kwargs for `GenerateExonIntervalTree` object
     """
 
     def __init__(self,
@@ -433,7 +433,6 @@ class SplicingVCFDataloader(SampleIterator):
                 'seq': mut_seq,
                 'intronl_len': ss.overhang[0],
                 'intronr_len': ss.overhang[1]
-
             },
             'metadata': {
                 'ranges': ss.grange,
