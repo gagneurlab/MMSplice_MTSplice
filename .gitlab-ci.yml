@@ -1,10 +1,9 @@
-image: python:3.6
-
 stages:
-  - test
+  - test_python
 
-test_async:
-  stage: test
+test_python_package:
+  image: python:3.6
+  stage: test_python
 
   tags:
     - docker
