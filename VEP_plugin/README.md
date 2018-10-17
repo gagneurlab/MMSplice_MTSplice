@@ -28,9 +28,9 @@ Copy for mmsplice.pm file to your ensemble ensemble vep plugin directory.
 cp MMSplice.pm ~/.vep/Plugins/
 ```
 
-If your vep cache directory different then default, you need to copy MMSplice to your cachedir directory accordingly. For example:
+If your vep cache directory different than default, you need to copy MMSplice to your cachedir directory accordingly. For example:
 ```bash
-cp MMSplice.pm /ensembl-vep/92/cachedir/
+cp MMSplice.pm /ensembl-vep/92/cachedir/Plugins/
 ```
 
 Lastly, install mmsplice python package to your machine or virtualenv.
@@ -48,8 +48,8 @@ Now, You can analyze your vcf with following comments using default mmsplice con
 ./vep -i vcf_file.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --cache --port 3337
 ```
 
-If your vep configurations are different then default, you need to add them as parameter.
-For example, if your cache dir different then default please speficy it as follow:
+If your vep configurations are different than default, you need to add them as parameter.
+For example, if your cache dir different than default please speficy it as follow:
 
 ```bash
 ./vep -i vcf_file.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --port 3337 --cache --dir /ensembl-vep/92/cachedir/
@@ -57,7 +57,7 @@ For example, if your cache dir different then default please speficy it as follo
 
 For further details about VEP plugin parameters, please check [this documentation](https://www.ensembl.org/info/docs/tools/vep/script/vep_options.html#opt_plugin).
 
-You may want to run mmsplice different then default parameter. The full list of parameters of mmsplice with their default is given below.
+You may want to run mmsplice different than default parameter. The full list of parameters of mmsplice with their default is given below.
 Please be cautious changing parameters. If the corresponding mmsplice model don't support the parameters it will throw errors.
 
 ```bash
