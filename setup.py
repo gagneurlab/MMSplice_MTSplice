@@ -22,9 +22,7 @@ requirements = [
     'gffutils',
     'pyfaidx',
     'tqdm',
-    'click',
-    'flask',
-    'gevent'
+    'click'
 ]
 
 setup_requirements = ['pytest-runner', ]

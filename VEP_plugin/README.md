@@ -90,11 +90,3 @@ The plugin don't filters any variant. Some of the variants may not have predicti
 ### Gziped Vcf
 
 VEP don't support gzip files. So if you get `gzip: stdout: Broken pipe` this error, or tring to run gziped vcf file, please unzip your file first. Then, use unzipped vcf version.
-
-### Thread Safety
-
-python server is not tread safe due to some technical limition in deep learning models. So, if you want to analysis two vcf file some time, please start two different python server with specifying different port number (check parameter of mmsplice plugin). For example:
-
-```bash
-./vep -i vcf_file1.vcf --plugin MMSplice,5000 ... & ./vep -i vcf_file1.vcf --plugin MMSplice,5001 ...
-```

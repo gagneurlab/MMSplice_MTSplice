@@ -51,196 +51,182 @@ package MMSplice;
 
 use strict;
 use warnings;
-use LWP::UserAgent;
+use diagnostics;
 use IPC::Open3;
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
 
-our $CACHE_SIZE = 50;
-
 sub new {
-  my $class = shift;
-  my $self = $class->SUPER::new(@_);
+    my $class = shift;
+    my $self = $class->SUPER::new(@_);
 
-  $self->init_params();
-  $self->init_api();
+    $self->init_params();
+    $self->init_python();
 
-  return $self;
+    return $self;
 }
 
 sub feature_types {
-  return ['Transcript'];
+    return ['Transcript'];
 }
 
 sub get_header_info {
-  return {
-    mmsplice_ref_acceptor_intron => "acceptor intron score of reference sequence",
-    mmsplice_ref_acceptor => "acceptor score of reference sequence",
-    mmsplice_ref_exon => "exon score of reference sequence",
-    mmsplice_ref_donor => "donor score of reference sequence",
-    mmsplice_ref_donor_intron => "donor intron score of reference sequence",
-    mmsplice_alt_acceptor_intron => "acceptor intron score of variant sequence ",
-    mmsplice_alt_acceptor => "acceptor score of variant sequence",
-    mmsplice_alt_exon => "exon score of variant sequence",
-    mmsplice_alt_donor => "donor score of variant sequence",
-    mmsplice_alt_donor_intron => "donor intron score of variant sequence",
-    mmsplice_delta_logit_psi => "delta logit psi score of variant",
-    mmsplice_pathogenicity => "pathogenicity effect of variant"
-  };
+    return {
+        mmsplice_ref_acceptor_intron => "acceptor intron score of reference sequence",
+        mmsplice_ref_acceptor => "acceptor score of reference sequence",
+        mmsplice_ref_exon => "exon score of reference sequence",
+        mmsplice_ref_donor => "donor score of reference sequence",
+        mmsplice_ref_donor_intron => "donor intron score of reference sequence",
+        mmsplice_alt_acceptor_intron => "acceptor intron score of variant sequence ",
+        mmsplice_alt_acceptor => "acceptor score of variant sequence",
+        mmsplice_alt_exon => "exon score of variant sequence",
+        mmsplice_alt_donor => "donor score of variant sequence",
+        mmsplice_alt_donor_intron => "donor intron score of variant sequence",
+        mmsplice_delta_logit_psi => "delta logit psi score of variant",
+        mmsplice_pathogenicity => "pathogenicity effect of variant"
+    };
 }
 
 sub init_params {
-  my $self = shift;
-  my $params = $self->params;
+    my $self = shift;
+    my $params = $self->params;
 
-  $self->{api_port} = shift @$params || 5000;
+    $self->{api_port} = shift @$params || 5000;
 
-  $self->{overhang_l} = shift @$params || 100;
-  $self->{overhang_r} = shift @$params || 80;
-  $self->{exon_cut_l} = shift @$params || 0;
-  $self->{exon_cut_r} = shift @$params || 0;
-  $self->{acceptor_intron_cut} = shift @$params || 6;
-  $self->{donor_intron_cut} = shift @$params || 6;
-  $self->{acceptor_intron_len} = shift @$params || 50;
-  $self->{acceptor_exon_len} = shift @$params || 3;
-  $self->{donor_exon_len} = shift @$params || 5;
-  $self->{donor_intron_len} = shift @$params || 13;
+    $self->{overhang_l} = shift @$params || 100;
+    $self->{overhang_r} = shift @$params || 80;
+    $self->{exon_cut_l} = shift @$params || 0;
+    $self->{exon_cut_r} = shift @$params || 0;
+    $self->{acceptor_intron_cut} = shift @$params || 6;
+    $self->{donor_intron_cut} = shift @$params || 6;
+    $self->{acceptor_intron_len} = shift @$params || 50;
+    $self->{acceptor_exon_len} = shift @$params || 3;
+    $self->{donor_exon_len} = shift @$params || 5;
+    $self->{donor_intron_len} = shift @$params || 13;
 
-  $self->{acceptor_intronM} = shift @$params || "";
-  $self->{acceptorM} = shift @$params || "";
-  $self->{exonM} = shift @$params || "";
-  $self->{donorM} = shift @$params || "";
-  $self->{donor_intronM} = shift @$params || "";
+    $self->{acceptor_intronM} = shift @$params || "";
+    $self->{acceptorM} = shift @$params || "";
+    $self->{exonM} = shift @$params || "";
+    $self->{donorM} = shift @$params || "";
+    $self->{donor_intronM} = shift @$params || "";
 }
 
-sub init_api {
-  my $self = shift;
+sub call_python {
+    my ($self, $content, $timeout) = @_;
+    $timeout = $timeout || 1;
+    my $python_stdout = $self->{python_stdout};
+    my $python_stdin = $self->{python_stdin};
+    my $python_selout = $self->{python_selout};
+    my $response_keyword = "MMSPLICE-RESPONSE:";
 
-  $self->{ua} = LWP::UserAgent->new;
-  $self->{server_endpoint} = "http://localhost:$self->{api_port}";
+    print $python_stdin "$content\n";
 
-  $self->start_api();
-  $self->create_model();
+    my $result = '';
+    while($python_selout->can_read($timeout)) {
+
+        chomp($result = <$python_stdout>);
+
+        if(substr($result, 0, length($response_keyword)) eq $response_keyword) {
+            $result = substr($result, length($response_keyword), length($result));
+            last;
+        }
+
+        print "$result\n";
+    }
+    return $result;
 }
 
-sub start_api {
+sub init_python {
     my $self = shift;
 
-    eval {
-        $self->{api_pid} = open3(\*CHLD_IN, \*CHLD_OUT,  \*CHLD_ERR, "mmsplice run-api --port=$self->{api_port}");
-        sleep(60);
-    } or do {
-        die "\nERROR: VEP plugin cannot find mmsplice python package. It is not installed in this environment.\n";
-    }
-}
+    $self->{api_pid} = open3(my $python_stdin, my $python_stdout,  my $python_stderr, "mmsplice run");
 
-sub create_model {
-  my ($self, $seq) = @_;
+    my $python_selout = new IO::Select();
+    $python_selout->add($python_stdout);
+    my $python_selerr = new IO::Select();
+    $python_selerr->add($python_stderr);
 
-  my $req = HTTP::Request->new(POST => $self->{server_endpoint} . "/create-model");
-  $req->header('content-type' => 'application/json');
+    $self->{python_selout} = $python_selout;
+    $self->{python_selerr} = $python_selerr;
+    $self->{python_stdin} = $python_stdin;
+    $self->{python_stdout} = $python_stdout;
+    $self->{python_stderr} = $python_stderr;
 
-  my $content = qq{{
-  "acceptor_intronM": "$self->{acceptor_intronM}",
-  "acceptorM": "$self->{acceptorM}",
-  "exonM": "$self->{exonM}",
-  "donorM": "$self->{donorM}",
-  "donor_intronM": "$self->{donor_intronM}",
+    my $content = qq[{"acceptor_intronM": "$self->{acceptor_intronM}", "acceptorM": "$self->{acceptorM}", "exonM": "$self->{exonM}", "donorM": "$self->{donorM}", "donor_intronM": "$self->{donor_intronM}", "exon_cut_l": $self->{exon_cut_l}, "exon_cut_r": $self->{exon_cut_r}, "acceptor_intron_cut": $self->{acceptor_intron_cut}, "donor_intron_cut": $self->{donor_intron_cut}, "acceptor_intron_len": $self->{acceptor_intron_len}, "acceptor_exon_len": $self->{acceptor_exon_len}, "donor_exon_len": $self->{donor_exon_len}, "donor_intron_len": $self->{donor_intron_len}}];
 
-  "exon_cut_l": $self->{exon_cut_l},
-  "exon_cut_r": $self->{exon_cut_r},
-  "acceptor_intron_cut": $self->{acceptor_intron_cut},
-  "donor_intron_cut": $self->{donor_intron_cut},
-  "acceptor_intron_len": $self->{acceptor_intron_len},
-  "acceptor_exon_len": $self->{acceptor_exon_len},
-  "donor_exon_len": $self->{donor_exon_len},
-  "donor_intron_len": $self->{donor_intron_len}
-}};
-
-  $req->content($content);
-
-  my $resp = $self->{ua}->request($req);
-  if ($resp->is_success) {
-      return;
-  }
-  else {
-      print "ERROR: Model is not created correctly\n";
-      print "\t HTTP GET error code: ", $resp->code, "\n";
-      print "\t HTTP GET error message: ", $resp->message, "\n";
-      die "\nERROR: Probably either your version perl plugin or mmsplice package is not updated! Please update them and retry!\n";
-  }
+    my $status = $self->call_python($content, 60);
 }
 
 sub run {
-  my ($self, $tva) = @_;
+    my ($self, $tva) = @_;
 
-  my $vf = $tva->variation_feature;
-  my $tv = $tva->transcript_variation;
-  my $tr = $tva->transcript;
-  my $tr_strand = $tr->strand;
+    my $vf = $tva->variation_feature;
+    my $tv = $tva->transcript_variation;
+    my $tr = $tva->transcript;
+    my $tr_strand = $tr->strand;
 
-  foreach my $exon(@{$self->overlap_exons($tr, $vf)}) {
+    foreach my $exon(@{$self->overlap_exons($tr, $vf)}) {
 
-    my ($splicing_start, $splicing_end) = @{$self->overhanged_interval($exon, $tr_strand)};
-    my $ref_seq = $self->fetch_seq($tva, $splicing_start, $splicing_end);
-    my $alt_seq = $self->fetch_variant_seq($tva, $exon, $splicing_start, $splicing_end);
+        my ($splicing_start, $splicing_end) = @{$self->overhanged_interval($exon, $tr_strand)};
+        my $ref_seq = $self->fetch_seq($tva, $splicing_start, $splicing_end);
+        my $alt_seq = $self->fetch_variant_seq($tva, $exon, $splicing_start, $splicing_end);
 
-    my @scores = $self->req_psi_score($ref_seq, $alt_seq);
+        my @scores = $self->get_psi_score($ref_seq, $alt_seq);
 
-    return {
-      mmsplice_ref_acceptor_intron => $scores[0],
-      mmsplice_ref_acceptor => $scores[1],
-      mmsplice_ref_exon => $scores[2],
-      mmsplice_ref_donor => $scores[3],
-      mmsplice_ref_donor_intron => $scores[4],
-      mmsplice_alt_acceptor_intron => $scores[5],
-      mmsplice_alt_acceptor => $scores[6],
-      mmsplice_alt_exon => $scores[7],
-      mmsplice_alt_donor => $scores[8],
-      mmsplice_alt_donor_intron => $scores[9],
-      mmsplice_delta_logit_psi => $scores[10],
-      mmsplice_pathogenicity => $scores[11]
+        return {
+            mmsplice_ref_acceptor_intron => $scores[0],
+            mmsplice_ref_acceptor => $scores[1],
+            mmsplice_ref_exon => $scores[2],
+            mmsplice_ref_donor => $scores[3],
+            mmsplice_ref_donor_intron => $scores[4],
+            mmsplice_alt_acceptor_intron => $scores[5],
+            mmsplice_alt_acceptor => $scores[6],
+            mmsplice_alt_exon => $scores[7],
+            mmsplice_alt_donor => $scores[8],
+            mmsplice_alt_donor_intron => $scores[9],
+            mmsplice_delta_logit_psi => $scores[10],
+            mmsplice_pathogenicity => $scores[11]
+        }
     }
-  }
 
-  return {};
+    return {};
 }
 
 sub variant_ref {
-  my ($self, $tva) = @_;
-  my $vf = $tva->variation_feature;
+    my ($self, $tva) = @_;
+    my $vf = $tva->variation_feature;
 
-  if ($vf->ref_allele_string eq '-') {
-    return '';
-  }
-  return $vf->ref_allele_string;
+    if ($vf->ref_allele_string eq '-') {
+        return '';
+    }
+    return $vf->ref_allele_string;
 }
 
 sub variant_alt {
-  my ($self, $tva) = @_;
+    my ($self, $tva) = @_;
 
-  if ($tva->feature_seq eq '-') {
-    return '';
-  }
-  return $tva->feature_seq;
+    if ($tva->feature_seq eq '-') {
+        return '';
+    }
+    return $tva->feature_seq;
 }
 
 sub overhanged_interval {
-  my ($self, $exon, $tr_strand) = @_;
+    my ($self, $exon, $tr_strand) = @_;
 
-  my ($splicing_start, $splicing_end);
+    my ($splicing_start, $splicing_end);
 
-  if($tr_strand > 0) {
-    $splicing_start = $exon->start - $self->{overhang_l};
-    $splicing_end = $exon->end + $self->{overhang_r};
-  }
-  else {
-    $splicing_start = $exon->start - $self->{overhang_r};
-    $splicing_end = $exon->end + $self->{overhang_l};
-  }
+    if($tr_strand > 0) {
+        $splicing_start = $exon->start - $self->{overhang_l};
+        $splicing_end = $exon->end + $self->{overhang_r};
+    }
+    else {
+        $splicing_start = $exon->start - $self->{overhang_r};
+        $splicing_end = $exon->end + $self->{overhang_l};
+    }
 
-  return [$splicing_start, $splicing_end];
+    return [$splicing_start, $splicing_end];
 }
 
 sub overlap_exons {
@@ -251,115 +237,89 @@ sub overlap_exons {
 
     foreach my $exon(@{$tr->get_all_Exons()}) {
 
-      my ($low, $high) = ($exon->{start}, $exon->{end});
-      my ($start, $end) = ($vf_start - $self->{overhang_l}, $vf_end + $self->{overhang_r});
+        my ($low, $high) = ($exon->{start}, $exon->{end});
+        my ($start, $end) = ($vf_start - $self->{overhang_l}, $vf_end + $self->{overhang_r});
 
-      unless ($high < $start or $low > $end) {
-          push @exons, $exon;
-      }
+        unless ($high < $start or $low > $end) {
+            push @exons, $exon;
+        }
     }
 
     return \@exons;
 }
 
 sub len_diff {
-  my ($self, $tva) = @_;
-  return (length $self->variant_alt($tva)) - (length $self->variant_ref($tva));
+    my ($self, $tva) = @_;
+    return (length $self->variant_alt($tva)) - (length $self->variant_ref($tva));
 }
 
 sub variant_side {
-  my ($self, $vf, $tr_strand, $exon) = @_;
+    my ($self, $vf, $tr_strand, $exon) = @_;
 
-  if ($tr_strand > 0) {
-    if ($vf->{start} < $exon->start) {
-      return "5'";
+    if ($tr_strand > 0) {
+        if ($vf->{start} < $exon->start) {
+            return "5'";
+        }
+        elsif ($vf->{start} > $exon->end) {
+            return "3'";
+        }
     }
-    elsif ($vf->{start} > $exon->end) {
-      return "3'";
+    else {
+        if ($vf->{start} < $exon->start) {
+            return "3'";
+        }
+        elsif ($vf->{start} > $exon->end) {
+            return "5'";
+        }
     }
-  }
-  else {
-    if ($vf->{start} < $exon->start) {
-      return "3'";
-    }
-    elsif ($vf->{start} > $exon->end) {
-      return "5'";
-    }
-  }
 
-  return "n'";
+    return "n'";
 }
 
 sub fetch_variant_seq {
-  my ($self, $tva, $exon, $splicing_start, $splicing_end) = @_;
-  my $vf = $tva->variation_feature;
-  my $tr_strand = $tva->transcript->strand;
+    my ($self, $tva, $exon, $splicing_start, $splicing_end) = @_;
+    my $vf = $tva->variation_feature;
+    my $tr_strand = $tva->transcript->strand;
 
-  my ($ibefore_start, $ibefore_end) = ($splicing_start, $vf->{start} - 1);
-  my ($iafter_start, $iafter_end) = ($vf->{end} + 1, $splicing_end);
+    my ($ibefore_start, $ibefore_end) = ($splicing_start, $vf->{start} - 1);
+    my ($iafter_start, $iafter_end) = ($vf->{end} + 1, $splicing_end);
 
-  my $v_side = $self->variant_side($vf, $tr_strand, $exon);
+    my $v_side = $self->variant_side($vf, $tr_strand, $exon);
 
-  if (($tr_strand > 0 && $v_side eq "3'") || ($tr_strand < 0 && $v_side eq "5'")) {
-    $iafter_end -= $self->len_diff($tva);
-  }
-  elsif (($tr_strand > 0 && $v_side eq "5'") || ($tr_strand < 0 && $v_side eq "3'")) {
-    $ibefore_start += $self->len_diff($tva);
-  }
+    if (($tr_strand > 0 && $v_side eq "3'") || ($tr_strand < 0 && $v_side eq "5'")) {
+        $iafter_end -= $self->len_diff($tva);
+    }
+    elsif (($tr_strand > 0 && $v_side eq "5'") || ($tr_strand < 0 && $v_side eq "3'")) {
+        $ibefore_start += $self->len_diff($tva);
+    }
 
-  my $before_seq = $self->fetch_seq($tva, $ibefore_start, $ibefore_end);
-  my $after_seq = $self->fetch_seq($tva, $iafter_start, $iafter_end);
+    my $before_seq = $self->fetch_seq($tva, $ibefore_start, $ibefore_end);
+    my $after_seq = $self->fetch_seq($tva, $iafter_start, $iafter_end);
 
-  if ($tr_strand < 0){
-    ($before_seq, $after_seq) = ($after_seq, $before_seq);
-  }
+    if ($tr_strand < 0){
+        ($before_seq, $after_seq) = ($after_seq, $before_seq);
+    }
 
-  return $before_seq . $self->variant_alt($tva) . $after_seq;
+    return $before_seq . $self->variant_alt($tva) . $after_seq;
 }
 
-sub req_psi_score {
-  my ($self, $ref_seq, $alt_seq) = @_;
+sub get_psi_score {
+    my ($self, $ref_seq, $alt_seq) = @_;
 
-  my $req = HTTP::Request->new(POST => $self->{server_endpoint} . "/psi-score");
-  $req->header('content-type' => 'application/json');
+    my $content = qq[{"intronl_len": $self->{overhang_l}, "intronr_len": $self->{overhang_r}, "ref_seq": "$ref_seq", "alt_seq": "$alt_seq"}];
+    my $response = $self->call_python($content);
 
-  my $content = qq{{
-  "intronl_len": $self->{overhang_l},
-  "intronr_len": $self->{overhang_r},
-  "ref_seq": "$ref_seq",
-  "alt_seq": "$alt_seq"
-}};
-
-  $req->content($content);
-
-  my $resp = $self->{ua}->request($req);
-  if ($resp->is_success) {
-
-      my $decoded_content = $resp->decoded_content;
-
-      my @scores = split(',', $decoded_content);
-
-      return @scores;
-  }
-  else {
-      print "\n Warning: A variant out of many cannot be analyzed. If you see this warning in a few instances, don't take it too seriously.\n";
-      print "HTTP POST error code: ", $resp->code, "\n";
-      print "HTTP POST error message: ", $resp->message, "\n";
-  }
+    my @scores = split(',', $response);
+    return @scores;
 }
 
 sub fetch_seq {
-  my ($self, $tva, $start, $end) = @_;
-  my $vf = $tva->variation_feature;
-  my $tr_strand = $tva->transcript->strand;
+    my ($self, $tva, $start, $end) = @_;
+    my $vf = $tva->variation_feature;
+    my $tr_strand = $tva->transcript->strand;
 
-  my $seq = $vf->{slice}->sub_Slice(
-    $start,
-    $end,
-    $tr_strand
-  )->seq;
-
-  return $seq;
+    my $seq = $vf->{slice}->sub_Slice($start, $end, $tr_strand)->seq;
+    return $seq;
 }
 
 sub DESTROY {
