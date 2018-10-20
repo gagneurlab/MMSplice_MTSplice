@@ -29,7 +29,7 @@ limitations under the License.
 
  mv MMSplice.pm ~/.vep/Plugins
  pip install mmsplice
- ./vep -i variants.vcf --plugin MMSplice,[port_of_mmsplice_server=5000],[intronl_len=100],[intronr_len=80],[exon_cut_l=0],[exon_cut_r=0],[acceptor_intron_cut=6],[donor_intron_cut=3],[acceptor_intron_len=20],[acceptor_exon_len=3],[donor_exon_len=3],[donor_intron_len=6],[acceptor_intronM],[acceptorModelFile],[exonModelFile],[donorModelFile],[donor_intronModelFile]
+ ./vep -i variants.vcf --plugin MMSplice,[intronl_len=100],[intronr_len=100],[exon_cut_l=0],[exon_cut_r=0],[acceptor_intron_cut=6],[donor_intron_cut=3],[acceptor_intron_len=20],[acceptor_exon_len=3],[donor_exon_len=3],[donor_intron_len=6],[acceptor_intronM],[acceptorModelFile],[exonModelFile],[donorModelFile],[donor_intronModelFile]
 
 
 =head1 DESCRIPTION
@@ -92,10 +92,8 @@ sub init_params {
     my $self = shift;
     my $params = $self->params;
 
-    $self->{api_port} = shift @$params || 5000;
-
     $self->{overhang_l} = shift @$params || 100;
-    $self->{overhang_r} = shift @$params || 80;
+    $self->{overhang_r} = shift @$params || 100;
     $self->{exon_cut_l} = shift @$params || 0;
     $self->{exon_cut_r} = shift @$params || 0;
     $self->{acceptor_intron_cut} = shift @$params || 6;

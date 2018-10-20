@@ -49,7 +49,7 @@ def run():
 
         scores.extend([
             predict_deltaLogitPsi(ref_scores, alt_scores)[0],
-            int(predict_pathogenicity(ref_scores, alt_scores)[0])
+            predict_pathogenicity(ref_scores, alt_scores)[0]
         ])
 
         sys.stdout.write('MMSPLICE-RESPONSE:' +
