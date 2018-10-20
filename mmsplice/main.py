@@ -19,7 +19,9 @@ def run():
     options = json.loads(sys.stdin.readline().strip())
 
     K.clear_session()
-    psi_model = MMSplice(**{k: v for k, v in options.items() if v})
+    psi_model = MMSplice(
+        **{k: v for k, v in options.items() if v},
+        pattern_warning=False)
 
     # warms up the model
     psi_model.predict({
