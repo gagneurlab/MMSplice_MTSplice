@@ -63,7 +63,8 @@ class MMSplice(object):
                  acceptor_intron_len=50,
                  acceptor_exon_len=3,
                  donor_exon_len=5,
-                 donor_intron_len=13
+                 donor_intron_len=13,
+                 pattern_warning=True
                  ):
 
         K.clear_session()
@@ -81,6 +82,7 @@ class MMSplice(object):
         self.exonM = load_model(exonM)
         self.donorM = load_model(donorM)
         self.donor_intronM = load_model(donor_intronM)
+        self.pattern_warning = pattern_warning
 
     def predict_on_batch(self, x, **kwargs):
         ''' Use when load batch with sequence already splited.
@@ -155,10 +157,11 @@ class MMSplice(object):
         donor = x[(-intronr_len - self.donor_exon_len):(-intronr_len + self.donor_intron_len)]
         donor_intron = x[-intronr_len + self.donor_intron_cut:]
 
-        if donor[self.donor_exon_len:self.donor_exon_len + 2] != "GT":
-            warnings.warn("None GT donor", UserWarning)
-        if acceptor[self.acceptor_intron_len - 2:self.acceptor_intron_len] != "AG":
-            warnings.warn("None AG donor", UserWarning)
+        if self.pattern_warning:
+            if donor[self.donor_exon_len:self.donor_exon_len + 2] != "GT":
+                warnings.warn("None GT donor", UserWarning)
+            if acceptor[self.acceptor_intron_len - 2:self.acceptor_intron_len] != "AG":
+                warnings.warn("None AG donor", UserWarning)
         if len(exon) == 0:
             exon = 'N'
 
@@ -257,12 +260,14 @@ def predict_all_table(model,
         if pathogenicity:
             X_pathogenicity = transform(X, region_only=True)
             # design matrix for logistic model to predict pathogenicity
-            X_pathogenicity = np.concatenate([ref_pred, alt_pred, X_pathogenicity[:, -3:]], axis=-1)
+            X_pathogenicity = np.concatenate(
+                [ref_pred, alt_pred, X_pathogenicity[:, -3:]], axis=-1)
             delt_pred = LOGISTIC_MODEL.predict_proba(X_pathogenicity)[:, 1]
             pred['mmsplice_pathogenicity'] = delt_pred
         if splicing_efficiency:
             X_splicing_efficiency = transform(X, region_only=False)
-            X_splicing_efficiency = X_splicing_efficiency[:,[1,2,3,5]] # no intronic modules
+            X_splicing_efficiency = X_splicing_efficiency[:, [
+                1, 2, 3, 5]]  # no intronic modules
             delt_pred = EFFICIENCY_MODEL.predict(X_splicing_efficiency)
             pred['mmsplice_dse'] = delt_pred
         X = transform(X, region_only=False)
