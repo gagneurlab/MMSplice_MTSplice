@@ -83,4 +83,4 @@ def predict_deltaLogitPsi(X_ref, X_alt):
 def predict_pathogenicity(X_ref, X_alt):
     X = transform(X_alt - X_ref, region_only=True)
     X = np.concatenate([X_ref, X_alt, X[:, -3:]], axis=-1)
-    return LOGISTIC_MODEL.predict(X)
+    return LOGISTIC_MODEL.predict_proba(X)[:, 1]
