@@ -1,3 +1,4 @@
+import math
 import pickle
 import warnings
 import functools
@@ -26,8 +27,8 @@ class VariantInterval(Interval):
         # If multiple alternative, need to split into multiple variants
         if len(variant.ALT) != 1:
             warnings.warn('%s has more than one alternative sequence,'
-                         'only the first one was taken,'
-                         'split into mutliple variants with bedtools' % variant.__repr__(), UserWarning)
+                          'only the first one was taken,'
+                          'split into mutliple variants with bedtools' % variant.__repr__(), UserWarning)
         if variant.ID is None:
             ID = '.'
         else:
@@ -155,108 +156,82 @@ class ExonInterval(gffutils.Feature):
 
     def _ref_check(self, fasta, variant):
         '''Checks that ref seq matchs with fasta'''
-        ref_check = fasta.get_seq(
-            self.chrom,
-            variant.POS, variant.POS +
-            len(variant.REF) - 1,  # -1 because 1 based
-            self.strand == '-').seq  # last option corresponds to rc= in Fasta.get_seq function from pyfaidx
-        return ref_check.upper() != variant.REF
+        # last option corresponds to rc= in Fasta.get_seq function from pyfaidx
+        ref_check = fasta.get_seq(self.chrom, variant.POS,
+                                  # -1 because 1 based
+                                  variant.POS + len(variant.REF) - 1,
+                                  self.strand == '-').seq
+        ref_noteq = ref_check.upper() != variant.REF
+        if ref_noteq:
+            warnings.warn("Reference not match, cannot mutate,"
+                          " return original sequence.", UserWarning)
+            print(variant)
 
-    def _get_snp_seq(self, seq, variant, position):
-        '''Seq of SNP, or more than one nt equal length substitution'''
-        mut_seq = seq[:max(0, position)] + variant.ALT + \
-            seq[position + len(variant.ALT):]
-        if len(mut_seq) > len(seq):
-            mut_seq = mut_seq[:len(seq)]
-            assert len(mut_seq) == len(seq), variant
-        return mut_seq
-
-    def _get_insertion_seq(self, seq, variant, position):
-        # insertion
-        if len(variant.REF) + position > len(seq):
-            # The actual variant position exceeded the retrieved sequence
-            return seq
-        mut_seq = seq[:max(0, position)] + variant.ALT + \
-            seq[position + len(variant.REF):]
-        assert len(seq) - len(mut_seq) == variant.len_diff, variant
-        if variant.side is None:
-            # only substitute
-            return mut_seq
-        elif variant.side == 'left':
-            return mut_seq[-variant.len_diff:]
-        else:
-            return mut_seq[:variant.len_diff]
-
-    def _get_del_seq(self, seq, variant, position, fasta):
-            # deletion
-        if len(variant.REF) + position > len(seq):
-            # The actual variant position exceeded the retrieved sequence
-            return seq
-        if variant.side is None:
-            mut_seq = seq[:max(0, position)] + variant.ALT + \
-                seq[position + len(variant.REF):]
-            assert len(seq) - len(mut_seq) == variant.len_diff, variant
-            return mut_seq
-        elif variant.side == 'left':
-            if self.strand == "+":
-                mut_seq = fasta.get_seq(
-                    self.chrom,
-                    self.start - variant.len_diff, self.end,
-                    self.strand == '-').seq
-            else:
-                mut_seq = fasta.get_seq(
-                    self.chrom,
-                    self.start, self.end + variant.len_diff,
-                    self.strand == '-').seq
-            mut_seq = mut_seq[:position + variant.len_diff] + \
-                variant.ALT + seq[position + len(variant.REF):]
-            assert len(mut_seq) == len(seq), variant
-            return mut_seq
-        else:
-            if self.strand == "+":
-                mut_seq = fasta.get_seq(
-                    self.chrom,
-                    self.start, self.end + variant.len_diff,
-                    self.strand == '-').seq
-            else:
-                mut_seq = fasta.get_seq(
-                    self.chrom,
-                    self.start - variant.len_diff, self.end,
-                    self.strand == '-').seq
-            mut_seq = seq[:position] + variant.ALT + \
-                mut_seq[position + len(variant.REF):]
-            assert len(mut_seq) == len(seq), variant
-            return mut_seq
+        return ref_noteq
 
     def get_mut_seq(self, fasta, variant):
-        assert variant.side in (None, "left", "right")
+        '''
+        Returns the mutated sequence after variant is applied.
 
+        :param fasta: Fasta class
+        :param variant: Variant object
+        :return: str of mutated sequence
+        '''
+        # Validate input
+        assert variant.side in (None, "left", "right")
         if self._ref_check(fasta, variant):
-            warnings.warn(
-                "Reference not match, cannot mutate, return original sequence.", UserWarning)
-            print(variant)
             return self.get_seq(fasta)
 
-        seq = self.get_seq(fasta)
-        position = self._var_pos(variant)
+        # Create two interval one for until variant, one for after variant
+        before_var = [self.start, variant.POS - 1]
+        after_var = [variant.POS + len(variant.REF), self.end]
 
-        # position is 1 based, len(seq) 0 based
-        if position < 0 or position >= len(seq):
-            return seq
-        elif variant.len_diff == 0:
-            return self._get_snp_seq(seq, variant, position)
-        elif variant.len_diff < 0:
-            return self._get_insertion_seq(seq, variant, position)
-        elif variant.len_diff > 0:
-            return self._get_del_seq(seq, variant, position, fasta)
+        # Update interval based on our variant handling
+        # exon deletions extreme case so should be handled differently
+        if self.is_exon_deletion(variant):
+            before_var, after_var = self._handle_exon_deletion(
+                variant, before_var, after_var)
+        else:  # indel or snp
+            len_diff = -variant.len_diff
+            if (self.strand == '+' and variant.side == 'right') \
+               or (self.strand == '-' and variant.side == 'left'):
+                after_var[1] -= len_diff
+            elif (self.strand == '+' and variant.side == 'left') \
+                    or (self.strand == '-' and variant.side == 'right'):
+                before_var[0] += len_diff
 
-    def _var_pos(self, variant):
-        """ Get variant relative position in the sequence
-        """
-        if self.strand == "+":
-            return variant.POS - self.start
+        # Fetch seq based on updated intervals
+        # this condition for extremly long insertion which longer than overhang
+        if before_var[0] >= before_var[1]:
+            before_seq = ''
         else:
-            return self.end - variant.POS - len(variant.REF) + 1
+            before_seq = fasta.get_seq(self.chrom,
+                                       before_var[0],
+                                       before_var[1],
+                                       self.strand == '-').seq
+        if after_var[0] >= after_var[1]:
+            after_seq = ''
+        else:
+            after_seq = fasta.get_seq(self.chrom,
+                                      after_var[0],
+                                      after_var[1],
+                                      self.strand == '-').seq
+
+        # switch interval if negative strand
+        if self.strand == '-':
+            before_seq, after_seq = after_seq, before_seq
+
+        # concatenate three string
+        return before_seq + variant.ALT + after_seq
+
+    def is_exon_deletion(self, variant):
+        return variant.POS <= self.Exon_Start and \
+            self.Exon_End <= variant.POS + len(variant.REF)
+
+    def _handle_exon_deletion(self, variant, before_var, after_var):
+        before_var[0] -= self.Exon_Start - variant.POS - len(variant.ALT)
+        after_var[1] += variant.POS + len(variant.REF) - 1 - self.Exon_End
+        return before_var, after_var
 
 
 class FastaSeq(Fasta):
@@ -342,7 +317,7 @@ class SplicingVCFDataloader(SampleIterator):
         acceptor_exon_len: what length in acceptor exon to consider for acceptor site model
         donor_intron_len: what length in donor intron to consider for donor site model
         donor_exon_len: what length in donor exon to consider for donor site model
-        out_file: file path to save pickle file for IntervalTree object derived from GTF annotation. 
+        out_file: file path to save pickle file for IntervalTree object derived from GTF annotation.
             Once the IntervalTree object is generated and saved as a pickle file, next run it can be directly provided to the `gtf` argument,
             the program will save time by not generating it again.
         variant_filter: if set True (default), variants with `FILTER` field other than `PASS` will be filtered out.
@@ -374,7 +349,8 @@ class SplicingVCFDataloader(SampleIterator):
         if isinstance(fasta_file, six.string_types):
             fasta = Fasta(fasta_file, as_raw=False)
         self.fasta = fasta
-        self.ssGenerator = self.spliceSiteGenerator(vcf_file, self.exons, variant_filter)
+        self.ssGenerator = self.spliceSiteGenerator(
+            vcf_file, self.exons, variant_filter)
 
         self.encode = encode
         self.split_seq = split_seq
@@ -400,9 +376,9 @@ class SplicingVCFDataloader(SampleIterator):
 
             for match in matches:
                 side = get_var_side((
-                    var.POS,
-                    var.REF,
-                    var.ALT,
+                    iv.start,
+                    iv.REF,
+                    iv.ALT,
                     match.Exon_Start,
                     match.Exon_End,
                     match.strand
