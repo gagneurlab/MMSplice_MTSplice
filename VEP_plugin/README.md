@@ -42,7 +42,7 @@ pip install mmsplice
 
 if you are not already familiar with the usage of VEP plugins, please check [this documentation](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) first.
 
-Now, You can analyze your vcf with following comments using default mmsplice configuration.
+Now, You can analyze your vcf with following command using default mmsplice configuration.
 
 ```bash
 ./vep -i vcf_file.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --cache --port 3337
