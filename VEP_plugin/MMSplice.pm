@@ -125,6 +125,11 @@ sub call_python {
 
         chomp($result = <$python_stdout>);
 
+        if ($result eq "")
+        {
+            next;
+        }
+
         if(substr($result, 0, length($response_keyword)) eq $response_keyword) {
             $result = substr($result, length($response_keyword), length($result));
             last;
