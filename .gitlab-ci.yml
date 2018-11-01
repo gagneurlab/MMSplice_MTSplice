@@ -7,7 +7,7 @@ test_async:
   stage: test
 
   tags:
-    - docker
+    - shell
 
   before_script:
     - python -V
