@@ -10,10 +10,12 @@ variables:
     run:
       name: Install mmsplice
       command: pip install '.[develop]'
-  install_concise: &install_concise
+  install_dependencies: &install_dependencies
     run:
-      name: Install concise
-      command: pip install concise
+      name: Install dependencies not in miniconda3
+      command: |
+        pip install concise
+        pip install cython
   install_tensorflow1_11: &install_tensorflow1_11
     run:
       name: Install tensorflow 1.11
@@ -40,8 +42,8 @@ jobs:
     steps:
     - checkout
     - *update_conda
+    - *install_dependencies
     - *install_tensorflow1_11
-    - *install_concise
     - *install_mmsplice
     - *test_cli
     - *run_tests
