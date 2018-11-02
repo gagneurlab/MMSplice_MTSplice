@@ -5,7 +5,9 @@ variables:
   update_conda: &update_conda
     run:
       name: Update conda
-      command: conda update --yes conda
+      command: |
+        conda update --yes conda
+        conda update setuptools
   install_mmsplice: &install_mmsplice
     run:
       name: Install mmsplice
@@ -18,7 +20,6 @@ variables:
         apt-get install -y build-essential libz-dev libcurl3-dev
         pip install concise
         pip install cython
-        pip install -U setuptools
   install_tensorflow1_11: &install_tensorflow1_11
     run:
       name: Install tensorflow 1.11
