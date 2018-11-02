@@ -1,7 +1,6 @@
 # mmsplice
 
 [![pypi](https://img.shields.io/pypi/v/mmsplice.svg)](https://pypi.python.org/pypi/mmsplice)
-[![travis](https://img.shields.io/travis/s6juncheng/mmsplice.svg)](https://travis-ci.org/s6juncheng/mmsplice)
 
 Predict splicing variant effect from VCF
 
@@ -63,7 +62,7 @@ from mmsplice.utils import max_varEff
 gtf = 'tests/data/test.gtf'
 vcf = 'tests/data/test.vcf.gz'
 fasta = 'tests/data/hg19.nochr.chr17.fa'
-gtfIntervalTree = '../tests/data/test.pkl' # pickle exon interval Tree
+gtfIntervalTree = 'tests/data/test.pkl' # pickle exon interval Tree
 
 # dataloader to load variants from vcf
 dl = SplicingVCFDataloader(gtf,
