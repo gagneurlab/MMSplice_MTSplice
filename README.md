@@ -52,6 +52,8 @@ Human reference fasta file can be downloaded from ensembl/gencode. Make sure the
 
 Check [notebooks/example.ipynb](https://github.com/gagneurlab/MMSplice/blob/master/notebooks/example.ipynb)
 
+To score variants (including indels), we suggest to use primarily the `deltaLogitPSI` predictions, which is the default output. The differential splicing efficiency (dse) model was trained from MMSplice modules and exonic variants from MaPSy, thus only the predictions for exonic variants are calibrated.
+
 ```python
 # Import
 from mmsplice.vcf_dataloader import SplicingVCFDataloader
@@ -91,4 +93,4 @@ model = MMSplice(
 
 ## VEP Plugin
 
-Please check documentation of vep plugin [under VEP_plugin/README.md](VEP_plugin/README.md).
+The VEP plugin wraps the prediction function from `mmsplice` python package. Please check documentation of vep plugin [under VEP_plugin/README.md](VEP_plugin/README.md).
