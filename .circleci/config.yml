@@ -1,0 +1,39 @@
+version: 2
+
+
+variables:
+  update_conda: &update_conda
+    run:
+      name: Update conda
+      command: conda update --yes conda
+  install_mmsplice: &install_mmsplice
+    run:
+      name: Install mmsplice
+      command: pip install '.[develop]'
+  test_cli: &test_cli
+    run:
+      name: Test cli
+      command: mmsplice      
+  run_tests: &run_tests
+    run:
+      name: Run tests
+      command: |
+        python setup.py test
+
+jobs:
+  build:
+    docker:
+    - image: continuumio/miniconda3:4.3.14
+    working_directory: ~/repo
+    steps:
+    - checkout
+    - *update_conda
+    - *install_mmsplice
+    - *test_cli
+    - *run_tests
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+    - build
