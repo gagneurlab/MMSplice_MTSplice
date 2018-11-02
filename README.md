@@ -1,5 +1,5 @@
 # mmsplice
-
+[![CircleCI](https://circleci.com/gh/gagneurlab/MMSplice.svg?style=svg)](https://circleci.com/gh/gagneurlab/MMSplice)
 [![pypi](https://img.shields.io/pypi/v/mmsplice.svg)](https://pypi.python.org/pypi/mmsplice)
 
 Predict splicing variant effect from VCF

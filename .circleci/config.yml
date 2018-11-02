@@ -5,11 +5,29 @@ variables:
   update_conda: &update_conda
     run:
       name: Update conda
-      command: conda update --yes conda
+      command: |
+        conda update --yes conda
+        conda update setuptools
   install_mmsplice: &install_mmsplice
     run:
       name: Install mmsplice
-      command: pip install '.[develop]'
+      command: pip install -e '.'
+  install_dependencies: &install_dependencies
+    run:
+      name: Install dependencies not in miniconda3
+      command: |
+        apt-get update && \
+        apt-get install -y build-essential libz-dev libcurl3-dev
+        pip install concise
+        pip install cython
+  install_tensorflow1_11: &install_tensorflow1_11
+    run:
+      name: Install tensorflow 1.11
+      command: pip install tensorflow==1.11
+  install_tensorflow1_9: &install_tensorflow1_9
+    run:
+      name: Install tensorflow 1.9
+      command: pip install tensorflow==1.9      
   test_cli: &test_cli
     run:
       name: Test cli
@@ -21,6 +39,7 @@ variables:
         python setup.py test
 
 jobs:
+
   build:
     docker:
     - image: continuumio/miniconda3:4.3.14
@@ -28,6 +47,8 @@ jobs:
     steps:
     - checkout
     - *update_conda
+    - *install_dependencies
+    - *install_tensorflow1_11
     - *install_mmsplice
     - *test_cli
     - *run_tests
