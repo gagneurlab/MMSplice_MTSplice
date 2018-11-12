@@ -17,13 +17,19 @@ def expit(x):
 
 
 def get_var_side(var):
-    ''' Get exon variant side
-    '''
+    ''' Get exon variant side '''
     varstart, ref, alt, start, end, strand = var
 
     # for long insertion or deletion which can go out side of exon
     # CA->CAGG
     varend = varstart + max(len(ref), len(alt)) - 1
+
+    # left normalization
+    for i in range(min(len(ref), len(alt))):
+        if ref[i] == alt[i]:
+            varstart += 1
+        else:
+            break
 
     if strand == "+":
         if varstart < start:

@@ -268,6 +268,8 @@ sub variant_side {
     my $len_alt = length $self->variant_ref($tva);
     my $vf_end = $vf->{start} + max($len_ref, $len_alt) - 1;
 
+    $DB::single = 1;
+
     if ($tr_strand > 0) {
         if ($vf->{start} < $exon->start) {
             return "5'";

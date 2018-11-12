@@ -16,7 +16,7 @@ requirements = [
     'sklearn',
     'tensorflow',
     'keras>',
-    'kipoi>=2.2.0',
+    'kipoi>=0.4.1',
     'pandas',
     'concise',
     'cyvcf2==0.9.0',
