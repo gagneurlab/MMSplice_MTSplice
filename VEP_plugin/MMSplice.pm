@@ -1,8 +1,5 @@
 =head1 LICENSE
 
-Copyright [1999-2015] Wellcome EMBL-European Bioinformatics Institute
-Copyright [2016-2018] EMBL-European Bioinformatics Institute
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -17,13 +14,13 @@ limitations under the License.
 
 =head1 CONTACT
 
- Ensembl <http://www.ensembl.org/info/about/contact/index.html>
+ Gagneurlab <https://github.com/gagneurlab/mmsplice>
 
 =cut
 
 =head1 NAME
 
- MMSplice
+ MMSplice.0.2.6
 
 =head1 SYNOPSIS
 
@@ -74,8 +71,6 @@ sub feature_types {
 
 sub get_header_info {
     return {
-        debug_ref_seq => "",
-        debug_alt_seq => "",
         mmsplice_ref_acceptor_intron => "acceptor intron score of reference sequence",
         mmsplice_ref_acceptor => "acceptor score of reference sequence",
         mmsplice_ref_exon => "exon score of reference sequence",
@@ -105,7 +100,6 @@ sub init_params {
     $self->{acceptor_exon_len} = shift @$params || 3;
     $self->{donor_exon_len} = shift @$params || 5;
     $self->{donor_intron_len} = shift @$params || 13;
-
     $self->{acceptor_intronM} = shift @$params || "";
     $self->{acceptorM} = shift @$params || "";
     $self->{exonM} = shift @$params || "";
@@ -180,8 +174,6 @@ sub run {
         my @scores = $self->get_psi_score($ref_seq, $alt_seq);
 
         return {
-            debug_ref_seq => $ref_seq,
-            debug_alt_seq => $alt_seq,
             mmsplice_ref_acceptor_intron => $scores[0],
             mmsplice_ref_acceptor => $scores[1],
             mmsplice_ref_exon => $scores[2],
@@ -268,8 +260,6 @@ sub variant_side {
     my $len_alt = length $self->variant_ref($tva);
     my $vf_end = $vf->{start} + max($len_ref, $len_alt) - 1;
 
-    $DB::single = 1;
-
     if ($tr_strand > 0) {
         if ($vf->{start} < $exon->start) {
             return "5'";
@@ -346,7 +336,7 @@ sub handle_exon_deletion {
     my $alt_seq = $self->variant_alt($tva);
 
     $ibefore_start -= $exon->{start} - $vf->{start} - length($alt_seq);
-    $iafter_end += $vf->{end} - 1 - $exon->{end};
+    $iafter_end += $vf->{end} - $exon->{end};
 
     my @i_updates = ($ibefore_start, $iafter_end);
     return @i_updates;

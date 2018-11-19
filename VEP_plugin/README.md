@@ -45,14 +45,14 @@ if you are not already familiar with the usage of VEP plugins, please check [thi
 Now, You can analyze your vcf with following comments using default mmsplice configuration.
 
 ```bash
-./vep -i vcf_file.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --cache --port 3337
+vep -i vcf_file.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --cache --port 3337
 ```
 
 If your vep configurations are different than default, you need to add them as parameter.
 For example, if your cache dir different than default please speficy it as follow:
 
 ```bash
-./vep -i vcf_file.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --port 3337 --cache --dir /ensembl-vep/92/cachedir/
+vep -i vcf_file.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --port 3337 --cache --dir /ensembl-vep/92/cachedir/
 ```
 
 For further details about VEP plugin parameters, please check [this documentation](https://www.ensembl.org/info/docs/tools/vep/script/vep_options.html#opt_plugin).
@@ -61,7 +61,7 @@ You may want to run mmsplice different than default parameter. The full list of 
 Please be cautious changing parameters. If the corresponding mmsplice model don't support the parameters it will throw errors.
 
 ```bash
- ./vep -i vcf_file.vcf --plugin MMSplice,[port_of_mmsplice_server=5000],[intronl_len=100],[intronr_len=80],[exon_cut_l=0],[exon_cut_r=0],[acceptor_intron_cut=6],[donor_intron_cut=3],[acceptor_intron_len=20],[acceptor_exon_len=3],[donor_exon_len=3],[donor_intron_len=6],[acceptor_intronM],[acceptorModelFile],[exonModelFile],[donorModelFile],[donor_intronModelFile]
+ vep -i vcf_file.vcf --plugin MMSplice,[port_of_mmsplice_server=5000],[intronl_len=100],[intronr_len=80],[exon_cut_l=0],[exon_cut_r=0],[acceptor_intron_cut=6],[donor_intron_cut=3],[acceptor_intron_len=20],[acceptor_exon_len=3],[donor_exon_len=3],[donor_intron_len=6],[acceptor_intronM],[acceptorModelFile],[exonModelFile],[donorModelFile],[donor_intronModelFile]
 ```
 
 ## Results
