@@ -1,7 +1,6 @@
 # mmsplice
-
+[![CircleCI](https://circleci.com/gh/gagneurlab/MMSplice.svg?style=svg)](https://circleci.com/gh/gagneurlab/MMSplice)
 [![pypi](https://img.shields.io/pypi/v/mmsplice.svg)](https://pypi.python.org/pypi/mmsplice)
-[![travis](https://img.shields.io/travis/s6juncheng/mmsplice.svg)](https://travis-ci.org/s6juncheng/mmsplice)
 
 Predict splicing variant effect from VCF
 
@@ -53,6 +52,8 @@ Human reference fasta file can be downloaded from ensembl/gencode. Make sure the
 
 Check [notebooks/example.ipynb](https://github.com/gagneurlab/MMSplice/blob/master/notebooks/example.ipynb)
 
+To score variants (including indels), we suggest to use primarily the `deltaLogitPSI` predictions, which is the default output. The differential splicing efficiency (dse) model was trained from MMSplice modules and exonic variants from MaPSy, thus only the predictions for exonic variants are calibrated.
+
 ```python
 # Import
 from mmsplice.vcf_dataloader import SplicingVCFDataloader
@@ -63,7 +64,7 @@ from mmsplice.utils import max_varEff
 gtf = 'tests/data/test.gtf'
 vcf = 'tests/data/test.vcf.gz'
 fasta = 'tests/data/hg19.nochr.chr17.fa'
-gtfIntervalTree = '../tests/data/test.pkl' # pickle exon interval Tree
+gtfIntervalTree = 'tests/data/test.pkl' # pickle exon interval Tree
 
 # dataloader to load variants from vcf
 dl = SplicingVCFDataloader(gtf,
@@ -92,4 +93,4 @@ model = MMSplice(
 
 ## VEP Plugin
 
-Please check documentation of vep plugin [under VEP_plugin/README.md](VEP_plugin/README.md).
+The VEP plugin wraps the prediction function from `mmsplice` python package. Please check documentation of vep plugin [under VEP_plugin/README.md](VEP_plugin/README.md).

@@ -1,4 +1,4 @@
-* EIS version:
+* MMSplice version:
 * Python version:
 * Operating System:
 
