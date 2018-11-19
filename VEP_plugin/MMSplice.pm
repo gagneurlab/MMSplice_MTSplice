@@ -1,8 +1,5 @@
 =head1 LICENSE
 
-Copyright [1999-2015] Wellcome EMBL-European Bioinformatics Institute
-Copyright [2016-2018] EMBL-European Bioinformatics Institute
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -17,13 +14,13 @@ limitations under the License.
 
 =head1 CONTACT
 
- Ensembl <http://www.ensembl.org/info/about/contact/index.html>
+ Gagneurlab <https://github.com/gagneurlab/mmsplice>
 
 =cut
 
 =head1 NAME
 
- MMSplice
+ MMSplice.0.2.6
 
 =head1 SYNOPSIS
 
@@ -53,6 +50,7 @@ use strict;
 use warnings;
 use diagnostics;
 use IPC::Open3;
+use List::Util qw(max);
 
 use Bio::EnsEMBL::Variation::Utils::BaseVepPlugin;
 use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
@@ -102,7 +100,6 @@ sub init_params {
     $self->{acceptor_exon_len} = shift @$params || 3;
     $self->{donor_exon_len} = shift @$params || 5;
     $self->{donor_intron_len} = shift @$params || 13;
-
     $self->{acceptor_intronM} = shift @$params || "";
     $self->{acceptorM} = shift @$params || "";
     $self->{exonM} = shift @$params || "";
@@ -124,6 +121,10 @@ sub call_python {
     while($python_selout->can_read($timeout)) {
 
         chomp($result = <$python_stdout>);
+        if ($result eq "")
+        {
+            next;
+        }
 
         if(substr($result, 0, length($response_keyword)) eq $response_keyword) {
             $result = substr($result, length($response_keyword), length($result));
@@ -252,13 +253,18 @@ sub len_diff {
 }
 
 sub variant_side {
-    my ($self, $vf, $tr_strand, $exon) = @_;
+    my ($self, $tva, $tr_strand, $exon) = @_;
+    my $vf = $tva->variation_feature;
+
+    my $len_ref = length $self->variant_alt($tva);
+    my $len_alt = length $self->variant_ref($tva);
+    my $vf_end = $vf->{start} + max($len_ref, $len_alt) - 1;
 
     if ($tr_strand > 0) {
         if ($vf->{start} < $exon->start) {
             return "5'";
         }
-        elsif ($vf->{start} > $exon->end) {
+        elsif ($vf_end > $exon->end) {
             return "3'";
         }
     }
@@ -266,7 +272,7 @@ sub variant_side {
         if ($vf->{start} < $exon->start) {
             return "3'";
         }
-        elsif ($vf->{start} > $exon->end) {
+        elsif ($vf_end > $exon->end) {
             return "5'";
         }
     }
@@ -282,23 +288,58 @@ sub fetch_variant_seq {
     my ($ibefore_start, $ibefore_end) = ($splicing_start, $vf->{start} - 1);
     my ($iafter_start, $iafter_end) = ($vf->{end} + 1, $splicing_end);
 
-    my $v_side = $self->variant_side($vf, $tr_strand, $exon);
+    my $v_side = $self->variant_side($tva, $tr_strand, $exon);
 
-    if (($tr_strand > 0 && $v_side eq "3'") || ($tr_strand < 0 && $v_side eq "5'")) {
-        $iafter_end -= $self->len_diff($tva);
+    if($self->is_exon_deletion($vf, $exon)) {
+        ($ibefore_start, $iafter_end) = $self->handle_exon_deletion($tva, $exon, $ibefore_start, $iafter_end);
     }
-    elsif (($tr_strand > 0 && $v_side eq "5'") || ($tr_strand < 0 && $v_side eq "3'")) {
-        $ibefore_start += $self->len_diff($tva);
+    else {
+        if (($tr_strand > 0 && $v_side eq "3'") || ($tr_strand < 0 && $v_side eq "5'")) {
+            $iafter_end -= $self->len_diff($tva);
+        }
+        elsif (($tr_strand > 0 && $v_side eq "5'") || ($tr_strand < 0 && $v_side eq "3'")) {
+            $ibefore_start += $self->len_diff($tva);
+        }
     }
 
-    my $before_seq = $self->fetch_seq($tva, $ibefore_start, $ibefore_end);
-    my $after_seq = $self->fetch_seq($tva, $iafter_start, $iafter_end);
+    my $before_seq;
+    if ($ibefore_start >= $ibefore_end) {
+        $before_seq = "";
+    }
+    else {
+        $before_seq = $self->fetch_seq($tva, $ibefore_start, $ibefore_end);
+    }
 
-    if ($tr_strand < 0){
+    my $after_seq;
+    if ($iafter_start >= $iafter_end) {
+        $after_seq = "";
+    }
+    else {
+        $after_seq = $self->fetch_seq($tva, $iafter_start, $iafter_end);
+    }
+
+   if ($tr_strand < 0){
         ($before_seq, $after_seq) = ($after_seq, $before_seq);
     }
 
     return $before_seq . $self->variant_alt($tva) . $after_seq;
+}
+
+sub is_exon_deletion {
+    my ($self, $vf, $exon) = @_;
+    return $vf->{start} <= $exon->{start} && $exon->{end} <= $vf->{end};
+}
+
+sub handle_exon_deletion {
+    my ($self, $tva, $exon, $ibefore_start, $iafter_end) = @_;
+    my $vf = $tva->variation_feature;
+    my $alt_seq = $self->variant_alt($tva);
+
+    $ibefore_start -= $exon->{start} - $vf->{start} - length($alt_seq);
+    $iafter_end += $vf->{end} - $exon->{end};
+
+    my @i_updates = ($ibefore_start, $iafter_end);
+    return @i_updates;
 }
 
 sub get_psi_score {

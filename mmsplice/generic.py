@@ -17,17 +17,20 @@ def expit(x):
 
 
 def get_var_side(var):
-    ''' Get exon variant side
-    '''
+    ''' Get exon variant side '''
     varstart, ref, alt, start, end, strand = var
-    varend = varstart + len(ref) - 1
-    # for insertion deletion, find the actual start of variant
-    # e.g. A->AGG: start from G position, CA->CAGG:start from G position,
-    # ATT->A: start from T position, CAT->CA: start from T position
-    # For SNP var.POS is the actual mutation position
-    if len(ref) != len(alt):
-        # indels
-        varstart = varstart + min(len(ref), len(alt))
+
+    # for long insertion or deletion which can go out side of exon
+    # CA->CAGG
+    varend = varstart + max(len(ref), len(alt)) - 1
+
+    # left normalization
+    for i in range(min(len(ref), len(alt))):
+        if ref[i] == alt[i]:
+            varstart += 1
+        else:
+            break
+
     if strand == "+":
         if varstart < start:
             return "left"
