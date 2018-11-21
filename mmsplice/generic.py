@@ -37,14 +37,14 @@ def get_var_side(var):
         elif varend > end:
             return "right"
         else:
-            return 'exon'
+            return "exon"
     else:
         if varstart < start:
             return "right"
         elif varend > end:
             return "left"
         else:
-            return 'exon'
+            return "exon"
 
 
 def onehot(seq):
