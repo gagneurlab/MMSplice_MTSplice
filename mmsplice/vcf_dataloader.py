@@ -177,7 +177,7 @@ class ExonInterval(gffutils.Feature):
         :return: str of mutated sequence
         '''
         # Validate input
-        assert variant.side in (None, "left", "right")
+        assert variant.side in ("exon", "left", "right")
         if self._ref_check(fasta, variant):
             return self.get_seq(fasta)
 

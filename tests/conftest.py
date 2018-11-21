@@ -5,8 +5,7 @@ gtf_file = 'tests/data/test.gtf'
 fasta_file = 'tests/data/hg19.nochr.chr17.fa'
 
 snps = [
-    "17:41276033:C:['G']",
-    "17:41274033:C:['G']" # this will not change alt seq
+    "17:41276033:C:['G']"
 ]
 
 deletions = [
@@ -34,6 +33,9 @@ variants = [
     *insertions
 ]
 
+outside = [
+    "17:41275833:A:['G']"
+]
 
 def parse_vcf_id(vcf_id):
     return vcf_id.replace("'", '').replace('[', '').replace(']', '').split(':')
