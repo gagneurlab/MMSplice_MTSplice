@@ -5,7 +5,8 @@ gtf_file = 'tests/data/test.gtf'
 fasta_file = 'tests/data/hg19.nochr.chr17.fa'
 
 snps = [
-    "17:41276033:C:['G']"
+    "17:41276033:C:['G']",
+    "17:41274033:C:['G']" # this will not change alt seq
 ]
 
 deletions = [
