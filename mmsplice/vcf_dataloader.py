@@ -181,6 +181,9 @@ class ExonInterval(gffutils.Feature):
         if self._ref_check(fasta, variant):
             return self.get_seq(fasta)
 
+        if not self.var_in_interval(variant):
+            return self.get_seq(fasta)
+
         # Create two interval one for until variant, one for after variant
         before_var = [self.start, variant.POS - 1]
         after_var = [variant.POS + len(variant.REF), self.end]
@@ -231,6 +234,10 @@ class ExonInterval(gffutils.Feature):
         before_var[0] -= self.Exon_Start - variant.POS - len(variant.ALT)
         after_var[1] += variant.POS + len(variant.REF) - 1 - self.Exon_End
         return before_var, after_var
+
+    def var_in_interval(self, var):
+        var_end = var.POS# + len(var.REF)
+        return  var_end >= self.start and var.POS <= self.end 
 
 
 class FastaSeq(Fasta):
