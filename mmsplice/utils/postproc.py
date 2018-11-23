@@ -84,3 +84,54 @@ def predict_pathogenicity(X_ref, X_alt):
     X = transform(X_alt - X_ref, region_only=True)
     X = np.concatenate([X_ref, X_alt, X[:, -3:]], axis=-1)
     return LOGISTIC_MODEL.predict_proba(X)[:, 1]
+
+
+def read_vep(vep_result_path,
+    max_per_var=False):
+    
+    ''' Read MMSplice VEP plugin output. Only support vcf type output.
+
+    Args:
+        vep_result_path: file path to the returned result of VEP plugin.
+        max_per_var: return maximum absolute effect size per variant.
+    '''
+
+    from cyvcf2 import VCF
+    from collections import defaultdict
+
+    score_pred = []
+
+    keys = [
+        'mmsplice_alt_acceptor',
+        'mmsplice_alt_acceptorIntron',
+        'mmsplice_alt_donor',
+        'mmsplice_alt_donorIntron',
+        'mmsplice_alt_exon',
+        'mmsplice_delta_logit_psi',
+        'mmsplice_pathogenicity',
+        'mmsplice_ref_acceptor',
+        'mmsplice_ref_acceptorIntron',
+        'mmsplice_ref_donor',
+        'mmsplice_ref_donorIntron',
+        'mmsplice_ref_exon'
+    ]
+
+    alt_seqs = defaultdict(list)
+    ref_seqs = defaultdict(list)
+
+    for l in VCF(vep_result_path):
+        csq = l.INFO['CSQ'].split(',')
+        predictions = map(lambda x: tuple(x.split('|')[-len(keys):]), csq)
+        
+        for pred in predictions:
+            if pred != ('',) * len(keys):
+                x = dict(zip(keys, map(float, pred)))
+                x['ID'] = "%s:%d:%s:%s" % (l.CHROM, int(l.start) + 1, l.REF, l.ALT)
+                score_pred.append(x)
+                
+    df_plugin = pd.DataFrame(score_pred)
+
+    if max_per_var:
+        df_plugin = max_varEff(df_plugin).set_index('ID')
+
+    return df_plugin
