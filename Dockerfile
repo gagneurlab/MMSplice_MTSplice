@@ -24,15 +24,13 @@ RUN pip -V
 
 COPY . ./mmsplice
 WORKDIR ./mmsplice
+
+RUN mkdir /root/.vep
+RUN mkdir /root/.vep/Plugins/
+RUN cp ./VEP_plugin/MMSplice.pm /root/.vep/Plugins/MMSplice.pm
+
 RUN pip install -e .
 WORKDIR ..
 RUN mmsplice
 
-RUN mkdir /root/.vep
-RUN mkdir /root/.vep/Plugins/
-RUN cp VEP_plugin/MMSplice.pm root/.vep/Plugins/MMSplice.pm
-
-# Kipoi installation
-# RUN conda install -c conda-forge git-lfs && git lfs install
-# RUN pip install kipoi
-# RUN kipoi env create MMSplice/deltaLogitPSI
+CMD ./vep
