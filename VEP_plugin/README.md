@@ -74,18 +74,18 @@ docker build -t mmsplice .
 
 Now, you can attach the docker container and analyze your data with following usage section:
 
-```
+```bash
 docker run -t -i mmsplice /bin/bash
 ```
 
 If you already have .vep cache files, you may mouth it to docker:
-```
+```bash
 docker run -t -i -v $HOME/your_vep_data:/root/.vep ensemblorg/ensembl-vep /bin/bash
 
 ```
 
 If you do not want to attach to docker container than you may mount all the necessary directories and analyze your vcf with:
-```
+```bash
 sudo docker run -t -i -v ~/.vep:/root/.vep -v ~/Projects/MMSplice/tests/data:/data -v ~/Desktop/outputs:/opt/vep/src/ensembl-vep/outputs mmsplice vep -i /data/test.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --cache --port 3337 -o outputs/results.txt
 ```
 

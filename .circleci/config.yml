@@ -27,16 +27,26 @@ variables:
   install_tensorflow1_9: &install_tensorflow1_9
     run:
       name: Install tensorflow 1.9
-      command: pip install tensorflow==1.9      
+      command: pip install tensorflow==1.9
   test_cli: &test_cli
     run:
       name: Test cli
-      command: mmsplice      
+      command: mmsplice
   run_tests: &run_tests
     run:
       name: Run tests
       command: |
         python setup.py test
+  build_docker: &build_docker
+    run:
+      name: Build docker container
+      command: |
+        docker build -t mmsplice .
+  test_docker: &test_docker
+    run:
+      name: Test vep plugin in docker
+      command: |
+        docker run -t -i mmsplice vep -i examples/drosophila_melanogaster_BDGP6.vcf --plugin MMSplice --database -o STDOUT
 
 jobs:
 
@@ -53,8 +63,16 @@ jobs:
     - *test_cli
     - *run_tests
 
+  docker_testing:
+    machine: true
+    steps:
+    - checkout
+    - *build_docker
+    - *test_docker
+
 workflows:
   version: 2
   workflow:
     jobs:
     - build
+    - docker_testing
