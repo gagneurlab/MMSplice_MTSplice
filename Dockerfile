@@ -10,6 +10,7 @@ ENV PATH /opt/conda/bin:$PATH
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends apt-utils
 RUN apt-get -y upgrade
+RUN apt-get install -y wget
 
 # conda installation
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh  -O ./miniconda.sh && \
@@ -31,6 +32,7 @@ RUN cp ./VEP_plugin/MMSplice.pm /root/.vep/Plugins/MMSplice.pm
 
 RUN pip install -e .
 WORKDIR ..
+RUN mkdir outputs
 RUN mmsplice
 
 CMD ./vep

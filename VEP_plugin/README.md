@@ -64,6 +64,31 @@ Please be cautious changing parameters. If the corresponding mmsplice model don'
  ./vep -i vcf_file.vcf --plugin MMSplice,[port_of_mmsplice_server=5000],[intronl_len=100],[intronr_len=80],[exon_cut_l=0],[exon_cut_r=0],[acceptor_intron_cut=6],[donor_intron_cut=3],[acceptor_intron_len=20],[acceptor_exon_len=3],[donor_exon_len=3],[donor_intron_len=6],[acceptor_intronM],[acceptorModelFile],[exonModelFile],[donorModelFile],[donor_intronModelFile]
 ```
 
+## Docker Usage
+
+
+Also, dockerfile which contains VEP and mmsplice is provided with the repository. Docker can be built:
+```
+docker build -t mmsplice .
+```
+
+Now, you can attach the docker container and analyze your data with following usage section:
+
+```
+docker run -t -i mmsplice /bin/bash
+```
+
+If you already have .vep cache files, you may mouth it to docker:
+```
+docker run -t -i -v $HOME/your_vep_data:/root/.vep ensemblorg/ensembl-vep /bin/bash
+
+```
+
+If you do not want to attach to docker container than you may mount all the necessary directories and analyze your vcf with:
+```
+sudo docker run -t -i -v ~/.vep:/root/.vep -v ~/Projects/MMSplice/tests/data:/data -v ~/Desktop/outputs:/opt/vep/src/ensembl-vep/outputs mmsplice vep -i /data/test.vcf --plugin MMSplice --vcf --force --assembly GRCh37 --cache --port 3337 -o outputs/results.txt
+```
+
 ## Results
 
 If you are able to run the code above, it will produce an vcf file with following columns are added to INFO section:
