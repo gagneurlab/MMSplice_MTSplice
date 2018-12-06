@@ -38,6 +38,15 @@ variables:
       command: |
         python setup.py test
 
+  install_docker: &install_docker
+    run:
+      name: Install Docker client
+      command: |
+        set -x
+        VER="17.03.0-ce"
+        curl -L -o /tmp/docker-$VER.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$VER.tgz
+        tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+        mv /tmp/docker/* /usr/bin
   build_docker: &build_docker
     run:
       name: Build docker container
@@ -47,7 +56,8 @@ variables:
     run:
       name: Run vep on test.vcf and save analysis result with docker
       command: |
-        cat tests/data/test.vcf | sudo docker run -i mmsplice vep --plugin MMSplice --format vcf --assembly GRCh37 --database --port 3337 --vcf -o STDOUT | tee variant_effect_output.txt
+        gzip -dk tests/data/test.vcf.gz
+        cat tests/data/test.vcf | docker run -i mmsplice vep --plugin MMSplice --format vcf --assembly GRCh37 --database --port 3337 --vcf -o STDOUT | tee variant_effect_output.txt
         echo "$(tail -n +2 variant_effect_output.txt)" > variant_effect_output.txt
   test_docker: &test_docker
     run:
@@ -72,9 +82,14 @@ jobs:
     - *run_tests
 
   docker_testing:
-    machine: true
+    docker:
+    - image: continuumio/miniconda3:4.3.14
     steps:
     - checkout
+    - setup_remote_docker
+    - *install_docker
+    - *update_conda
+    - *install_dependencies
     - *build_docker
     - *run_vep
     - *test_docker
