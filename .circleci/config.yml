@@ -37,6 +37,7 @@ variables:
       name: Run tests
       command: |
         python setup.py test
+
   build_docker: &build_docker
     run:
       name: Build docker container
