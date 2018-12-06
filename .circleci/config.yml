@@ -27,16 +27,44 @@ variables:
   install_tensorflow1_9: &install_tensorflow1_9
     run:
       name: Install tensorflow 1.9
-      command: pip install tensorflow==1.9      
+      command: pip install tensorflow==1.9
   test_cli: &test_cli
     run:
       name: Test cli
-      command: mmsplice      
+      command: mmsplice
   run_tests: &run_tests
     run:
       name: Run tests
       command: |
         python setup.py test
+
+  install_docker: &install_docker
+    run:
+      name: Install Docker client
+      command: |
+        set -x
+        VER="17.03.0-ce"
+        curl -L -o /tmp/docker-$VER.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$VER.tgz
+        tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+        mv /tmp/docker/* /usr/bin
+  build_docker: &build_docker
+    run:
+      name: Build docker container
+      command: |
+        docker build -t mmsplice .
+  run_vep: &run_vep
+    run:
+      name: Run vep on test.vcf and save analysis result with docker
+      command: |
+        gzip -dk tests/data/test.vcf.gz
+        cat tests/data/test.vcf | docker run -i mmsplice vep --plugin MMSplice --format vcf --assembly GRCh37 --database --port 3337 --vcf -o STDOUT | tee variant_effect_output.txt
+        echo "$(tail -n +2 variant_effect_output.txt)" > variant_effect_output.txt
+  test_docker: &test_docker
+    run:
+      name: Test vep plugin in docker
+      command: |
+        python setup.py pytest --addopts tests/test_vep_plugin.py
+
 
 jobs:
 
@@ -53,8 +81,22 @@ jobs:
     - *test_cli
     - *run_tests
 
+  docker_testing:
+    docker:
+    - image: continuumio/miniconda3:4.3.14
+    steps:
+    - checkout
+    - setup_remote_docker
+    - *install_docker
+    - *update_conda
+    - *install_dependencies
+    - *build_docker
+    - *run_vep
+    - *test_docker
+
 workflows:
   version: 2
   workflow:
     jobs:
     - build
+    - docker_testing

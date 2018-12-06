@@ -59,6 +59,8 @@ sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
 
+    die("ERROR: cannot function in offline mode without a FASTA file\n") if $self->{config}->{offline} && !$self->{config}->{fasta};
+
     $self->init_params();
     $self->init_python();
 

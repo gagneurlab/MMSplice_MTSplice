@@ -1,7 +1,9 @@
 
 import pandas as pd
 import numpy as np
+from cyvcf2 import VCF
 from sklearn.externals import joblib
+from collections import defaultdict
 from pkg_resources import resource_filename
 LINEAR_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/linear_model.pkl'))
@@ -88,7 +90,7 @@ def predict_pathogenicity(X_ref, X_alt):
 
 def read_vep(vep_result_path,
     max_per_var=False):
-    
+
     ''' Read MMSplice VEP plugin output. Only support vcf type output.
 
     Args:
@@ -122,13 +124,13 @@ def read_vep(vep_result_path,
     for l in VCF(vep_result_path):
         csq = l.INFO['CSQ'].split(',')
         predictions = map(lambda x: tuple(x.split('|')[-len(keys):]), csq)
-        
+
         for pred in predictions:
             if pred != ('',) * len(keys):
-                x = dict(zip(keys, map(float, pred)))
+                x = dict(zip(keys, map(float,(i if i != '' else 0 for i in pred))))
                 x['ID'] = "%s:%d:%s:%s" % (l.CHROM, int(l.start) + 1, l.REF, l.ALT)
                 score_pred.append(x)
-                
+
     df_plugin = pd.DataFrame(score_pred)
 
     if max_per_var:
