@@ -1,6 +1,6 @@
 # VEP MMSplice plugin user tutorial
 
- This is a plugin for the Ensembl Variant Effect Predictor (VEP) that runs MMSplice (modular modeling of splicing) which performs a set of prediction on splicing. The plugin requires MMSplice python package as an external dependency since it wraps mmsplice package as vep plugin. Thus, MMSplice package should be installed (check [MMSplice installation](../README.md)). 
+ This is a plugin for the Ensembl Variant Effect Predictor (VEP) that runs MMSplice (modular modeling of splicing) which performs a set of prediction on splicing. The plugin requires MMSplice python package as an external dependency since it wraps mmsplice package as vep plugin. Thus, MMSplice package should be installed (check [MMSplice installation](../README.md)).
 
 For main MMSplice documentation, check [main README.md](../README.md).
 
@@ -88,6 +88,7 @@ sudo docker run -t -i -v ~/.vep:/root/.vep -v ~/Projects/MMSplice/tests/data:/da
 If you want to use docker without dealing with cache files, you can use vep database and stdin-out:
 ```
 cat tests/data/test.vcf | sudo docker run -i mmsplice vep --plugin MMSplice --format vcf --assembly GRCh37 --database --port 3337 --vcf -o STDOUT | tee variant_effect_output.txt
+sed -n '/##fileformat=VCFv4.0/,$p' variant_effect_output.txt > variant_effect_output.vcf
 ```
 
 ## Results

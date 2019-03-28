@@ -10,7 +10,7 @@ ENV PATH /opt/conda/bin:$PATH
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends apt-utils
 RUN apt-get -y upgrade
-RUN apt-get install -y wget
+RUN apt-get install -y wget build-essential libz-dev libcurl3-dev gcc libssl-dev libbz2-dev
 
 # conda installation
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh  -O ./miniconda.sh && \
