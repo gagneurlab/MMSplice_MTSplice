@@ -12,14 +12,14 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'setuptools<=39.1.0',
+    'setuptools',
     'sklearn',
-    'tensorflow',
+    'tensorflow<=1.13.1',
     'keras',
     'kipoi>=0.4.1',
     'pandas',
     'concise',
-    'cyvcf2==0.9.0',
+    'cyvcf2',
     'gffutils',
     'pyfaidx',
     'tqdm',
@@ -38,9 +38,6 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        # "Programming Language :: Python :: 2",
-        # 'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
@@ -49,20 +46,10 @@ setup(
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
-    # package_data={
-    #     'mmsplice.models':
-    #     ['Acceptor.h5',
-    #     'Donor.h5',
-    #     'Exon.h5',
-    #     'Intron3.h5',
-    #     'Intron5.h5']
-    # }, # Done with MANIFEST.in
-
     entry_points='''
         [console_scripts]
         mmsplice=mmsplice.main:cli
     ''',
-
     include_package_data=True,
     keywords='mmsplice',
     name='mmsplice',
@@ -71,6 +58,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/gagneurlab/mmsplice',
-    version='0.2.7',
+    version='0.2.8',
     zip_safe=False,
 )

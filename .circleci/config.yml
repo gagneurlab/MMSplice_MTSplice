@@ -6,6 +6,7 @@ variables:
     run:
       name: Update conda
       command: |
+        conda install python=3.6 -y
         conda update --yes conda
         conda update setuptools
   install_mmsplice: &install_mmsplice
@@ -17,17 +18,7 @@ variables:
       name: Install dependencies not in miniconda3
       command: |
         apt-get update && \
-        apt-get install -y build-essential libz-dev libcurl3-dev
-        pip install concise
-        pip install cython
-  install_tensorflow1_11: &install_tensorflow1_11
-    run:
-      name: Install tensorflow 1.11
-      command: pip install tensorflow==1.11
-  install_tensorflow1_9: &install_tensorflow1_9
-    run:
-      name: Install tensorflow 1.9
-      command: pip install tensorflow==1.9
+        apt-get install -y build-essential libz-dev libcurl3-dev gcc libssl-dev libbz2-dev
   test_cli: &test_cli
     run:
       name: Test cli
@@ -35,9 +26,7 @@ variables:
   run_tests: &run_tests
     run:
       name: Run tests
-      command: |
-        python setup.py test
-
+      command: python setup.py test
   install_docker: &install_docker
     run:
       name: Install Docker client
@@ -50,40 +39,37 @@ variables:
   build_docker: &build_docker
     run:
       name: Build docker container
-      command: |
-        docker build -t mmsplice .
+      command: docker build -t mmsplice .
   run_vep: &run_vep
     run:
       name: Run vep on test.vcf and save analysis result with docker
       command: |
         gzip -dk tests/data/test.vcf.gz
-        cat tests/data/test.vcf | docker run -i mmsplice vep --plugin MMSplice --format vcf --assembly GRCh37 --database --port 3337 --vcf -o STDOUT | tee variant_effect_output.txt
-        echo "$(tail -n +2 variant_effect_output.txt)" > variant_effect_output.txt
+        cat tests/data/test.vcf | docker run -i mmsplice vep --plugin MMSplice --format vcf --assembly GRCh37 --database --port 3337 --vcf -o STDOUT | tee log_variant_effect_output.txt
+        sed -n '/##fileformat=VCFv4.0/,$p' log_variant_effect_output.txt > variant_effect_output.vcf
   test_docker: &test_docker
     run:
       name: Test vep plugin in docker
       command: |
-        python setup.py pytest --addopts tests/test_vep_plugin.py
+        python setup.py test --addopts tests/test_vep_plugin.py
 
 
 jobs:
-
   build:
     docker:
-    - image: continuumio/miniconda3:4.3.14
+    - image: continuumio/miniconda3:latest
     working_directory: ~/repo
     steps:
     - checkout
     - *update_conda
     - *install_dependencies
-    - *install_tensorflow1_11
     - *install_mmsplice
     - *test_cli
     - *run_tests
 
   docker_testing:
     docker:
-    - image: continuumio/miniconda3:4.3.14
+    - image: continuumio/miniconda3:latest
     steps:
     - checkout
     - setup_remote_docker
