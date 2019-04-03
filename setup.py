@@ -19,7 +19,6 @@ requirements = [
     'kipoi>=0.4.1',
     'pandas',
     'concise',
-    'cyvcf2',
     'gffutils',
     'pyfaidx',
     'tqdm',

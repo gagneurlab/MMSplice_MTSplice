@@ -3,7 +3,6 @@ import warnings
 import functools
 
 import gffutils
-from cyvcf2 import VCF
 from pyfaidx import Fasta
 from kipoi.data import SampleIterator
 from kipoi.metadata import GenomicRanges
@@ -236,8 +235,8 @@ class ExonInterval(gffutils.Feature):
         return before_var, after_var
 
     def var_in_interval(self, var):
-        var_end = var.POS# + len(var.REF)
-        return  var_end >= self.start and var.POS <= self.end 
+        var_end = var.POS  # + len(var.REF)
+        return var_end >= self.start and var.POS <= self.end
 
 
 class FastaSeq(Fasta):
@@ -371,6 +370,7 @@ class SplicingVCFDataloader(SampleIterator):
 
     @staticmethod
     def spliceSiteGenerator(vcf_file, exonTree, variant_filter=True):
+        from cyvcf2 import VCF
         variants = VCF(vcf_file)
         for var in variants:
             if variant_filter and var.FILTER:

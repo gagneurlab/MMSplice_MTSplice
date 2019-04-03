@@ -9,10 +9,14 @@ variables:
         conda install python=3.6 -y
         conda update --yes conda
         conda update setuptools
+        conda config --add channels bioconda
+        conda config --add channels conda-forge
   install_mmsplice: &install_mmsplice
     run:
       name: Install mmsplice
-      command: pip install -e '.'
+      command: |
+        conda install cyvcf2 -y
+        pip install -e '.'
   install_dependencies: &install_dependencies
     run:
       name: Install dependencies not in miniconda3
