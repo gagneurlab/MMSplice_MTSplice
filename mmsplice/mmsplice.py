@@ -4,7 +4,6 @@ from pkg_resources import resource_filename
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
-from cyvcf2 import Writer, VCF
 from keras import backend as K
 from keras.models import load_model
 from sklearn.externals import joblib
@@ -279,6 +278,7 @@ def predict_all_table(model,
 
 
 def writeVCF(vcf_in, vcf_out, predictions):
+    from cyvcf2 import Writer, VCF
     with VCF(vcf_in) as vcf:
         vcf.add_info_to_header({
             'ID': 'mmsplice',
