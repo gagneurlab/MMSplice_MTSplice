@@ -9,10 +9,14 @@ variables:
         conda install python=3.6 -y
         conda update --yes conda
         conda update setuptools
+        conda config --add channels bioconda
+        conda config --add channels conda-forge
   install_mmsplice: &install_mmsplice
     run:
       name: Install mmsplice
-      command: pip install -e '.'
+      command: |
+        conda install cyvcf2 -y
+        pip install -e '.'
   install_dependencies: &install_dependencies
     run:
       name: Install dependencies not in miniconda3
@@ -46,7 +50,7 @@ variables:
       command: |
         gzip -dk tests/data/test.vcf.gz
         cat tests/data/test.vcf | docker run -i mmsplice vep --plugin MMSplice --format vcf --assembly GRCh37 --database --port 3337 --vcf -o STDOUT | tee log_variant_effect_output.txt
-        sed -n '/##fileformat=VCFv4.0/,$p' log_variant_effect_output.txt > variant_effect_output.vcf
+        sed -n '/##fileformat=VCFv4.0/,$p' log_variant_effect_output.txt > variant_effect_output.txt
   test_docker: &test_docker
     run:
       name: Test vep plugin in docker
