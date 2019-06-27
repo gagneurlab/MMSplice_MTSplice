@@ -37,6 +37,7 @@ outside = [
     "17:41275833:A:['G']"
 ]
 
+
 def parse_vcf_id(vcf_id):
     return vcf_id.replace("'", '').replace('[', '').replace(']', '').split(':')
 

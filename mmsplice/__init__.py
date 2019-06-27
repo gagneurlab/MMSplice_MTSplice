@@ -8,9 +8,7 @@ __version__ = '0.2.7'
 
 from keras.models import load_model
 import mmsplice.generic
-import mmsplice.interval_tree
 import mmsplice.vcf_dataloader
-import mmsplice.exon_dataloader
 from .utils import postproc
 from mmsplice.mmsplice import MMSplice, \
     predict_all, \
