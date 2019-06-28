@@ -16,6 +16,8 @@ variables:
       name: Install mmsplice
       command: |
         conda install cyvcf2 -y
+        conda install cython -y
+        conda install pybigwig -y
         pip install -e '.'
   install_dependencies: &install_dependencies
     run:

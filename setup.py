@@ -19,7 +19,6 @@ requirements = [
     'kipoi>=0.4.1',
     'pandas',
     'concise',
-    'gffutils',
     'pybedtools',
     'kipoiseq',
     'pyfaidx',
