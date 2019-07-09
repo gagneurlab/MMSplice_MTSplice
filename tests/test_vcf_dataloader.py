@@ -4,7 +4,7 @@ from mmsplice.vcf_dataloader import SplicingVCFDataloader, \
     read_vcf_pyranges
 
 from conftest import gtf_file, fasta_file, snps, deletions, \
-    insertions, variants
+    insertions, variants, vcf_file
 
 
 def test_read_exon_pyranges():
@@ -37,6 +37,13 @@ def test_variants_to_pyranges(vcf_path):
 def test_read_vcf_pyranges(vcf_path):
     batchs = list(read_vcf_pyranges(vcf_path, batch_size=10))
     assert sum(i.df.shape[0] for i in batchs) == len(variants)
+
+
+def test__chech_chrom_annotation():
+    dl = SplicingVCFDataloader('grch37', fasta_file, vcf_file)
+    chroms = {str(i) for i in range(1, 22)}.union(['X', 'Y', 'M'])
+    assert len(chroms.difference(set(dl.pr_exons.Chromosome))) == 0
+    assert sum(1 for i in dl) > 0
 
 
 def test_benchmark_SplicingVCFDataloader(benchmark, vcf_path):

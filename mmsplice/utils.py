@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import pyranges
 from sklearn.externals import joblib
 from pkg_resources import resource_filename
 
@@ -22,6 +23,12 @@ def logit(x):
 
 def expit(x):
     return 1. / (1. + np.exp(-x))
+
+
+def pyrange_remove_chr_from_chrom_annotation(pr):
+    df = pr.df
+    df['Chromosome'] = df['Chromosome'].str.replace('chr', '')
+    return pyranges.PyRanges(df)
 
 
 def max_varEff(df):

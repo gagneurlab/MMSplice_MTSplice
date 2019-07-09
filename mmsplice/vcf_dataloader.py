@@ -8,6 +8,7 @@ from pybedtools import Interval
 from kipoi.data import SampleIterator
 from concise.preprocessing import encodeDNA
 from kipoiseq.extractors import VariantSeqExtractor, MultiSampleVCF
+from mmsplice.utils import pyrange_remove_chr_from_chrom_annotation
 
 
 logger = logging.getLogger('mmsplice')
@@ -254,17 +255,39 @@ class SplicingVCFDataloader(SampleIterator):
         self.gtf_file = gtf
         self.fasta_file = fasta_file
         self.vcf_file = vcf_file
+        self.split_seq = split_seq
+        self.encode = encode
+        self.spliter = seq_spliter or SeqSpliter()
 
         self.pr_exons = self._read_exons(gtf)
         self.vseq_extractor = ExonSeqVcfSeqExtrator(fasta_file, overhang)
         self.fasta = self.vseq_extractor.fasta
         self.variants_batchs = read_vcf_pyranges(vcf_file)
+        self.vcf = MultiSampleVCF(vcf_file)
 
-        self.split_seq = split_seq
-        self.encode = encode
-        self.spliter = seq_spliter or SeqSpliter()
+        self._check_chrom_annotation()
 
         self._generator = self._generate(variant_filter=variant_filter)
+
+    def _check_chrom_annotation(self):
+        fasta_chroms = set(self.fasta.fasta.keys())
+        vcf_chroms = set(self.vcf.seqnames)
+
+        if not fasta_chroms.intersection(vcf_chroms):
+            raise ValueError(
+                'Fasta chrom names do not match with vcf chrom names')
+
+        if self.gtf_file == 'grch37' or self.gtf_file == 'grch38':
+            chr_annotaion = any(chrom.startswith('chr')
+                                for chrom in vcf_chroms)
+            if not chr_annotaion:
+                self.pr_exons = pyrange_remove_chr_from_chrom_annotation(
+                    self.pr_exons)
+
+        gtf_chroms = set(self.pr_exons.Chromosome)
+        if not gtf_chroms.intersection(vcf_chroms):
+            raise ValueError(
+                'GTF chrom names do not match with vcf chrom names')
 
     def _read_exons(self, gtf):
         if gtf == 'grch37':
