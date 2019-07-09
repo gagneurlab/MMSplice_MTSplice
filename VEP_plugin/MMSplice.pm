@@ -26,7 +26,7 @@ limitations under the License.
 
  mv MMSplice.pm ~/.vep/Plugins
  pip install mmsplice
- ./vep -i variants.vcf --plugin MMSplice,[intronl_len=100],[intronr_len=100],[exon_cut_l=0],[exon_cut_r=0],[acceptor_intron_cut=6],[donor_intron_cut=3],[acceptor_intron_len=20],[acceptor_exon_len=3],[donor_exon_len=3],[donor_intron_len=6],[acceptor_intronM],[acceptorModelFile],[exonModelFile],[donorModelFile],[donor_intronModelFile]
+ ./vep -i variants.vcf --plugin MMSplice,[acceptor_intronM],[acceptorModelFile],[exonModelFile],[donorModelFile],[donor_intronModelFile]
 
 
 =head1 DESCRIPTION
@@ -92,16 +92,6 @@ sub init_params {
     my $self = shift;
     my $params = $self->params;
 
-    $self->{overhang_l} = shift @$params || 100;
-    $self->{overhang_r} = shift @$params || 100;
-    $self->{exon_cut_l} = shift @$params || 0;
-    $self->{exon_cut_r} = shift @$params || 0;
-    $self->{acceptor_intron_cut} = shift @$params || 6;
-    $self->{donor_intron_cut} = shift @$params || 6;
-    $self->{acceptor_intron_len} = shift @$params || 50;
-    $self->{acceptor_exon_len} = shift @$params || 3;
-    $self->{donor_exon_len} = shift @$params || 5;
-    $self->{donor_intron_len} = shift @$params || 13;
     $self->{acceptor_intronM} = shift @$params || "";
     $self->{acceptorM} = shift @$params || "";
     $self->{exonM} = shift @$params || "";
@@ -154,7 +144,7 @@ sub init_python {
     $self->{python_stdout} = $python_stdout;
     $self->{python_stderr} = $python_stderr;
 
-    my $content = qq[{"acceptor_intronM": "$self->{acceptor_intronM}", "acceptorM": "$self->{acceptorM}", "exonM": "$self->{exonM}", "donorM": "$self->{donorM}", "donor_intronM": "$self->{donor_intronM}", "exon_cut_l": $self->{exon_cut_l}, "exon_cut_r": $self->{exon_cut_r}, "acceptor_intron_cut": $self->{acceptor_intron_cut}, "donor_intron_cut": $self->{donor_intron_cut}, "acceptor_intron_len": $self->{acceptor_intron_len}, "acceptor_exon_len": $self->{acceptor_exon_len}, "donor_exon_len": $self->{donor_exon_len}, "donor_intron_len": $self->{donor_intron_len}}];
+    my $content = qq[{"acceptor_intronM": "$self->{acceptor_intronM}", "acceptorM": "$self->{acceptorM}", "exonM": "$self->{exonM}", "donorM": "$self->{donorM}", "donor_intronM": "$self->{donor_intronM}"}];
 
     my $status = $self->call_python($content, 60);
 }

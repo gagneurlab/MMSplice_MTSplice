@@ -108,3 +108,5 @@ outputs/
 variant_effect_output.txt
 variant_effect_output.txt_summary.html
 variant_effect_output.txt_warnings.txt
+*-env/
+notebooks/pred.csv

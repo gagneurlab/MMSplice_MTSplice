@@ -11,17 +11,9 @@ def test_read_exon_pyranges():
     df_exons = read_exon_pyranges(gtf_file).df
 
     assert df_exons.shape[0] == 68
-
-    left_exon = df_exons[df_exons['left_overhang'] == 0].iloc[0]
-    right_exon = df_exons[df_exons['right_overhang'] == 0].iloc[0]
-
-    assert left_exon['Start'] == 41196312
-    assert right_exon['End'] == 41277500
-
-    exon = df_exons[df_exons['exon_id'] == 'ENSE00001871077'].iloc[0]
-
-    assert exon['Start'] == 41277288 - 100
-    assert exon['End'] == 41277387 + 100
+    exon = df_exons[df_exons['exon_id'] == 'ENSE00001831829'].iloc[0]
+    assert exon['Start'] == 41196822
+    assert exon['End'] == 41197819 + 100
 
 
 def test_batch_iter_vcf(vcf_path):
@@ -51,13 +43,22 @@ def test_benchmark_SplicingVCFDataloader(benchmark, vcf_path):
     benchmark(SplicingVCFDataloader, gtf_file, fasta_file, vcf_path)
 
 
+def test_splicing_vcf_dataloader_prebuild_grch37(vcf_path):
+    dl = SplicingVCFDataloader('grch37', fasta_file, vcf_path)
+
+
+def test_splicing_vcf_dataloader_prebuild_grch38(vcf_path):
+    dl = SplicingVCFDataloader('grch38', fasta_file, vcf_path)
+
+
 def test_splicing_vcf_loads_all(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
     assert sum(1 for i in dl) == len(variants) - 1
 
 
 def test_splicing_vcf_loads_snps(vcf_path):
-    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
+                               split_seq=False, encode=False)
 
     expected_snps_seq = [
         {
@@ -85,11 +86,12 @@ def test_splicing_vcf_loads_snps(vcf_path):
         print(d['metadata']['exon']['start'])
         print(d['metadata']['exon']['end'])
         assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
-        assert d['inputs_mut']['seq'] == expected_snps_seq[i]['alt_seq']
+        assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']
 
 
 def test_splicing_vcf_loads_deletions(vcf_path):
-    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
+                               split_seq=False, encode=False)
 
     expected_snps_seq = [
         {
@@ -204,11 +206,12 @@ def test_splicing_vcf_loads_deletions(vcf_path):
               d['metadata']['exon']['end'])
         print(d)
         assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
-        assert d['inputs_mut']['seq'] == expected_snps_seq[i]['alt_seq']
+        assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']
 
 
 def test_splicing_vcf_loads_insertions(vcf_path):
-    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
+                               split_seq=False, encode=False)
 
     for i in range(len(snps) + len(deletions) - 1):
         d = next(dl)
@@ -298,4 +301,4 @@ def test_splicing_vcf_loads_insertions(vcf_path):
         print(d['metadata']['exon']['start'])
         print(d['metadata']['exon']['end'])
         assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
-        assert d['inputs_mut']['seq'] == expected_snps_seq[i]['alt_seq']
+        assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']
