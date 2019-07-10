@@ -1,3 +1,4 @@
+import numpy as np
 from kipoiseq.extractors import MultiSampleVCF
 from mmsplice.vcf_dataloader import SplicingVCFDataloader, \
     read_exon_pyranges, batch_iter_vcf, variants_to_pyranges, \
@@ -44,6 +45,42 @@ def test__chech_chrom_annotation():
     chroms = {str(i) for i in range(1, 22)}.union(['X', 'Y', 'M'])
     assert len(chroms.difference(set(dl.pr_exons.Chromosome))) == 0
     assert sum(1 for i in dl) > 0
+
+
+def test__encode_seq(vcf_path):
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    encoded = dl._encode_seq({'acceptor': 'ATT'})
+    np.testing.assert_array_equal(
+        encoded['acceptor'][0],
+        np.array([[1., 0., 0., 0.],
+                  [0., 0., 0., 1.],
+                  [0., 0., 0., 1.]])
+    )
+    encoded = dl._encode_seq({'acceptor': 'aTT'})
+    np.testing.assert_array_equal(
+        encoded['acceptor'][0],
+        np.array([[1., 0., 0., 0.],
+                  [0., 0., 0., 1.],
+                  [0., 0., 0., 1.]])
+    )
+
+
+def test__encode_batch_seq(vcf_path):
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    encoded = dl._encode_batch_seq({'acceptor': np.array(['ATT'])})
+    np.testing.assert_array_equal(
+        encoded['acceptor'][0],
+        np.array([[1., 0., 0., 0.],
+                  [0., 0., 0., 1.],
+                  [0., 0., 0., 1.]])
+    )
+    encoded = dl._encode_batch_seq({'acceptor': np.array(['aTT'])})
+    np.testing.assert_array_equal(
+        encoded['acceptor'][0],
+        np.array([[1., 0., 0., 0.],
+                  [0., 0., 0., 1.],
+                  [0., 0., 0., 1.]])
+    )
 
 
 def test_benchmark_SplicingVCFDataloader(benchmark, vcf_path):
