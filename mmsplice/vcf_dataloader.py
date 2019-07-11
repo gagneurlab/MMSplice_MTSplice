@@ -319,9 +319,9 @@ class SplicingVCFDataloader(SampleIterator):
 
         seq = self.fasta.extract(Interval(
             exon.chrom, exon.start - overhang[0],
-            exon.end + overhang[1], strand=exon.strand))
+            exon.end + overhang[1], strand=exon.strand)).upper()
         mut_seq = self.vseq_extractor.extract(
-            exon, [variant], overhang=overhang)
+            exon, [variant], overhang=overhang).upper()
 
         if exon.strand == '-':
             overhang = (overhang[1], overhang[0])
@@ -361,11 +361,10 @@ class SplicingVCFDataloader(SampleIterator):
         self.encode = encode
 
     def _encode_seq(self, seq):
-        return {k: encodeDNA([v.upper()]) for k, v in seq.items()}
+        return {k: encodeDNA([v]) for k, v in seq.items()}
 
     def _encode_batch_seq(self, batch):
-        return {k: encodeDNA([i.upper() for i in v.tolist()])
-                for k, v in batch.items()}
+        return {k: encodeDNA(v.tolist()) for k, v in batch.items()}
 
     def _variant_to_dict(self, variant):
         return {
