@@ -130,7 +130,11 @@ def predict_batch(model, dataloader, batch_size=512, progress=True,
 
         df = pd.DataFrame({
             'ID': batch['metadata']['variant']['STR'],
-            'exons': batch['metadata']['exon']['annotation']
+            'exons': batch['metadata']['exon']['annotation'],
+            'exon_id': batch['metadata']['exon']['exon_id'],
+            'transcript_id': batch['metadata']['exon']['transcript_id'],
+            'gene_id': batch['metadata']['exon']['gene_id'],
+            'gene_name': batch['metadata']['exon']['gene_name']
         })
         df['delta_logit_psi'] = predict_delta_logit_psi(X_ref, X_alt)
         df = pd.concat([df, ref_pred, alt_pred], axis=1)

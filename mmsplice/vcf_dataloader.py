@@ -109,23 +109,22 @@ class ExonSeqVcfSeqExtrator:
     intron (overhang) length fixed.
     """
 
-    def __init__(self, fasta_file, overhang=(100, 100)):
+    def __init__(self, fasta_file):
         self.variant_seq_extractor = VariantSeqExtractor(fasta_file)
         self.fasta = self.variant_seq_extractor.fasta
-        self.overhang = overhang
 
-    def extract(self, interval, variants, sample_id=None):
+    def extract(self, interval, variants, sample_id=None, overhang=(100, 100)):
         """
         Args:
           interval (pybedtools.Interval): zero-based interval of exon
             without overhang.
         """
         down_interval = Interval(
-            interval.chrom, interval.start - self.overhang[0],
+            interval.chrom, interval.start - overhang[0],
             interval.start, strand=interval.strand)
         up_interval = Interval(
             interval.chrom, interval.end,
-            interval.end + self.overhang[1], strand=interval.strand)
+            interval.end + overhang[1], strand=interval.strand)
 
         down_seq = self.variant_seq_extractor.extract(
             down_interval, variants, anchor=interval.start)
@@ -260,7 +259,7 @@ class SplicingVCFDataloader(SampleIterator):
         self.spliter = seq_spliter or SeqSpliter()
 
         self.pr_exons = self._read_exons(gtf)
-        self.vseq_extractor = ExonSeqVcfSeqExtrator(fasta_file, overhang)
+        self.vseq_extractor = ExonSeqVcfSeqExtrator(fasta_file)
         self.fasta = self.vseq_extractor.fasta
         self.variants_batchs = read_vcf_pyranges(vcf_file)
         self.vcf = MultiSampleVCF(vcf_file)
@@ -321,7 +320,8 @@ class SplicingVCFDataloader(SampleIterator):
         seq = self.fasta.extract(Interval(
             exon.chrom, exon.start - overhang[0],
             exon.end + overhang[1], strand=exon.strand))
-        mut_seq = self.vseq_extractor.extract(exon, [variant])
+        mut_seq = self.vseq_extractor.extract(
+            exon, [variant], overhang=overhang)
 
         if exon.strand == '-':
             overhang = (overhang[1], overhang[0])

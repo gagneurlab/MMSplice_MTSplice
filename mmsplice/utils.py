@@ -1,3 +1,4 @@
+from collections import namedtuple
 import pandas as pd
 import numpy as np
 import pyranges
@@ -10,6 +11,13 @@ LOGISTIC_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/Pathogenicity.pkl'))
 EFFICIENCY_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/splicing_efficiency.pkl'))
+
+
+class Variant(namedtuple('Variant', ['CHROM', 'POS', 'REF', 'ALT'])):
+
+    @property
+    def start(self):
+        return self.POS - 1
 
 
 def clip(x):
