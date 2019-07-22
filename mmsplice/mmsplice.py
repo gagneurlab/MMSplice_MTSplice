@@ -7,7 +7,7 @@ from keras.models import load_model
 from sklearn.externals import joblib
 from concise.preprocessing import encodeDNA
 
-from mmsplice.utils import logit, predict_delta_logit_psi, \
+from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency
 from mmsplice.vcf_dataloader import SeqSpliter
 
@@ -136,7 +136,7 @@ def predict_batch(model, dataloader, batch_size=512, progress=True,
             'gene_id': batch['metadata']['exon']['gene_id'],
             'gene_name': batch['metadata']['exon']['gene_name']
         })
-        df['delta_logit_psi'] = predict_delta_logit_psi(X_ref, X_alt)
+        df['delta_logit_psi'] = predict_deltaLogitPsi(X_ref, X_alt)
         df = pd.concat([df, ref_pred, alt_pred], axis=1)
 
         if pathogenicity:

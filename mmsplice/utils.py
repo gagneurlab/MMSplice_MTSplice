@@ -2,6 +2,7 @@ from collections import namedtuple
 import pandas as pd
 import numpy as np
 import pyranges
+from kipoiseq.extractors import MultiSampleVCF
 from sklearn.externals import joblib
 from pkg_resources import resource_filename
 
@@ -17,7 +18,31 @@ class Variant(namedtuple('Variant', ['CHROM', 'POS', 'REF', 'ALT'])):
 
     @property
     def start(self):
+        """
+        0-based indexed start of variant.
+        """
         return self.POS - 1
+
+
+def left_normalized(variant):
+    """
+    Left normalizated version of variant object.
+    Example:
+      CA:CAGG -> '':GC
+    """
+    POS = variant.POS
+
+    for i in range(min(len(variant.REF), len(variant.ALT[0]))):
+        if variant.REF[i] == variant.ALT[0][i]:
+            POS += 1
+        else:
+            break
+
+    diff = POS - variant.POS
+    REF = variant.REF[diff:]
+    ALT = variant.ALT[0][diff:]
+
+    return Variant(variant.CHROM, POS, REF, [ALT])
 
 
 def clip(x):
@@ -89,7 +114,7 @@ def transform(X, region_only=False):
     ])
 
 
-def predict_delta_logit_psi(X_ref, X_alt):
+def predict_deltaLogitPsi(X_ref, X_alt):
     return LINEAR_MODEL.predict(transform(X_alt - X_ref, region_only=False))
 
 
@@ -115,9 +140,6 @@ def read_vep(vep_result_path,
     '''
 
     from cyvcf2 import VCF
-    from collections import defaultdict
-
-    score_pred = []
 
     keys = [
         'mmsplice_alt_acceptor',
@@ -134,10 +156,9 @@ def read_vep(vep_result_path,
         'mmsplice_ref_exon'
     ]
 
-    alt_seqs = defaultdict(list)
-    ref_seqs = defaultdict(list)
+    score_pred = []
 
-    for l in VCF(vep_result_path):
+    for l in MultiSampleVCF(vep_result_path):
         csq = l.INFO['CSQ'].split(',')
         predictions = map(lambda x: tuple(x.split('|')[-len(keys):]), csq)
 
@@ -155,3 +176,32 @@ def read_vep(vep_result_path,
         df_plugin = max_varEff(df_plugin).set_index('ID')
 
     return df_plugin
+
+
+def get_var_side(variant, exon):
+    '''
+    Get exon variant side.
+
+    Args:
+      variant: Variant class 1-based.
+      exon: pybedtools.Interval 0-based.
+    '''
+    assert variant.CHROM == exon.chrom
+
+    variant = left_normalized(variant)
+    var_end = variant.start + max(len(variant.REF), len(variant.ALT))
+
+    if exon.strand == '+':
+        if variant.start < exon.start:
+            return "left"
+        elif var_end > exon.end:
+            return "right"
+        else:
+            return "exon"
+    else:
+        if variant.start < exon.start:
+            return "right"
+        elif var_end > exon.end:
+            return "left"
+        else:
+            return "exon"

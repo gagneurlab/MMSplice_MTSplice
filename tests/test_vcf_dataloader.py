@@ -57,25 +57,11 @@ def test_SplicingVCFDataloader__encode_seq(vcf_path):
                   [0., 0., 0., 1.],
                   [0., 0., 0., 1.]])
     )
-    encoded = dl._encode_seq({'acceptor': 'aTT'})
-    np.testing.assert_array_equal(
-        encoded['acceptor'][0],
-        np.array([[1., 0., 0., 0.],
-                  [0., 0., 0., 1.],
-                  [0., 0., 0., 1.]])
-    )
 
 
 def test_SplicingVCFDataloader__encode_batch_seq(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
     encoded = dl._encode_batch_seq({'acceptor': np.array(['ATT'])})
-    np.testing.assert_array_equal(
-        encoded['acceptor'][0],
-        np.array([[1., 0., 0., 0.],
-                  [0., 0., 0., 1.],
-                  [0., 0., 0., 1.]])
-    )
-    encoded = dl._encode_batch_seq({'acceptor': np.array(['aTT'])})
     np.testing.assert_array_equal(
         encoded['acceptor'][0],
         np.array([[1., 0., 0., 0.],

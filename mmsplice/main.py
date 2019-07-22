@@ -6,7 +6,7 @@ import numpy as np
 
 from keras import backend as K
 from .mmsplice import MMSplice
-from .utils import predict_delta_logit_psi, predict_pathogenicity
+from .utils import predict_deltaLogitPsi, predict_pathogenicity
 
 
 @click.group()
@@ -37,7 +37,7 @@ def run():
         scores = np.hstack([ref_scores, alt_scores]).tolist()[0]
 
         scores.extend([
-            predict_delta_logit_psi(ref_scores, alt_scores)[0],
+            predict_deltaLogitPsi(ref_scores, alt_scores)[0],
             predict_pathogenicity(ref_scores, alt_scores)[0]
         ])
 
