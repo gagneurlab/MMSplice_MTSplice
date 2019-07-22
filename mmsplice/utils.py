@@ -138,9 +138,6 @@ def read_vep(vep_result_path,
         vep_result_path: file path to the returned result of VEP plugin.
         max_per_var: return maximum absolute effect size per variant.
     '''
-
-    from cyvcf2 import VCF
-
     keys = [
         'mmsplice_alt_acceptor',
         'mmsplice_alt_acceptorIntron',
