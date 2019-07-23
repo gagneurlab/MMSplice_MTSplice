@@ -47,6 +47,7 @@ setup(
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
+    long_description_content_type='text/markdown',
     entry_points='''
         [console_scripts]
         mmsplice=mmsplice.main:cli
@@ -60,5 +61,5 @@ setup(
     tests_require=test_requirements,
     url='https://github.com/gagneurlab/mmsplice',
     version='1.0.0',
-    zip_safe=False,
+    zip_safe=False
 )

@@ -9,8 +9,18 @@ Paper: Cheng et al. https://doi.org/10.1101/438986
 ![MMSplice](https://raw.githubusercontent.com/kipoi/models/master/MMSplice/Model.png)
 
 
-## Usage example
-------
+## Installation
+-----------------
+
+External dependencies:
+```bash
+pip install cyvcf2 cython
+```
+
+Conda installation is recommended:
+```bash
+conda install cyvcf2 cython -y
+```
 
 ```bash
 pip install mmsplice
@@ -23,7 +33,7 @@ You can run mmsplice with following google colab notebooks online:
 - [run on vcf file](https://colab.research.google.com/drive/1Kw5rHMXaxXXsmE3WecxbXyGQJma80Eq6)
 
 ### Preparation
-------
+-----------------
 
 #### 1. Prepare annotation (gtf) file
 Standard human gene annotation file in GTF format can be downloaded from ensembl or gencode.
@@ -49,7 +59,7 @@ Human reference fasta file can be downloaded from ensembl/gencode. Make sure the
 
 
 ### Example code
-------
+-------------------
 
 Check [notebooks/example.ipynb](https://github.com/gagneurlab/MMSplice/blob/master/notebooks/example.ipynb)
 
