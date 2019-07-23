@@ -16,6 +16,8 @@ variables:
       name: Install mmsplice
       command: |
         conda install cyvcf2 -y
+        conda install cython -y
+        conda install pybigwig -y
         pip install -e '.'
   install_dependencies: &install_dependencies
     run:
@@ -50,7 +52,7 @@ variables:
       command: |
         gzip -dk tests/data/test.vcf.gz
         cat tests/data/test.vcf | docker run -i mmsplice vep --plugin MMSplice --format vcf --assembly GRCh37 --database --port 3337 --vcf -o STDOUT | tee log_variant_effect_output.txt
-        sed -n '/##fileformat=VCFv4.0/,$p' log_variant_effect_output.txt > variant_effect_output.vcf
+        sed -n '/##fileformat=VCFv4.0/,$p' log_variant_effect_output.txt > variant_effect_output.txt
   test_docker: &test_docker
     run:
       name: Test vep plugin in docker

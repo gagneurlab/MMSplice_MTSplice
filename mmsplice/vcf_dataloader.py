@@ -1,364 +1,169 @@
-import pickle
-import warnings
-import functools
+import logging
+from itertools import islice
+from pkg_resources import resource_filename
 
-import gffutils
-from pyfaidx import Fasta
+import pandas as pd
+import pyranges
+from pybedtools import Interval
 from kipoi.data import SampleIterator
-from kipoi.metadata import GenomicRanges
 from concise.preprocessing import encodeDNA
-
-from .generic import Variant, get_var_side
-from .interval_tree import IntervalTree, Interval
-
-
-class VariantInterval(Interval):
-
-    def __init__(self, REF=None, ALT=None, **kwargs):
-        super().__init__(**kwargs)
-        self.REF = REF
-        self.ALT = ALT
-
-    @classmethod
-    def from_Variant(cls, variant):
-        # Only support one alternative.
-        # If multiple alternative, need to split into multiple variants
-        if len(variant.ALT) != 1:
-            warnings.warn('%s has more than one alternative sequence,'
-                          'only the first one was taken,'
-                          'split into mutliple variants with bedtools' % variant.__repr__(), UserWarning)
-        if variant.ID is None:
-            ID = '.'
-        else:
-            ID = variant.ID
-        return cls(chrom=variant.CHROM,
-                   start=variant.POS,
-                   end=variant.POS,
-                   strand="*",
-                   name=ID,
-                   REF=variant.REF,
-                   ALT=variant.ALT[0])
-
-    def to_Variant(self, strand, side):
-        # convert to my Variant class, which needs strand and side
-        assert self.start == self.end
-        var = Variant(CHROM=self.chrom,
-                      POS=self.start,
-                      REF=self.REF,
-                      ALT=self.ALT,
-                      strand=strand,
-                      ID=self.name)
-        var.side = side
-        return var
+from kipoiseq.extractors import VariantSeqExtractor, MultiSampleVCF
+from mmsplice.utils import pyrange_remove_chr_from_chrom_annotation
 
 
-class ExonInterval(gffutils.Feature):
+logger = logging.getLogger('mmsplice')
+logger.addHandler(logging.NullHandler())
 
-    def __init__(self, order=-1, **kwargs):
-        super().__init__(**kwargs)
-        self.order = order
-        self.name = self.attributes["exon_id"][0]
-        self.transcript_id = self.attributes["transcript_id"][0]
-        self.gene_id = self.attributes["gene_id"][0]
-        # self.biotype = self.attributes["gene_biotype"][0]
-        self.Exon_Start = self.start  # with overhang, will be set later
-        self.Exon_End = self.end  # with overhang
-        self.overhang = (0, 0)
-        self._isLast = False
-
-    @property
-    def isLast(self):
-        return self._isLast
-
-    @isLast.setter
-    def isLast(self, value):
-        self._isLast = value
-
-    @property
-    def isFirst(self):
-        return self.order == 1
-
-    @property
-    def grange(self):
-        return GenomicRanges(self.chrom,
-                             self.start,
-                             self.end,
-                             self.transcript_id,
-                             self.strand)
-
-    def __str__(self):
-        return '{0}_{1}_{2}:{3}'.format(
-            self.chrom, self.Exon_Start, self.Exon_End, self.strand)
-
-    @property
-    def to_dict(self):
-        return {'isLast': self.isLast,
-                'isFirst': self.isFirst,
-                'order': self.order,
-                'name': self.name,
-                'gene_id': self.gene_id,
-                'Exon_Start': self.Exon_Start,
-                'Exon_End': self.Exon_End,
-                'intronl_len': self.overhang[0],
-                'intronr_len': self.overhang[1],
-                'seqid': self.seqid,
-                'strand': self.strand,
-                'start': self.start,
-                'end': self.end}
-
-    @classmethod
-    def from_Feature(cls,
-                     feature,
-                     overhang=(0, 0)):
-        # convert gffutils.Feature to ExonInterval
-        iv = cls(seqid=feature.chrom,
-                 source=feature.source,
-                 start=feature.start,  # exon start
-                 end=feature.end,  # exon end
-                 strand=feature.strand,
-                 frame=feature.frame,
-                 attributes=feature.attributes,
-                 order=int(feature.attributes['exon_number'][0]))
-        if iv.strand == "+":
-            iv.start = iv.Exon_Start - overhang[0]
-            iv.end = iv.Exon_End + overhang[1]
-        else:
-            iv.start = iv.Exon_Start - overhang[1]
-            iv.end = iv.Exon_End + overhang[0]
-        iv.overhang = overhang
-        return iv
-
-    @classmethod
-    def from_exonfile(cls, exon, attributes, overhang=(0, 0)):
-        iv = cls(seqid=exon.CHROM,
-                 source='',
-                 start=exon.Exon_Start,  # exon start
-                 end=exon.Exon_End,  # exon end
-                 strand=exon.strand,
-                 frame='',
-                 attributes=attributes,
-                 order=attributes['order'])
-        if iv.strand == "+":
-            iv.start = iv.Exon_Start - overhang[0]
-            iv.end = iv.Exon_End + overhang[1]
-        else:
-            iv.start = iv.Exon_Start - overhang[1]
-            iv.end = iv.Exon_End + overhang[0]
-        iv.overhang = overhang
-        return iv
-
-    def get_seq(self, fasta, use_strand=True):
-        seq = self.sequence(fasta, use_strand=use_strand)
-        seq = seq.upper()
-        return seq
-
-    def _ref_check(self, fasta, variant):
-        '''Checks that ref seq matchs with fasta'''
-        # last option corresponds to rc= in Fasta.get_seq function from pyfaidx
-        ref_check = fasta.get_seq(self.chrom, variant.POS,
-                                  # -1 because 1 based
-                                  variant.POS + len(variant.REF) - 1,
-                                  self.strand == '-').seq
-        ref_noteq = ref_check.upper() != variant.REF
-        if ref_noteq:
-            warnings.warn("Reference not match, cannot mutate,"
-                          " return original sequence.", UserWarning)
-            print(variant)
-
-        return ref_noteq
-
-    def get_mut_seq(self, fasta, variant):
-        '''
-        Returns the mutated sequence after variant is applied.
-
-        :param fasta: Fasta class
-        :param variant: Variant object
-        :return: str of mutated sequence
-        '''
-        # Validate input
-        assert variant.side in ("exon", "left", "right")
-        if self._ref_check(fasta, variant):
-            return self.get_seq(fasta)
-
-        if not self.var_in_interval(variant):
-            return self.get_seq(fasta)
-
-        # Create two interval one for until variant, one for after variant
-        before_var = [self.start, variant.POS - 1]
-        after_var = [variant.POS + len(variant.REF), self.end]
-
-        # Update interval based on our variant handling
-        # exon deletions extreme case so should be handled differently
-        if self.is_exon_deletion(variant):
-            before_var, after_var = self._handle_exon_deletion(
-                variant, before_var, after_var)
-        else:  # indel or snp
-            len_diff = -variant.len_diff
-            if (self.strand == '+' and variant.side == 'right') \
-               or (self.strand == '-' and variant.side == 'left'):
-                after_var[1] -= len_diff
-            elif (self.strand == '+' and variant.side == 'left') \
-                    or (self.strand == '-' and variant.side == 'right'):
-                before_var[0] += len_diff
-
-        # Fetch seq based on updated intervals
-        # this condition for extremly long insertion which longer than overhang
-        if before_var[0] >= before_var[1]:
-            before_seq = ''
-        else:
-            before_seq = fasta.get_seq(self.chrom,
-                                       before_var[0],
-                                       before_var[1],
-                                       self.strand == '-').seq
-        if after_var[0] >= after_var[1]:
-            after_seq = ''
-        else:
-            after_seq = fasta.get_seq(self.chrom,
-                                      after_var[0],
-                                      after_var[1],
-                                      self.strand == '-').seq
-
-        # switch interval if negative strand
-        if self.strand == '-':
-            before_seq, after_seq = after_seq, before_seq
-
-        # concatenate three string
-        return before_seq + variant.ALT + after_seq
-
-    def is_exon_deletion(self, variant):
-        return variant.POS <= self.Exon_Start and \
-            self.Exon_End <= variant.POS + len(variant.REF)
-
-    def _handle_exon_deletion(self, variant, before_var, after_var):
-        before_var[0] -= self.Exon_Start - variant.POS - len(variant.ALT)
-        after_var[1] += variant.POS + len(variant.REF) - 1 - self.Exon_End
-        return before_var, after_var
-
-    def var_in_interval(self, var):
-        var_end = var.POS  # + len(var.REF)
-        return var_end >= self.start and var.POS <= self.end
+GRCH37 = resource_filename('mmsplice', 'models/grch37_exons.csv.gz')
+GRCH38 = resource_filename('mmsplice', 'models/grch38_exons.csv.gz')
 
 
-class FastaSeq(Fasta):
-    ''' Implement a getSeq method that return upper string and take strand
+def read_exon_pyranges(gtf_file, overhang=(100, 100), first_last=True):
     '''
+    Read exon as pyranges from gtf_file
 
-    def getSeq(self, iv):
-        seq = self.get_seq(iv.chrom, iv.start, iv.end, iv.strand == '-')
-        return seq.seq.upper()
-
-
-@functools.lru_cache(maxsize=1)
-def GenerateExonIntervalTree(gtf_file,
-                             overhang=(100, 100),  # overhang from the exon
-                             gtf_db_path=":memory:",
-                             out_file=None,
-                             disable_infer_transcripts=True,
-                             disable_infer_genes=True,
-                             firstLastNoExtend=True,
-                             source_filter=None):
-    """
-    Build IntervalTree object from gtf file for one feature unit (e.g. gene, exon). If give out_file, pickle it.
     Args:
-        gtf_file: gtf format file or pickled Intervaltree object.
-        overhang: flanking intron length to take along with exon. Corresponding to left (acceptor side) and right (donor side)
-        gtf_db_path: (optional) gtf database path. Database for one gtf file only need to be created once
-        out_file: (optional) file path to store the pickled Intervaltree obejct. Next time run it can be given to `gtf_file`
-        disable_infer_transcripts: option to disable infering transcripts. Can be True if the gtf file has transcripts annotated.
-        disable_infer_genes: option to disable infering genes. Can be True if the gtf file has genes annotated.
-        firstLastNoExtend: if True, overhang is not taken for 5' of the first exon, or 3' of the last exon of a gene.
-        source_filter: gene source filters, such as "protein_coding" filter for protein coding genes
-    """
-    try:
-        gtf_db = gffutils.interface.FeatureDB(gtf_db_path)
-    except ValueError:
-        gtf_db = gffutils.create_db(
-            gtf_file,
-            gtf_db_path,
-            disable_infer_transcripts=disable_infer_transcripts,
-            disable_infer_genes=disable_infer_genes)
+      gtf_file: gtf file from ensembl/gencode.
+      overhang: padding of exon to match variants.
+      first_last: set overhang of first and last exon of the gene to zero
+        so seq intergenic region will not be processed.
+    '''
+    df_gtf = pyranges.read_gtf(gtf_file).df
+    df_exons = df_gtf[df_gtf['Feature'] == 'exon']
+    df_exons = df_exons[['Chromosome', 'Start', 'End', 'Strand',
+                         'exon_id', 'gene_id', 'gene_name', 'transcript_id']]
 
-    genes = gtf_db.features_of_type('gene')
-    exonTree = IntervalTree()
-    default_overhang = overhang
-    for gene in genes:
-        if source_filter is not None:
-            if gene.source != source_filter:
-                continue
-        for exon in gtf_db.children(gene, featuretype='exon'):
-            isLast = False  # track whether is last exon
-            if firstLastNoExtend:
-                if (gene.strand == "+" and exon.end == gene.end) or (gene.strand == "-" and exon.start == gene.start):
-                    overhang = (overhang[0], 0)
-                    isLast = True
-                elif (gene.strand == "+" and exon.start == gene.start) or (gene.strand == "-" and exon.end == gene.end):
-                    # int(exon.attributes['exon_number'][0]) == 1:
-                    overhang = (0, overhang[1])
-            iv = ExonInterval.from_Feature(exon, overhang)
-            iv.isLast = isLast
-            overhang = default_overhang
-            exonTree.insert(iv)
-    if out_file is not None:
-        with open(out_file, 'wb') as f:
-            pickle.dump(exonTree, f)
-    return exonTree
+    if first_last:
+        df_genes = df_gtf[df_gtf['Feature'] == 'transcript']
+        df_genes.set_index('transcript_id', inplace=True)
+        df_genes = df_genes.loc[df_exons['transcript_id']]
+        df_genes.set_index(df_exons.index, inplace=True)
+
+        starting = df_exons['Start'] == df_genes['Start']
+        ending = df_exons['End'] == df_genes['End']
+
+        df_exons.loc[:, 'left_overhang'] = ~starting * overhang[0]
+        df_exons.loc[:, 'right_overhang'] = ~ending * overhang[1]
+
+        df_exons.loc[:, 'Start'] -= df_exons['left_overhang']
+        df_exons.loc[:, 'End'] += df_exons['right_overhang']
+
+    return pyranges.PyRanges(df_exons)
 
 
-class SplicingVCFDataloader(SampleIterator):
-    """
-    Load genome annotation (gtf) file along with a vcf file, return wt sequence and mut sequence.
+def batch_iter_vcf(vcf_file, batch_size=10000):
+    '''
+    Iterates variatns in vcf file.
+
     Args:
-        gtf: gtf file or pickled gtf IntervalTree. Can be dowloaded from ensembl/gencode. Filter for protein coding genes.
-        fasta_file: file path; Genome sequence
-        vcf_file: vcf file, each line should contain one and only one variant, left-normalized
-        spit_seq: whether or not already split the sequence when loading the data. Otherwise it can be done in the model class.
-        endcode: if split sequence, should it be one-hot-encoded
-        exon_cut_l: when extract exon feature, how many base pair to cut out at the begining of an exon
-        exon_cut_r: when extract exon feature, how many base pair to cut out at the end of an exon
-           (cut out the part that is considered as acceptor site or donor site)
-        acceptor_intron_cut: how many bp to cut out at the end of acceptor intron that consider as acceptor site
-        donor_intron_cut: how many bp to cut out at the end of donor intron that consider as donor site
-        acceptor_intron_len: what length in acceptor intron to consider for acceptor site model
-        acceptor_exon_len: what length in acceptor exon to consider for acceptor site model
-        donor_intron_len: what length in donor intron to consider for donor site model
-        donor_exon_len: what length in donor exon to consider for donor site model
-        out_file: file path to save pickle file for IntervalTree object derived from GTF annotation.
-            Once the IntervalTree object is generated and saved as a pickle file, next run it can be directly provided to the `gtf` argument,
-            the program will save time by not generating it again.
-        variant_filter: if set True (default), variants with `FILTER` field other than `PASS` will be filtered out.
-        **kwargs: kwargs for `GenerateExonIntervalTree` object
+      vcf_file: path of vcf file.
+      batch_size: size of each batch.
+    '''
+    variants = MultiSampleVCF(vcf_file)
+    batch = list(islice(variants, batch_size))
+
+    while batch:
+        yield batch
+        batch = list(islice(variants, batch_size))
+
+
+def variants_to_pyranges(variants):
+    '''
+    Create pyrange object given list of variant objects.
+
+    Args:
+      variants: list of variant objects have CHROM, POS, REF, ALT properties.
+    '''
+    def _from_variants(variants):
+        for v in variants:
+            if len(v.ALT) == 1:
+                yield v.CHROM, v.POS, v.POS + max(len(v.REF), len(v.ALT[0])), v
+            else:
+                # Only support one alternative.
+                # If multiple alternative, need to split into multiple variants
+                logger.warning(
+                    '%s has more than one or nan ALT sequence,'
+                    'split into mutliple variants with bedtools' % v)
+
+    df = pd.DataFrame(list(_from_variants(variants)),
+                      columns=['Chromosome', 'Start', 'End', 'variant'])
+    return pyranges.PyRanges(df)
+
+
+def read_vcf_pyranges(vcf_file, batch_size=10000):
+    '''
+    Reads vcf and returns batch of pyranges objects.
+
+    Args:
+      vcf_file: path of vcf file.
+      batch_size: size of each batch.
+    '''
+    for batch in batch_iter_vcf(vcf_file, batch_size):
+        yield variants_to_pyranges(batch)
+
+
+class ExonSeqVcfSeqExtrator:
+    """
+    Extracts variant applied sequence of exon with give overhang. If variant
+    is in exon extractor extends exon but if variant is in intron it keeps
+    intron (overhang) length fixed.
     """
 
-    def __init__(self,
-                 gtf,
-                 fasta_file,
-                 vcf_file=None,
-                 split_seq=False,
-                 exon_cut_l=0,
-                 exon_cut_r=0,
-                 acceptor_intron_cut=6,
-                 donor_intron_cut=6,
-                 acceptor_intron_len=50,
-                 acceptor_exon_len=3,
-                 donor_exon_len=5,
-                 donor_intron_len=13,
-                 variant_filter=True,
-                 encode=True,
-                 **kwargs):
-        try:
-            with open(gtf, 'rb') as f:
-                self.exons = pickle.load(f)
-        except (FileNotFoundError, pickle.UnpicklingError):
-            self.exons = GenerateExonIntervalTree(gtf, **kwargs)
-        import six
-        if isinstance(fasta_file, six.string_types):
-            fasta = Fasta(fasta_file, as_raw=False)
-        self.fasta = fasta
-        self.ssGenerator = self.spliceSiteGenerator(
-            vcf_file, self.exons, variant_filter)
+    def __init__(self, fasta_file):
+        self.variant_seq_extractor = VariantSeqExtractor(fasta_file)
+        self.fasta = self.variant_seq_extractor.fasta
 
-        self.encode = encode
-        self.split_seq = split_seq
+    def extract(self, interval, variants, sample_id=None, overhang=(100, 100)):
+        """
+        Args:
+          interval (pybedtools.Interval): zero-based interval of exon
+            without overhang.
+        """
+        down_interval = Interval(
+            interval.chrom, interval.start - overhang[0],
+            interval.start, strand=interval.strand)
+        up_interval = Interval(
+            interval.chrom, interval.end,
+            interval.end + overhang[1], strand=interval.strand)
+
+        down_seq = self.variant_seq_extractor.extract(
+            down_interval, variants, anchor=interval.start)
+        up_seq = self.variant_seq_extractor.extract(
+            up_interval, variants, anchor=interval.start)
+
+        exon_seq = self.variant_seq_extractor.extract(
+            interval, variants, anchor=0, fixed_len=False)
+
+        if interval.strand == '-':
+            down_seq, up_seq = up_seq, down_seq
+
+        return down_seq + exon_seq + up_seq
+
+
+class SeqSpliter:
+    """
+    Splits given seq for each modules.
+
+    Args:
+      exon_cut_l: number of bp to cut out at the begining of an exon
+      exon_cut_r: number of bp to cut out at the end of an exon
+        (cut out the part that is considered as acceptor site or donor site)
+      acceptor_intron_cut: number of bp to cut out at the end of
+        acceptor intron that consider as acceptor site
+      donor_intron_cut: number of bp to cut out at the end of donor intron
+        that consider as donor site
+      acceptor_intron_len: length in acceptor intron to consider
+        for acceptor site model
+      acceptor_exon_len: length in acceptor exon to consider
+        for acceptor site model
+      donor_intron_len: length in donor intron to consider for donor site model
+      donor_exon_len: length in donor exon to consider for donor site model
+    """
+
+    def __init__(self, exon_cut_l=0, exon_cut_r=0,
+                 acceptor_intron_cut=6, donor_intron_cut=6,
+                 acceptor_intron_len=50, acceptor_exon_len=3,
+                 donor_exon_len=5, donor_intron_len=13):
         self.exon_cut_l = exon_cut_l
         self.exon_cut_r = exon_cut_r
         self.acceptor_intron_cut = acceptor_intron_cut
@@ -368,72 +173,14 @@ class SplicingVCFDataloader(SampleIterator):
         self.donor_exon_len = donor_exon_len
         self.donor_intron_len = donor_intron_len
 
-    @staticmethod
-    def spliceSiteGenerator(vcf_file, exonTree, variant_filter=True):
-        from cyvcf2 import VCF
-        variants = VCF(vcf_file)
-        for var in variants:
-            if variant_filter and var.FILTER:
-                next
-            iv = VariantInterval.from_Variant(var)
-
-            matches = map(lambda x: x.interval,
-                          exonTree.intersect(iv, ignore_strand=True))
-
-            for match in matches:
-                side = get_var_side((
-                    iv.start,
-                    iv.REF,
-                    iv.ALT,
-                    match.Exon_Start,
-                    match.Exon_End,
-                    match.strand
-                ))
-                var = iv.to_Variant(match.strand, side)  # to my Variant class
-                yield match, var
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        ss, var = next(self.ssGenerator)
-        seq = ss.get_seq(self.fasta).upper()
-        mut_seq = ss.get_mut_seq(self.fasta, var).upper()
-
-        if self.split_seq:
-            seq = self.split(seq, ss.overhang)
-            mut_seq = self.split(mut_seq, ss.overhang)
-
-        return {
-            'inputs': {
-                'seq': seq,
-                'intronl_len': ss.overhang[0],
-                'intronr_len': ss.overhang[1],
-
-            },
-            'inputs_mut': {
-                'seq': mut_seq,
-                'intronl_len': ss.overhang[0],
-                'intronr_len': ss.overhang[1]
-            },
-            'metadata': {
-                'ranges': ss.grange,
-                'variant': var.to_dict,
-                'ExonInterval': ss.to_dict,
-                'annotation': str(ss)
-            }
-        }
-
-    def batch_predict_iter(self, **kwargs):
-        """Returns samples directly useful for prediction x["inputs"]
-        Args:
-          **kwargs: Arguments passed to self.batch_iter(**kwargs)
+    def split(self, x, overhang, exon_row='', pattern_warning=True):
         """
-        return (x for x in self.batch_iter(**kwargs))
+        Split seqeunce for each module.
 
-    def split(self, x, overhang):
-        ''' x: a sequence to split
-        '''
+        Args:
+          seq: seqeunce to split.
+          overhang: (acceptor, donor) overhang.
+        """
         intronl_len, intronr_len = overhang
         # need to pad N if left seq not enough long
         lackl = self.acceptor_intron_len - intronl_len
@@ -461,10 +208,17 @@ class SplicingVCFDataloader(SampleIterator):
 
         donor_intron = x[-intronr_len + self.donor_intron_cut:]
 
-        if donor[self.donor_exon_len:self.donor_exon_len + 2] != "GT":
-            warnings.warn("None GT donor", UserWarning)
-        if acceptor[self.acceptor_intron_len - 2:self.acceptor_intron_len] != "AG":
-            warnings.warn("None AG donor", UserWarning)
+        if not exon:
+            exon = 'N'
+
+        if pattern_warning:
+            if donor[self.donor_exon_len:self.donor_exon_len + 2] != "GT" \
+               and overhang[1]:
+                logger.warning('None GT donor: %s' % str(exon_row))
+
+            if acceptor[self.acceptor_intron_len - 2:self.acceptor_intron_len] != "AG" \
+               and overhang[0]:
+                logger.warning('None AG acceptor: %s' % str(exon_row))
 
         splits = {
             "acceptor_intron": acceptor_intron,
@@ -474,7 +228,172 @@ class SplicingVCFDataloader(SampleIterator):
             "donor_intron": donor_intron
         }
 
-        if self.encode:
-            return {k: encodeDNA([v]) for k, v in splits.items()}
-
         return splits
+
+
+class SplicingVCFDataloader(SampleIterator):
+    """
+    Load genome annotation (gtf) file along with a vcf file,
+      return wt sequence and mut sequence.
+
+    Args:
+        gtf: gtf file. Can be dowloaded from ensembl/gencode.
+          Filter for protein coding genes.
+        fasta_file: file path; Genome sequence
+        vcf_file: vcf file, each line should contain one
+          and only one variant, left-normalized
+        spit_seq: whether or not already split the sequence
+          when loading the data. Otherwise it can be done in the model class.
+        endcode: if split sequence, should it be one-hot-encoded
+    """
+
+    def __init__(self, gtf, fasta_file, vcf_file,
+                 variant_filter=True, split_seq=True, encode=True,
+                 overhang=(100, 100), seq_spliter=None):
+
+        self.gtf_file = gtf
+        self.fasta_file = fasta_file
+        self.vcf_file = vcf_file
+        self.split_seq = split_seq
+        self.encode = encode
+        self.spliter = seq_spliter or SeqSpliter()
+
+        self.pr_exons = self._read_exons(gtf, overhang)
+        self.vseq_extractor = ExonSeqVcfSeqExtrator(fasta_file)
+        self.fasta = self.vseq_extractor.fasta
+        self.variants_batchs = read_vcf_pyranges(vcf_file)
+        self.vcf = MultiSampleVCF(vcf_file)
+
+        self._check_chrom_annotation()
+
+        self._generator = self._generate(variant_filter=variant_filter)
+
+    def _check_chrom_annotation(self):
+        fasta_chroms = set(self.fasta.fasta.keys())
+        vcf_chroms = set(self.vcf.seqnames)
+
+        if not fasta_chroms.intersection(vcf_chroms):
+            raise ValueError(
+                'Fasta chrom names do not match with vcf chrom names')
+
+        if self.gtf_file == 'grch37' or self.gtf_file == 'grch38':
+            chr_annotaion = any(chrom.startswith('chr')
+                                for chrom in vcf_chroms)
+            if not chr_annotaion:
+                self.pr_exons = pyrange_remove_chr_from_chrom_annotation(
+                    self.pr_exons)
+
+        gtf_chroms = set(self.pr_exons.Chromosome)
+        if not gtf_chroms.intersection(vcf_chroms):
+            raise ValueError(
+                'GTF chrom names do not match with vcf chrom names')
+
+    def _read_exons(self, gtf, overhang=(100, 100)):
+        if gtf == 'grch37':
+            if overhang != (100, 100):
+                logger.warning('Overhang argument will be ignored'
+                               ' for prebuild annotation.')
+            return pyranges.PyRanges(pd.read_csv(GRCH37))
+        elif gtf == 'grch38':
+            if overhang != (100, 100):
+                logger.warning('Overhang argument will be ignored'
+                               ' for prebuild annotation.')
+            return pyranges.PyRanges(pd.read_csv(GRCH38))
+        else:
+            return read_exon_pyranges(self.gtf_file, overhang=overhang)
+
+    def _generate(self, variant_filter=True):
+        for pr_variants in self.variants_batchs:
+
+            exon_variant_pairs = pr_variants.join(
+                self.pr_exons, suffix="_exon")
+
+            for i, row in exon_variant_pairs.df.iterrows():
+                yield row
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        row = next(self._generator)
+        overhang = (row['left_overhang'], row['right_overhang'])
+        exon = Interval(row['Chromosome'],
+                        row['Start_exon'] + overhang[0] - 1,
+                        row['End_exon'] - overhang[1],
+                        strand=row['Strand'])
+        variant = row['variant']
+
+        seq = self.fasta.extract(Interval(
+            exon.chrom, exon.start - overhang[0],
+            exon.end + overhang[1], strand=exon.strand)).upper()
+        mut_seq = self.vseq_extractor.extract(
+            exon, [variant], overhang=overhang).upper()
+
+        if exon.strand == '-':
+            overhang = (overhang[1], overhang[0])
+
+        if self.split_seq:
+            seq = self.spliter.split(seq, overhang, exon)
+            mut_seq = self.spliter.split(mut_seq, overhang, exon,
+                                         pattern_warning=False)
+            if self.encode:
+                seq = self._encode_seq(seq)
+                mut_seq = self._encode_seq(mut_seq)
+
+        return {
+            'inputs': {
+                'seq': seq,
+                'mut_seq': mut_seq
+            },
+            'metadata': {
+                'variant': self._variant_to_dict(variant),
+                'exon': self._exon_to_dict(row, exon, overhang)
+            }
+        }
+
+    def batch_iter(self, batch_size=32):
+        encode = self.encode
+        self.encode = False
+
+        for batch in super().batch_iter(batch_size):
+            if encode:
+                batch['inputs']['seq'] = self._encode_batch_seq(
+                    batch['inputs']['seq'])
+                batch['inputs']['mut_seq'] = self._encode_batch_seq(
+                    batch['inputs']['mut_seq'])
+
+            yield batch
+
+        self.encode = encode
+
+    def _encode_seq(self, seq):
+        return {k: encodeDNA([v]) for k, v in seq.items()}
+
+    def _encode_batch_seq(self, batch):
+        return {k: encodeDNA(v.tolist()) for k, v in batch.items()}
+
+    def _variant_to_dict(self, variant):
+        return {
+            'CHROM': variant.CHROM,
+            'POS': variant.POS,
+            'REF': variant.REF,
+            'ALT': variant.ALT,
+            'STR': "%s:%s:%s:['%s']" % (variant.CHROM, str(variant.POS),
+                                        variant.REF, variant.ALT[0])
+        }
+
+    def _exon_to_dict(self, row, exon, overhang):
+        return {
+            'chrom': exon.chrom,
+            'start': exon.start,
+            'end': exon.end,
+            'strand': exon.strand,
+            'exon_id': row['exon_id'],
+            'gene_id': row['gene_id'],
+            'gene_name': row['gene_name'],
+            'transcript_id': row['transcript_id'],
+            'left_overhang': overhang[0],
+            'right_overhang': overhang[1],
+            'annotation': '%s:%d-%d:%s' % (exon.chrom, exon.start,
+                                           exon.end, exon.strand)
+        }

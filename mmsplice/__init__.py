@@ -2,19 +2,14 @@
 
 """Top-level package for mmsplice."""
 
-__author__ = """Jun Cheng"""
+__author__ = """Jun Cheng & M.Hasan Celik"""
 __email__ = 'chengju@in.tum.de'
-__version__ = '0.2.7'
+__version__ = '1.0.0'
 
 from keras.models import load_model
-import mmsplice.generic
-import mmsplice.interval_tree
-import mmsplice.vcf_dataloader
-import mmsplice.exon_dataloader
-from .utils import postproc
 from mmsplice.mmsplice import MMSplice, \
-    predict_all, \
     writeVCF, \
+    predict_save, \
     predict_all_table, \
     ACCEPTOR_INTRON, \
     ACCEPTOR, \
@@ -29,8 +24,8 @@ from mmsplice.mmsplice import MMSplice, \
 __all__ = [
     'load_model',
     'MMSplice',
-    'predict_all',
     'writeVCF',
+    'predict_save',
     'predict_all_table',
     'ACCEPTOR_INTRON',
     'ACCEPTOR',

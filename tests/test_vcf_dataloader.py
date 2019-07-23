@@ -1,21 +1,93 @@
-from collections import namedtuple
-from mmsplice.vcf_dataloader import SplicingVCFDataloader, FastaSeq
+import numpy as np
+from kipoiseq.extractors import MultiSampleVCF
+from mmsplice.utils import Variant
+from mmsplice.vcf_dataloader import SplicingVCFDataloader, \
+    read_exon_pyranges, batch_iter_vcf, variants_to_pyranges, \
+    read_vcf_pyranges
 
 from conftest import gtf_file, fasta_file, snps, deletions, \
-    insertions, variants
+    insertions, variants, vcf_file
 
 
-def test_FastSeq_getSeq():
-    IV = namedtuple('iv', 'chrom start end strand')
-    fasta = FastaSeq(fasta_file)
+def test_read_exon_pyranges():
+    df_exons = read_exon_pyranges(gtf_file).df
 
-    iv = IV(chrom='17', start=41267742, end=41267752, strand='+')
-    seq = fasta.getSeq(iv)
-    assert seq == 'CTTGCAAAATA'
+    assert df_exons.shape[0] == 68
+    exon = df_exons[df_exons['exon_id'] == 'ENSE00001831829'].iloc[0]
+    assert exon['Start'] == 41196822
+    assert exon['End'] == 41197819 + 100
 
-    iv = IV(chrom='17', start=41267742, end=41267752, strand='-')
-    seq = fasta.getSeq(iv)
-    assert seq == 'TATTTTGCAAG'
+
+def test_batch_iter_vcf(vcf_path):
+    batchs = list(batch_iter_vcf(vcf_path, 10))
+    assert sum(len(i) for i in batchs) == len(variants)
+
+
+def test_variants_to_pyranges(vcf_path):
+    variants = list(MultiSampleVCF(vcf_path))
+    df = variants_to_pyranges(variants).df
+    assert df.shape[0] == len(variants)
+
+    v = df.iloc[0]
+    assert v.Chromosome == '13'
+    assert v.Start == 32953886
+    assert v.End == 32953889
+    assert v.variant.REF == 'GTT'
+    assert v.variant.ALT[0] == 'AA'
+
+
+def test_read_vcf_pyranges(vcf_path):
+    batchs = list(read_vcf_pyranges(vcf_path, batch_size=10))
+    assert sum(i.df.shape[0] for i in batchs) == len(variants)
+
+
+def test_SplicingVCFDataloader__chech_chrom_annotation():
+    dl = SplicingVCFDataloader('grch37', fasta_file, vcf_file)
+    chroms = {str(i) for i in range(1, 22)}.union(['X', 'Y', 'M'])
+    assert len(chroms.difference(set(dl.pr_exons.Chromosome))) == 0
+    assert sum(1 for i in dl) > 0
+
+
+def test_SplicingVCFDataloader__encode_seq(vcf_path):
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    encoded = dl._encode_seq({'acceptor': 'ATT'})
+    np.testing.assert_array_equal(
+        encoded['acceptor'][0],
+        np.array([[1., 0., 0., 0.],
+                  [0., 0., 0., 1.],
+                  [0., 0., 0., 1.]])
+    )
+
+
+def test_SplicingVCFDataloader__encode_batch_seq(vcf_path):
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    encoded = dl._encode_batch_seq({'acceptor': np.array(['ATT'])})
+    np.testing.assert_array_equal(
+        encoded['acceptor'][0],
+        np.array([[1., 0., 0., 0.],
+                  [0., 0., 0., 1.],
+                  [0., 0., 0., 1.]])
+    )
+
+
+def test_SplicingVCFDataloader__read_exons(vcf_path):
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    df_exons = dl._read_exons(gtf_file, overhang=(10, 20)).df
+    row = df_exons[df_exons['exon_id'] == 'ENSE00003559512'].iloc[0]
+    assert row['left_overhang'] == 10
+    assert row['right_overhang'] == 20
+
+
+def test_benchmark_SplicingVCFDataloader(benchmark, vcf_path):
+    benchmark(SplicingVCFDataloader, gtf_file, fasta_file, vcf_path)
+
+
+def test_splicing_vcf_dataloader_prebuild_grch37(vcf_path):
+    dl = SplicingVCFDataloader('grch37', fasta_file, vcf_path)
+
+
+def test_splicing_vcf_dataloader_prebuild_grch38(vcf_path):
+    dl = SplicingVCFDataloader('grch38', fasta_file, vcf_path)
 
 
 def test_splicing_vcf_loads_all(vcf_path):
@@ -23,8 +95,80 @@ def test_splicing_vcf_loads_all(vcf_path):
     assert sum(1 for i in dl) == len(variants) - 1
 
 
+def test_SplicingVCFDataloader__next__(vcf_path):
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
+                               split_seq=False, encode=False)
+    dl._generator = iter([{
+        'left_overhang': 100,
+        'right_overhang': 100,
+        'Chromosome': '17',
+        'Start_exon': 41275934,
+        'End_exon': 41276232,
+        'Strand': '-',
+        'exon_id': 'exon_id',
+        'gene_id': 'gene_id',
+        'gene_name': 'gene_name',
+        'transcript_id': 'transcript_id',
+        'variant': Variant('17', 41276033, 'C', ['G'])
+    }])
+
+    expected_snps_seq = {
+        'seq':
+        'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTT'
+        'TATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAG'
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGG'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+        'alt_seq':
+        'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTT'
+        'TATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAG'
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC'
+    }
+
+    d = next(dl)
+
+    assert d['inputs']['seq'] == expected_snps_seq['seq']
+    assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
+
+    dl._generator = iter([{
+        'left_overhang': 100,
+        'right_overhang': 0,
+        'Chromosome': '17',
+        'Start_exon': 41275934,
+        'End_exon': 41276132,
+        'Strand': '-',
+        'exon_id': 'exon_id',
+        'gene_id': 'gene_id',
+        'gene_name': 'gene_name',
+        'transcript_id': 'transcript_id',
+        'variant': Variant('17', 41276033, 'C', ['G'])
+    }])
+
+    expected_snps_seq = {
+        'seq':
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGG'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+        'alt_seq':
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC'
+    }
+
+    d = next(dl)
+    assert d['inputs']['seq'] == expected_snps_seq['seq']
+    assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
+
+
 def test_splicing_vcf_loads_snps(vcf_path):
-    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
+                               split_seq=False, encode=False)
 
     expected_snps_seq = [
         {
@@ -49,14 +193,15 @@ def test_splicing_vcf_loads_snps(vcf_path):
     for i in range(len(snps)):
         d = next(dl)
         print(d)
-        print(d['metadata']['ExonInterval']['start'])
-        print(d['metadata']['ExonInterval']['end'])
+        print(d['metadata']['exon']['start'])
+        print(d['metadata']['exon']['end'])
         assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
-        assert d['inputs_mut']['seq'] == expected_snps_seq[i]['alt_seq']
+        assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']
 
 
 def test_splicing_vcf_loads_deletions(vcf_path):
-    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
+                               split_seq=False, encode=False)
 
     expected_snps_seq = [
         {
@@ -99,7 +244,7 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
             'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCT'
             'AGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTTCA'
-            'TAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAATTAAG'
+            'TAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAATTA'
         },
         {
             'seq':
@@ -166,16 +311,17 @@ def test_splicing_vcf_loads_deletions(vcf_path):
 
         print('Variant position:', d['metadata']['variant']['POS'])
         print('Interval:',
-              d['metadata']['ExonInterval']['start'],
+              d['metadata']['exon']['start'],
               '-',
-              d['metadata']['ExonInterval']['end'])
+              d['metadata']['exon']['end'])
         print(d)
         assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
-        assert d['inputs_mut']['seq'] == expected_snps_seq[i]['alt_seq']
+        assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']
 
 
 def test_splicing_vcf_loads_insertions(vcf_path):
-    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
+                               split_seq=False, encode=False)
 
     for i in range(len(snps) + len(deletions) - 1):
         d = next(dl)
@@ -195,7 +341,7 @@ def test_splicing_vcf_loads_insertions(vcf_path):
             'TTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
             'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGCATCTGGTA'
             'AGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCA'
-            'AATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC'
+            'AATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGA'
         },
         {
             'seq':
@@ -211,7 +357,7 @@ def test_splicing_vcf_loads_insertions(vcf_path):
             'TTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
             'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTGGTAAGTC'
             'AGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCAAATG'
-            'AACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC'
+            'AACAGAATTGACCTTACATACTAGGGAAGAAAAGACATG'
         },
         {
             'seq':
@@ -221,7 +367,7 @@ def test_splicing_vcf_loads_insertions(vcf_path):
             'AAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTTCA'
             'TAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT',
             'alt_seq':
-            'ACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATAAAT'
+            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATAAAT'
             'TATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTTTCTG'
             'GAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCAAGT'
             'AAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTTCA'
@@ -248,7 +394,7 @@ def test_splicing_vcf_loads_insertions(vcf_path):
             'GTACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGGT'
             'AAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGC'
             'AAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
-            'alt_seq': 'AATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAG'
+            'alt_seq': 'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAG'
             'TTGTCATTTTATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGT'
             'GTTAAAGAGTTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTT'
             'GAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCA'
@@ -258,10 +404,11 @@ def test_splicing_vcf_loads_insertions(vcf_path):
     ]
 
     for i in range(len(insertions)):
+
         d = next(dl)
 
         print(d)
-        print(d['metadata']['ExonInterval']['start'])
-        print(d['metadata']['ExonInterval']['end'])
+        print(d['metadata']['exon']['start'])
+        print(d['metadata']['exon']['end'])
         assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
-        assert d['inputs_mut']['seq'] == expected_snps_seq[i]['alt_seq']
+        assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']

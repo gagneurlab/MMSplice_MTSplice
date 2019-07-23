@@ -19,6 +19,10 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
 
 # python pip updates
 RUN conda install python=3.6
+RUN conda config --add channels bioconda
+RUN conda install cyvcf2 -y
+RUN conda install cython -y
+RUN conda install pybigwig -y
 RUN pip install --upgrade pip
 RUN python -V
 RUN pip -V

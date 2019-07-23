@@ -3,6 +3,7 @@ import pytest
 
 gtf_file = 'tests/data/test.gtf'
 fasta_file = 'tests/data/hg19.nochr.chr17.fa'
+vcf_file = 'tests/data/test.vcf.gz'
 
 snps = [
     "17:41276033:C:['G']"
@@ -36,6 +37,7 @@ variants = [
 outside = [
     "17:41275833:A:['G']"
 ]
+
 
 def parse_vcf_id(vcf_id):
     return vcf_id.replace("'", '').replace('[', '').replace(']', '').split(':')
