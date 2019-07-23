@@ -5,7 +5,7 @@ include LICENSE
 include README.rst
 include mmsplice/models/*.h5
 include mmsplice/models/*.pkl
-include mmsplice/utils/*.py
+include mmsplice/models/*.csv.gz
 
 recursive-exclude tests *
 recursive-exclude * __pycache__
