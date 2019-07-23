@@ -42,8 +42,8 @@ def read_exon_pyranges(gtf_file, overhang=(100, 100), first_last=True):
         starting = df_exons['Start'] == df_genes['Start']
         ending = df_exons['End'] == df_genes['End']
 
-        df_exons.loc[:, 'left_overhang'] = ~starting * 100
-        df_exons.loc[:, 'right_overhang'] = ~ending * 100
+        df_exons.loc[:, 'left_overhang'] = ~starting * overhang[0]
+        df_exons.loc[:, 'right_overhang'] = ~ending * overhang[1]
 
         df_exons.loc[:, 'Start'] -= df_exons['left_overhang']
         df_exons.loc[:, 'End'] += df_exons['right_overhang']
@@ -258,7 +258,7 @@ class SplicingVCFDataloader(SampleIterator):
         self.encode = encode
         self.spliter = seq_spliter or SeqSpliter()
 
-        self.pr_exons = self._read_exons(gtf)
+        self.pr_exons = self._read_exons(gtf, overhang)
         self.vseq_extractor = ExonSeqVcfSeqExtrator(fasta_file)
         self.fasta = self.vseq_extractor.fasta
         self.variants_batchs = read_vcf_pyranges(vcf_file)
@@ -288,13 +288,19 @@ class SplicingVCFDataloader(SampleIterator):
             raise ValueError(
                 'GTF chrom names do not match with vcf chrom names')
 
-    def _read_exons(self, gtf):
+    def _read_exons(self, gtf, overhang=(100, 100)):
         if gtf == 'grch37':
+            if overhang != (100, 100):
+                logger.warning('Overhang argument will be ignored'
+                               ' for prebuild annotation.')
             return pyranges.PyRanges(pd.read_csv(GRCH37))
         elif gtf == 'grch38':
+            if overhang != (100, 100):
+                logger.warning('Overhang argument will be ignored'
+                               ' for prebuild annotation.')
             return pyranges.PyRanges(pd.read_csv(GRCH38))
         else:
-            return read_exon_pyranges(self.gtf_file)
+            return read_exon_pyranges(self.gtf_file, overhang=overhang)
 
     def _generate(self, variant_filter=True):
         for pr_variants in self.variants_batchs:

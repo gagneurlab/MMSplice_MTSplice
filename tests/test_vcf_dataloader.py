@@ -70,6 +70,14 @@ def test_SplicingVCFDataloader__encode_batch_seq(vcf_path):
     )
 
 
+def test_SplicingVCFDataloader__read_exons(vcf_path):
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    df_exons = dl._read_exons(gtf_file, overhang=(10, 20)).df
+    row = df_exons[df_exons['exon_id'] == 'ENSE00003559512'].iloc[0]
+    assert row['left_overhang'] == 10
+    assert row['right_overhang'] == 20
+
+
 def test_benchmark_SplicingVCFDataloader(benchmark, vcf_path):
     benchmark(SplicingVCFDataloader, gtf_file, fasta_file, vcf_path)
 
