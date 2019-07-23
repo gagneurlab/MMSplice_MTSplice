@@ -16,6 +16,12 @@ Paper: Cheng et al. https://doi.org/10.1101/438986
 pip install mmsplice
 ```
 
+## Run MMSplice Online
+
+You can run mmsplice with following google colab notebooks online:
+
+- [run on vcf file](https://colab.research.google.com/drive/1Kw5rHMXaxXXsmE3WecxbXyGQJma80Eq6)
+
 ### Preparation
 ------
 
@@ -24,11 +30,6 @@ Standard human gene annotation file in GTF format can be downloaded from ensembl
 `MMSplice` can work directly with those files, however, some filtering is higly recommended.
 
 - Filter for protein coding genes.
-- Filter out duplicated exons. The same exon can be annotated multiple times if it appears in multiple transcripts. 
-  This will cause duplicated predictions.
-
-We provide a filtered version [here](https://raw.githubusercontent.com/gagneurlab/MMSplice_paper/master/data/shared/Homo_sapiens.GRCh37.75.chr.uniq_exon.gtf.gz). 
-Note this version has chromosome names in the format `chr*`. You may need to remove them to match the chromosome names in your fasta file.
 
 #### 2. Prepare variant (VCF) file
 A correctly formatted VCF file with work with `MMSplice`, however the following steps will make it less prone to false positives:
@@ -42,7 +43,7 @@ A correctly formatted VCF file with work with `MMSplice`, however the following 
   ```bash
   bcftools norm -f reference.fasta -o out.vcf in.vcf
   ```
-  
+
 #### 3. Prepare reference genome (fasta) file
 Human reference fasta file can be downloaded from ensembl/gencode. Make sure the chromosome name matches with GTF annotation file you use.
 
@@ -64,31 +65,22 @@ from mmsplice.utils import max_varEff
 gtf = 'tests/data/test.gtf'
 vcf = 'tests/data/test.vcf.gz'
 fasta = 'tests/data/hg19.nochr.chr17.fa'
-gtfIntervalTree = 'tests/data/test.pkl' # pickle exon interval Tree
+csv = 'pred.csv'
 
 # dataloader to load variants from vcf
-dl = SplicingVCFDataloader(gtf,
-                          fasta,
-                          vcf,
-                          out_file=gtfIntervalTree, # same pikled gtf IntervalTree
-                          split_seq=False)
+dl = SplicingVCFDataloader(gtf, fasta, vcf)
 
 # Specify model
-model = MMSplice(
-    exon_cut_l=0,
-    exon_cut_r=0,
-    acceptor_intron_cut=6,
-    donor_intron_cut=6,
-    acceptor_intron_len=50,
-    acceptor_exon_len=3,
-    donor_exon_len=5,
-    donor_intron_len=13)
+model = MMSplice()
 
- # Do prediction
- predictions = predict_all_table(model, dl, batch_size=1024, split_seq=False, assembly=False)
+# predict and save to csv file
+predict_save(model, dl, csv, pathogenicity=True, splicing_efficiency=True)
 
- # Summerize with maximum effect size
- predictionsMax = max_varEff(predictions)
+# Or predict and return as df
+predictions = predict_all_table(model, dl, pathogenicity=True, splicing_efficiency=True)
+
+# Summerize with maximum effect size
+predictionsMax = max_varEff(predictions)
 ```
 
 ## VEP Plugin
