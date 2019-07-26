@@ -26,7 +26,7 @@ limitations under the License.
 
  mv MMSplice.pm ~/.vep/Plugins
  pip install mmsplice
- ./vep -i variants.vcf --plugin MMSplice,[acceptor_intronM],[acceptorModelFile],[exonModelFile],[donorModelFile],[donor_intronModelFile]
+ ./vep -i variants.vcf --plugin MMSplice,[intronl_len=100],[intronr_len=100],[acceptor_intronM],[acceptorModelFile],[exonModelFile],[donorModelFile],[donor_intronModelFile]
 
 
 =head1 DESCRIPTION
@@ -92,6 +92,8 @@ sub init_params {
     my $self = shift;
     my $params = $self->params;
 
+    $self->{overhang_l} = shift @$params || 100;
+    $self->{overhang_r} = shift @$params || 100;
     $self->{acceptor_intronM} = shift @$params || "";
     $self->{acceptorM} = shift @$params || "";
     $self->{exonM} = shift @$params || "";
