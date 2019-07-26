@@ -3,9 +3,10 @@ import json
 
 import click
 import numpy as np
-
 from keras import backend as K
+
 from .mmsplice import MMSplice
+from .vcf_dataloader import SeqSpliter
 from .utils import predict_deltaLogitPsi, predict_pathogenicity
 
 
@@ -21,6 +22,7 @@ def run():
     K.clear_session()
     psi_model = MMSplice(
         **{k: v for k, v in options.items() if v})
+    psi_model.spliter = SeqSpliter(pattern_warning=False)
 
     # warms up the model
     psi_model.predict("A" * 100, (4, 4))

@@ -28,9 +28,9 @@ def test_vep_plugin():
     indexes = list(set(df_plugin_predictionsMax.index) &
                    set(df_python_predictionsMax.index))
 
-    vep_plugin_dlogitPsi = df_plugin_predictionsMax.loc[indexes,
-                                                        'mmsplice_delta_logit_psi']
-    python_package = df_python_predictionsMax.loc[indexes,
-                                                  'delta_logit_psi']
+    vep_plugin_dlogitPsi = df_plugin_predictionsMax.loc[
+        indexes, 'delta_logit_psi']
+    python_package = df_python_predictionsMax.loc[
+        indexes, 'delta_logit_psi']
 
-    assert pearsonr(vep_plugin_dlogitPsi, python_package)[0] >= 0.99
+    assert pearsonr(vep_plugin_dlogitPsi, python_package)[0] >= 0.95
