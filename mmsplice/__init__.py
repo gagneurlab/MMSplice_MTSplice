@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Top-level package for mmsplice."""
 
 __author__ = """Jun Cheng & M.Hasan Celik"""
