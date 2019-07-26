@@ -19,6 +19,7 @@ variables:
         conda install cython -y
         conda install pybigwig -y
         pip install -e '.'
+        pip install pytest pytest-runner pytest-benchmark
   install_dependencies: &install_dependencies
     run:
       name: Install dependencies not in miniconda3
@@ -32,7 +33,7 @@ variables:
   run_tests: &run_tests
     run:
       name: Run tests
-      command: python setup.py test
+      command: pytest
   install_docker: &install_docker
     run:
       name: Install Docker client
@@ -57,7 +58,7 @@ variables:
     run:
       name: Test vep plugin in docker
       command: |
-        python setup.py test --addopts tests/test_vep_plugin.py
+        pytest -s tests/test_vep_plugin.py
 
 
 jobs:
@@ -82,6 +83,7 @@ jobs:
     - *install_docker
     - *update_conda
     - *install_dependencies
+    - *install_mmsplice
     - *build_docker
     - *run_vep
     - *test_docker
