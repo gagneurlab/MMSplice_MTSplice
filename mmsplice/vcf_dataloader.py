@@ -163,7 +163,7 @@ class SeqSpliter:
     def __init__(self, exon_cut_l=0, exon_cut_r=0,
                  acceptor_intron_cut=6, donor_intron_cut=6,
                  acceptor_intron_len=50, acceptor_exon_len=3,
-                 donor_exon_len=5, donor_intron_len=13):
+                 donor_exon_len=5, donor_intron_len=13, pattern_warning=True):
         self.exon_cut_l = exon_cut_l
         self.exon_cut_r = exon_cut_r
         self.acceptor_intron_cut = acceptor_intron_cut
@@ -172,6 +172,7 @@ class SeqSpliter:
         self.acceptor_exon_len = acceptor_exon_len
         self.donor_exon_len = donor_exon_len
         self.donor_intron_len = donor_intron_len
+        self.pattern_warning = pattern_warning
 
     def split(self, x, overhang, exon_row='', pattern_warning=True):
         """
@@ -181,6 +182,8 @@ class SeqSpliter:
           seq: seqeunce to split.
           overhang: (acceptor, donor) overhang.
         """
+        pattern_warning = self.pattern_warning and pattern_warning
+
         intronl_len, intronr_len = overhang
         # need to pad N if left seq not enough long
         lackl = self.acceptor_intron_len - intronl_len

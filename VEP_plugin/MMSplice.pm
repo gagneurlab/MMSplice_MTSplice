@@ -20,7 +20,7 @@ limitations under the License.
 
 =head1 NAME
 
- MMSplice.0.2.6
+ MMSplice.1.0.1
 
 =head1 SYNOPSIS
 
