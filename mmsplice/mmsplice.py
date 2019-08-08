@@ -10,7 +10,7 @@ from concise.preprocessing import encodeDNA
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency
 from mmsplice.vcf_dataloader import SeqSpliter
-
+from mmsplice.layers import GlobalAveragePooling1D_Mask0
 
 ACCEPTOR_INTRON = resource_filename('mmsplice', 'models/Intron3.h5')
 DONOR = resource_filename('mmsplice', 'models/Donor.h5')
@@ -54,7 +54,10 @@ class MMSplice(object):
         K.clear_session()
         self.acceptor_intronM = load_model(acceptor_intronM)
         self.acceptorM = load_model(acceptorM)
-        self.exonM = load_model(exonM)
+        self.exonM = load_model(exonM,
+                                custom_objects={"GlobalAveragePooling1D_Mask0":
+                                                GlobalAveragePooling1D_Mask0},
+                                compile=False)
         self.donorM = load_model(donorM)
         self.donor_intronM = load_model(donor_intronM)
 
