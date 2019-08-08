@@ -3,7 +3,7 @@ from kipoiseq.extractors import MultiSampleVCF
 from mmsplice.utils import Variant
 from mmsplice.vcf_dataloader import SplicingVCFDataloader, \
     read_exon_pyranges, batch_iter_vcf, variants_to_pyranges, \
-    read_vcf_pyranges
+    read_vcf_pyranges, SeqSpliter
 
 from conftest import gtf_file, fasta_file, snps, deletions, \
     insertions, variants, vcf_file
@@ -95,9 +95,38 @@ def test_splicing_vcf_loads_all(vcf_path):
     assert sum(1 for i in dl) == len(variants) - 1
 
 
+def test_SepSpliter_split_tissue_seq():
+    spliter = SeqSpliter(tissue_acceptor_intron=9, tissue_acceptor_exon=3,
+                         tissue_donor_intron=9, tissue_donor_exon=3)
+    overhang = (9, 9)
+    seq = 'ATCATCATC' + 'GGGAAA' + 'CGTGCTCGT'
+    d = spliter.split_tissue_seq(seq, overhang)
+    assert d['acceptor'] == 'ATCATCATC' + 'GGG'
+    assert d['donor'] == 'AAA' + 'CGTGCTCGT'
+
+    overhang = (7, 7)
+    seq = 'CATCATC' + 'GGGAAA' + 'CGTGCTC'
+    d = spliter.split_tissue_seq(seq, overhang)
+    assert d['acceptor'] == 'NNCATCATC' + 'GGG'
+    assert d['donor'] == 'AAA' + 'CGTGCTCNN'
+
+    overhang = (11, 11)
+    seq = 'ggATCATCATC' + 'GGGAAA' + 'CGTGCTCGTtt'
+    d = spliter.split_tissue_seq(seq, overhang)
+    assert d['acceptor'] == 'ATCATCATC' + 'GGG'
+    assert d['donor'] == 'AAA' + 'CGTGCTCGT'
+
+    overhang = (0, 0)
+    seq = '' + 'GGGAAA' + ''
+    d = spliter.split_tissue_seq(seq, overhang)
+    assert d['acceptor'] == 'NNNNNNNNN' + 'GGG'
+    assert d['donor'] == 'AAA' + 'NNNNNNNNN'
+
+
 def test_SplicingVCFDataloader__next__(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
-                               split_seq=False, encode=False)
+                               split_seq=False, encode=False,
+                               tissue_specific=True)
     dl._generator = iter([{
         'left_overhang': 100,
         'right_overhang': 100,
@@ -126,13 +155,28 @@ def test_SplicingVCFDataloader__next__(vcf_path):
         'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
         'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC'
         'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
-        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+        'tissue_seq': 'AGGCTACCACCACCTACCCGGTCAGTCACTCCTCTG'
+        'TAGCTTTCTCTTTCTTGGAGAAAGGAAAAGACCCAAGGGGTTGGCAGCAA'
+        'TATGTGAAAAAATTCAGAATTTATGTTGTCTAATTACAAAAAGCAACTTC'
+        'TAGAATCTTTAAAAATAAAGGACGTTGTCATTAGTTCTTTGGTTTGTATT'
+        'ATTCTAAAACCTTCCAAATCTTAAATTTACTTTATTTTAAAATGATAAAA'
+        'TGAAGTTGTCATTTTATAAACCTTTTAAAAAGATATATATATATGTTTTT'
+        'CTAATGTGTTAAAGTTCATTGGAACAGAAAGAAATGGATTTATCTGCTCT'
+        'TCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATCTTAG'
+        'AGTGTCCCATCTGCTAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCT'
+        'ATGATTATCTCCTATGCAAATGAACAGAATTGACCTTACATACTAGGGAA'
+        'GAAAAGACATGTCTAGTAAGATTAGGCTATTGTAATTGCTGATTTTCTTA'
+        'ACTGAAGAACTTTAAAAATATAGAAAATGATTCCTTGTTCTCCATCCACT'
+        'CTGCCTCTCCCACTCCTCTCCTTTTCAACACAAATCCTGTGGTCCGGGAA'
+        'AGACAGGGACTCTGTCTTGATTGGTTCTGCACTGGGGCAGGAATCTAGTT'
+        'TAGATTAACTGGC'
     }
 
     d = next(dl)
-
     assert d['inputs']['seq'] == expected_snps_seq['seq']
     assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
+    assert d['inputs']['tissue_seq'] == expected_snps_seq['tissue_seq']
 
     dl._generator = iter([{
         'left_overhang': 100,
@@ -158,12 +202,138 @@ def test_SplicingVCFDataloader__next__(vcf_path):
         'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
         'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC'
         'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
-        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+        'tissue_seq':
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTCT'
+        'AGTAAGATTAGGCTATTGTAATTGCTGATTTTCTTAACTGAAGAACTTTA'
+        'AAAATATAGAAAATGATTCCTTGTTCTCCATCCACTCTGCCTCTCCCACT'
+        'CCTCTCCTTTTCAACACAAATCCTGTGGTCCGGGAAAGACAGGGACTCTG'
+        'TCTTGATTGGTTCTGCACTGGGGCAGGAATCTAGTTTAGATTAACTGGC'
     }
 
     d = next(dl)
     assert d['inputs']['seq'] == expected_snps_seq['seq']
     assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
+    assert d['inputs']['tissue_seq'] == expected_snps_seq['tissue_seq']
+
+
+def test_SplicingVCFDataloader__next__split(vcf_path):
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
+                               split_seq=True, encode=False,
+                               tissue_specific=True)
+    dl._generator = iter([{
+        'left_overhang': 100,
+        'right_overhang': 100,
+        'Chromosome': '17',
+        'Start_exon': 41275934,
+        'End_exon': 41276232,
+        'Strand': '-',
+        'exon_id': 'exon_id',
+        'gene_id': 'gene_id',
+        'gene_name': 'gene_name',
+        'transcript_id': 'transcript_id',
+        'variant': Variant('17', 41276033, 'C', ['G'])
+    }])
+
+    expected_snps_seq = {
+        'seq':
+        'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTT'
+        'TATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAG'
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGG'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+        'alt_seq':
+        'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTT'
+        'TATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAG'
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+        'tissue_seq': {
+            'acceptor': 'AGGCTACCACCACCTACCCGGTCAGTCACTCCTC'
+            'TGTAGCTTTCTCTTTCTTGGAGAAAGGAAAAGACCCAAGGGGTTGG'
+            'CAGCAATATGTGAAAAAATTCAGAATTTATGTTGTCTAATTACAAA'
+            'AAGCAACTTCTAGAATCTTTAAAAATAAAGGACGTTGTCATTAGTT'
+            'CTTTGGTTTGTATTATTCTAAAACCTTCCAAATCTTAAATTTACTT'
+            'TATTTTAAAATGATAAAATGAAGTTGTCATTTTATAAACCTTTTAA'
+            'AAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCATTGGAA'
+            'CAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
+            'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC',
+            'donor': 'GTTCATTGGAACAGAAAGAAATGGATTTATCTGCTCT'
+            'TCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATC'
+            'TTAGAGTGTCCCATCTGCTAAGTCAGCACAAGAGTGTATTAATTTG'
+            'GGATTCCTATGATTATCTCCTATGCAAATGAACAGAATTGACCTTA'
+            'CATACTAGGGAAGAAAAGACATGTCTAGTAAGATTAGGCTATTGTA'
+            'ATTGCTGATTTTCTTAACTGAAGAACTTTAAAAATATAGAAAATGA'
+            'TTCCTTGTTCTCCATCCACTCTGCCTCTCCCACTCCTCTCCTTTTC'
+            'AACACAAATCCTGTGGTCCGGGAAAGACAGGGACTCTGTCTTGATT'
+            'GGTTCTGCACTGGGGCAGGAATCTAGTTTAGATTAACTGGC'
+        }
+    }
+
+    d = next(dl)
+    # TO TEST:
+    # assert d['inputs']['seq'] == expected_snps_seq['seq']
+    # assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
+    assert d['inputs']['tissue_seq'] == expected_snps_seq['tissue_seq']
+
+    dl._generator = iter([{
+        'left_overhang': 100,
+        'right_overhang': 0,
+        'Chromosome': '17',
+        'Start_exon': 41275934,
+        'End_exon': 41276132,
+        'Strand': '-',
+        'exon_id': 'exon_id',
+        'gene_id': 'gene_id',
+        'gene_name': 'gene_name',
+        'transcript_id': 'transcript_id',
+        'variant': Variant('17', 41276033, 'C', ['G'])
+    }])
+
+    expected_snps_seq = {
+        'seq':
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGG'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+        'alt_seq':
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+        'tissue_seq': {
+            'acceptor': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN'
+            'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN'
+            'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN'
+            'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN'
+            'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN'
+            'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN'
+            'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNTTCATTGGAA'
+            'CAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
+            'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC',
+            'donor': 'NTTCATTGGAACAGAAAGAAATGGATTTATCTGCTCT'
+            'TCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATC'
+            'TTAGAGTGTCCCATCTGCTAAGTCAGCACAAGAGTGTATTAATTTG'
+            'GGATTCCTATGATTATCTCCTATGCAAATGAACAGAATTGACCTTA'
+            'CATACTAGGGAAGAAAAGACATGTCTAGTAAGATTAGGCTATTGTA'
+            'ATTGCTGATTTTCTTAACTGAAGAACTTTAAAAATATAGAAAATGA'
+            'TTCCTTGTTCTCCATCCACTCTGCCTCTCCCACTCCTCTCCTTTTC'
+            'AACACAAATCCTGTGGTCCGGGAAAGACAGGGACTCTGTCTTGATT'
+            'GGTTCTGCACTGGGGCAGGAATCTAGTTTAGATTAACTGGC'
+        }
+    }
+
+    d = next(dl)
+    # assert d['inputs']['seq'] == expected_snps_seq['seq']
+    # assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
+    assert d['inputs']['tissue_seq'] == expected_snps_seq['tissue_seq']
+    assert len(d['inputs']['tissue_seq']['acceptor']) == 400
+    assert len(d['inputs']['tissue_seq']['donor']) == 400
 
 
 def test_splicing_vcf_loads_snps(vcf_path):

@@ -1,6 +1,7 @@
 from collections import namedtuple
 import pandas as pd
 import numpy as np
+from pybedtools import Interval
 import pyranges
 from kipoiseq.extractors import MultiSampleVCF
 from sklearn.externals import joblib
@@ -12,6 +13,19 @@ LOGISTIC_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/Pathogenicity.pkl'))
 EFFICIENCY_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/splicing_efficiency.pkl'))
+
+
+def overhang_interval(interval, overhang):
+    """
+    Retuns overhanged interval with changed start and end locations.
+
+    Args:
+      interval: pybedtools.Interval
+      overhang: (int, int) tuple of left and right overhang
+    """
+    return Interval(
+        interval.chrom, interval.start - overhang[0],
+        interval.end + overhang[1], strand=interval.strand)
 
 
 class Variant(namedtuple('Variant', ['CHROM', 'POS', 'REF', 'ALT'])):

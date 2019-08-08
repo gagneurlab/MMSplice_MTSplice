@@ -1,7 +1,15 @@
 import pyranges
 from pybedtools import Interval
 from mmsplice.utils import pyrange_remove_chr_from_chrom_annotation, Variant, \
-    left_normalized, get_var_side
+    left_normalized, get_var_side, overhang_interval
+
+
+def test_overhang_interval():
+    interval = Interval('chr1', 110, 200)
+    o_interval = overhang_interval(interval, (100, 50))
+    assert o_interval.chrom == 'chr1'
+    assert o_interval.start == 10
+    assert o_interval.end == 250
 
 
 def test_pyrange_remove_chr_to_chrom_annotation():

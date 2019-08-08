@@ -6,6 +6,7 @@ from concise.preprocessing import encodeDNA
 from mmsplice import MMSplice
 from mmsplice.vcf_dataloader import SplicingVCFDataloader
 from mmsplice import predict_all_table
+from mmsplice.mtsplice import MTSplice
 
 from conftest import gtf_file, fasta_file, variants
 
@@ -29,6 +30,14 @@ def test_predict_all_table(vcf_path):
     df = predict_all_table(model, dl, pathogenicity=True,
                            splicing_efficiency=True)
 
+    assert len(df['delta_logit_psi']) == len(variants) - 1
+
+
+def test_predict_all_table_tissue_spefic(vcf_path):
+    model = MMSplice()
+    dl = SplicingVCFDataloader(
+        gtf_file, fasta_file, vcf_path, tissue_specific=True)
+    df = predict_all_table(model, dl)
     assert len(df['delta_logit_psi']) == len(variants) - 1
 
 

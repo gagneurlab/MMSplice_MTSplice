@@ -2,7 +2,6 @@ from pkg_resources import resource_filename
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
-from keras import backend as K
 from keras.models import load_model
 from sklearn.externals import joblib
 from concise.preprocessing import encodeDNA
@@ -10,6 +9,7 @@ from concise.preprocessing import encodeDNA
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency
 from mmsplice.vcf_dataloader import SeqSpliter
+from mmsplice.mtsplice import MTSplice, tissue_names
 
 
 ACCEPTOR_INTRON = resource_filename('mmsplice', 'models/Intron3.h5')
@@ -50,8 +50,6 @@ class MMSplice(object):
                  seq_spliter=None):
 
         self.spliter = seq_spliter or SeqSpliter()
-
-        K.clear_session()
         self.acceptor_intronM = load_model(acceptor_intronM)
         self.acceptorM = load_model(acceptorM)
         self.exonM = load_model(exonM)
@@ -113,6 +111,9 @@ def predict_batch(model, dataloader, batch_size=512, progress=True,
         splicing_efficiency, pathogenicity.
     """
 
+    if dataloader.tissue_specific:
+        mtsplice = MTSplice()
+
     dt_iter = dataloader.batch_iter(batch_size=batch_size)
     if progress:
         dt_iter = tqdm(dt_iter)
@@ -139,6 +140,11 @@ def predict_batch(model, dataloader, batch_size=512, progress=True,
         df['delta_logit_psi'] = predict_deltaLogitPsi(X_ref, X_alt)
         df = pd.concat([df, ref_pred, alt_pred], axis=1)
 
+        if dataloader.tissue_specific:
+            X_tissue = mtsplice.predict_on_batch(batch['inputs']['tissue_seq'])
+            X_tissue += np.expand_dims(df['delta_logit_psi'].values, axis=1)
+            tissue_pred = pd.DataFrame(X_tissue, columns=tissue_names)
+            df = pd.concat([df, tissue_pred], axis=1)
         if pathogenicity:
             df['pathogenicity'] = predict_pathogenicity(X_ref, X_alt)
         if splicing_efficiency:

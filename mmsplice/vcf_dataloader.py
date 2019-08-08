@@ -163,7 +163,10 @@ class SeqSpliter:
     def __init__(self, exon_cut_l=0, exon_cut_r=0,
                  acceptor_intron_cut=6, donor_intron_cut=6,
                  acceptor_intron_len=50, acceptor_exon_len=3,
-                 donor_exon_len=5, donor_intron_len=13, pattern_warning=True):
+                 donor_exon_len=5, donor_intron_len=13,
+                 tissue_acceptor_intron=300, tissue_acceptor_exon=100,
+                 tissue_donor_intron=300, tissue_donor_exon=100,
+                 pattern_warning=True):
         self.exon_cut_l = exon_cut_l
         self.exon_cut_r = exon_cut_r
         self.acceptor_intron_cut = acceptor_intron_cut
@@ -172,6 +175,10 @@ class SeqSpliter:
         self.acceptor_exon_len = acceptor_exon_len
         self.donor_exon_len = donor_exon_len
         self.donor_intron_len = donor_intron_len
+        self.tissue_acceptor_intron = tissue_acceptor_intron
+        self.tissue_acceptor_exon = tissue_acceptor_exon
+        self.tissue_donor_intron = tissue_donor_intron
+        self.tissue_donor_exon = tissue_donor_exon
         self.pattern_warning = pattern_warning
 
     def split(self, x, overhang, exon_row='', pattern_warning=True):
@@ -233,6 +240,36 @@ class SeqSpliter:
 
         return splits
 
+    def split_tissue_seq(self, seq, overhang):
+        """
+        Split seq for tissue specific predictions
+
+        Args:
+          seq: seqeunce to split
+          overhang: ((acceptor_left,acceptor_right),(donor_left,donor_right))
+        """
+        (acceptor_intron, donor_intron) = overhang
+
+        # need to pad N if seq not enough long
+        diff_acceptor = acceptor_intron - self.tissue_acceptor_intron
+        if diff_acceptor < 0:
+            seq = "N" * abs(diff_acceptor) + seq
+        elif diff_acceptor > 0:
+            seq = seq[diff_acceptor:]
+
+        diff_donor = donor_intron - self.tissue_donor_intron
+        if diff_donor < 0:
+            seq = seq + "N" * abs(diff_donor)
+        elif diff_donor > 0:
+            seq = seq[:-diff_donor]
+
+        return {
+            'acceptor': seq[:self.tissue_acceptor_intron
+                            + self.tissue_acceptor_exon],
+            'donor': seq[-self.tissue_donor_exon
+                         - self.tissue_donor_intron:]
+        }
+
 
 class SplicingVCFDataloader(SampleIterator):
     """
@@ -251,12 +288,15 @@ class SplicingVCFDataloader(SampleIterator):
     """
 
     def __init__(self, gtf, fasta_file, vcf_file,
-                 variant_filter=True, split_seq=True, encode=True,
-                 overhang=(100, 100), seq_spliter=None):
+                 tissue_specific=False, split_seq=True, encode=True,
+                 overhang=(100, 100), seq_spliter=None,
+                 tissue_overhang=(300, 300)):
 
         self.gtf_file = gtf
         self.fasta_file = fasta_file
         self.vcf_file = vcf_file
+        self.tissue_specific = tissue_specific
+        self.tissue_overhang = tissue_overhang
         self.split_seq = split_seq
         self.encode = encode
         self.spliter = seq_spliter or SeqSpliter()
@@ -269,7 +309,7 @@ class SplicingVCFDataloader(SampleIterator):
 
         self._check_chrom_annotation()
 
-        self._generator = self._generate(variant_filter=variant_filter)
+        self._generator = self._generate()
 
     def _check_chrom_annotation(self):
         fasta_chroms = set(self.fasta.fasta.keys())
@@ -305,7 +345,7 @@ class SplicingVCFDataloader(SampleIterator):
         else:
             return read_exon_pyranges(self.gtf_file, overhang=overhang)
 
-    def _generate(self, variant_filter=True):
+    def _generate(self):
         for pr_variants in self.variants_batchs:
 
             exon_variant_pairs = pr_variants.join(
@@ -326,28 +366,39 @@ class SplicingVCFDataloader(SampleIterator):
                         strand=row['Strand'])
         variant = row['variant']
 
-        seq = self.fasta.extract(Interval(
-            exon.chrom, exon.start - overhang[0],
-            exon.end + overhang[1], strand=exon.strand)).upper()
-        mut_seq = self.vseq_extractor.extract(
-            exon, [variant], overhang=overhang).upper()
+        inputs = {
+            'seq': self.fasta.extract(Interval(
+                exon.chrom, exon.start - overhang[0],
+                exon.end + overhang[1], strand=exon.strand)).upper(),
+            'mut_seq': self.vseq_extractor.extract(
+                exon, [variant], overhang=overhang).upper()
+        }
+
+        if self.tissue_specific:
+            tissue_overhang = (
+                0 if overhang[0] == 0 else self.tissue_overhang[0],
+                0 if overhang[1] == 0 else self.tissue_overhang[1]
+            )
+            inputs['tissue_seq'] = self.vseq_extractor.extract(
+                exon, [variant], overhang=tissue_overhang).upper()
 
         if exon.strand == '-':
             overhang = (overhang[1], overhang[0])
+            if self.tissue_specific:
+                tissue_overhang = (tissue_overhang[1], tissue_overhang[0])
 
         if self.split_seq:
-            seq = self.spliter.split(seq, overhang, exon)
-            mut_seq = self.spliter.split(mut_seq, overhang, exon,
-                                         pattern_warning=False)
+            inputs['seq'] = self.spliter.split(inputs['seq'], overhang, exon)
+            inputs['mut_seq'] = self.spliter.split(inputs['mut_seq'], overhang,
+                                                   exon, pattern_warning=False)
+            if self.tissue_specific:
+                inputs['tissue_seq'] = self.spliter.split_tissue_seq(
+                    inputs['tissue_seq'], tissue_overhang)
             if self.encode:
-                seq = self._encode_seq(seq)
-                mut_seq = self._encode_seq(mut_seq)
+                inputs = {k: self._encode_seq(v) for k, v in inputs.items()}
 
         return {
-            'inputs': {
-                'seq': seq,
-                'mut_seq': mut_seq
-            },
+            'inputs': inputs,
             'metadata': {
                 'variant': self._variant_to_dict(variant),
                 'exon': self._exon_to_dict(row, exon, overhang)
@@ -364,6 +415,9 @@ class SplicingVCFDataloader(SampleIterator):
                     batch['inputs']['seq'])
                 batch['inputs']['mut_seq'] = self._encode_batch_seq(
                     batch['inputs']['mut_seq'])
+            if self.tissue_specific:
+                batch['inputs']['tissue_seq'] = self._encode_batch_seq(
+                    batch['inputs']['tissue_seq'])
 
             yield batch
 
