@@ -52,14 +52,14 @@ class MMSplice(object):
         self.spliter = seq_spliter or SeqSpliter()
 
         K.clear_session()
-        self.acceptor_intronM = load_model(acceptor_intronM)
-        self.acceptorM = load_model(acceptorM)
+        self.acceptor_intronM = load_model(acceptor_intronM, compile=False)
+        self.acceptorM = load_model(acceptorM, compile=False)
         self.exonM = load_model(exonM,
                                 custom_objects={"GlobalAveragePooling1D_Mask0":
                                                 GlobalAveragePooling1D_Mask0},
                                 compile=False)
-        self.donorM = load_model(donorM)
-        self.donor_intronM = load_model(donor_intronM)
+        self.donorM = load_model(donorM, compile=False)
+        self.donor_intronM = load_model(donor_intronM, compile=False)
 
     def predict_on_batch(self, batch):
         '''
