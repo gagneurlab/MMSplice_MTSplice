@@ -163,7 +163,7 @@ class SeqSpliter:
     def __init__(self, exon_cut_l=0, exon_cut_r=0,
                  acceptor_intron_cut=6, donor_intron_cut=6,
                  acceptor_intron_len=50, acceptor_exon_len=3,
-                 donor_exon_len=5, donor_intron_len=13, pattern_warning=True):
+                 donor_exon_len=5, donor_intron_len=13, pattern_warning=False):
         self.exon_cut_l = exon_cut_l
         self.exon_cut_r = exon_cut_r
         self.acceptor_intron_cut = acceptor_intron_cut
@@ -248,18 +248,19 @@ class SplicingVCFDataloader(SampleIterator):
         spit_seq: whether or not already split the sequence
           when loading the data. Otherwise it can be done in the model class.
         endcode: if split sequence, should it be one-hot-encoded
+        **kwargs: arguments for SeqSpliter class, to change the pattern of split sequence for modules
     """
 
     def __init__(self, gtf, fasta_file, vcf_file,
                  variant_filter=True, split_seq=True, encode=True,
-                 overhang=(100, 100), seq_spliter=None):
+                 overhang=(100, 100), **kwargs):
 
         self.gtf_file = gtf
         self.fasta_file = fasta_file
         self.vcf_file = vcf_file
         self.split_seq = split_seq
         self.encode = encode
-        self.spliter = seq_spliter or SeqSpliter()
+        self.spliter = SeqSpliter(**kwargs)
 
         self.pr_exons = self._read_exons(gtf, overhang)
         self.vseq_extractor = ExonSeqVcfSeqExtrator(fasta_file)
