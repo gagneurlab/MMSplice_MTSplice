@@ -39,7 +39,6 @@ class MMSplice(object):
       donorM: donor splice site model, score donor sequence
         with 13bp in the intron, 5bp in the exon.
       donor_intronM: donor intron model, score donor intron sequence.
-      **kwargs: arguments for SeqSpliter class, to change the pattern of split sequence for modules
     """
 
     def __init__(self,
@@ -48,9 +47,9 @@ class MMSplice(object):
                  exonM=EXON,
                  donorM=DONOR,
                  donor_intronM=DONOR_INTRON,
-                 **kwargs):
+                 seq_spliter=None):
 
-        self.spliter = SeqSpliter(**kwargs)
+        self.spliter = seq_spliter or SeqSpliter()
 
         K.clear_session()
         self.acceptor_intronM = load_model(acceptor_intronM, compile=False)

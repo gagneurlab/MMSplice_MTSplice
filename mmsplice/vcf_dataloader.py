@@ -248,19 +248,18 @@ class SplicingVCFDataloader(SampleIterator):
         spit_seq: whether or not already split the sequence
           when loading the data. Otherwise it can be done in the model class.
         endcode: if split sequence, should it be one-hot-encoded
-        **kwargs: arguments for SeqSpliter class, to change the pattern of split sequence for modules
     """
 
     def __init__(self, gtf, fasta_file, vcf_file,
                  variant_filter=True, split_seq=True, encode=True,
-                 overhang=(100, 100), **kwargs):
+                 overhang=(100, 100), seq_spliter=None):
 
         self.gtf_file = gtf
         self.fasta_file = fasta_file
         self.vcf_file = vcf_file
         self.split_seq = split_seq
         self.encode = encode
-        self.spliter = SeqSpliter(**kwargs)
+        self.spliter = seq_spliter or SeqSpliter()
 
         self.pr_exons = self._read_exons(gtf, overhang)
         self.vseq_extractor = ExonSeqVcfSeqExtrator(fasta_file)
