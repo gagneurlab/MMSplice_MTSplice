@@ -1,9 +1,7 @@
 from pkg_resources import resource_filename
-
-from keras import backend as K
 from keras.models import load_model
 from concise.preprocessing import encodeDNA
-from mmsplice.vcf_dataloader import SeqSpliter
+from mmsplice.exon_dataloader import SeqSpliter
 
 
 MTSPLICE = resource_filename('mmsplice', 'models/mtsplice.h5')

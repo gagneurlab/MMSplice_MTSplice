@@ -216,3 +216,13 @@ def get_var_side(variant, exon):
             return "left"
         else:
             return "exon"
+
+bases = ['A', 'C', 'G', 'T']
+def onehot(seq):
+    X = np.zeros((len(seq), len(bases)))
+    for i, char in enumerate(seq):
+        if char == "N":
+            pass
+        else:
+            X[i, bases.index(char.upper())] = 1
+    return X

@@ -5,9 +5,9 @@ import click
 import numpy as np
 from keras import backend as K
 
-from .mmsplice import MMSplice
-from .vcf_dataloader import SeqSpliter
-from .utils import predict_deltaLogitPsi, predict_pathogenicity
+from mmsplice import MMSplice
+from mmsplice.exon_dataloader import SeqSpliter
+from mmsplice.utils import predict_deltaLogitPsi, predict_pathogenicity
 
 
 @click.group()

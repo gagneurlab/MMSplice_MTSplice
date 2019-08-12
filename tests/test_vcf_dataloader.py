@@ -3,7 +3,8 @@ from kipoiseq.extractors import MultiSampleVCF
 from mmsplice.utils import Variant
 from mmsplice.vcf_dataloader import SplicingVCFDataloader, \
     read_exon_pyranges, batch_iter_vcf, variants_to_pyranges, \
-    read_vcf_pyranges, SeqSpliter
+    read_vcf_pyranges
+from mmsplice.exon_dataloader import SeqSpliter
 
 from conftest import gtf_file, fasta_file, snps, deletions, \
     insertions, variants, vcf_file
