@@ -71,7 +71,7 @@ class SeqSpliter:
     def __init__(self, exon_cut_l=0, exon_cut_r=0,
                  acceptor_intron_cut=6, donor_intron_cut=6,
                  acceptor_intron_len=50, acceptor_exon_len=3,
-                 donor_exon_len=5, donor_intron_len=13, pattern_warning=True):
+                 donor_exon_len=5, donor_intron_len=13, pattern_warning=False):
         self.exon_cut_l = exon_cut_l
         self.exon_cut_r = exon_cut_r
         self.acceptor_intron_cut = acceptor_intron_cut
