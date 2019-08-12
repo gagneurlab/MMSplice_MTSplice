@@ -6,10 +6,9 @@ import pandas as pd
 import pyranges
 from pybedtools import Interval
 from kipoi.data import SampleIterator
-from concise.preprocessing import encodeDNA
 from kipoiseq.extractors import MultiSampleVCF
 from mmsplice.utils import pyrange_remove_chr_from_chrom_annotation
-
+from mmsplice.exon_dataloader import ExonSplicingMixin
 
 logger = logging.getLogger('mmsplice')
 logger.addHandler(logging.NullHandler())
@@ -102,41 +101,35 @@ def read_vcf_pyranges(vcf_file, batch_size=10000):
         yield variants_to_pyranges(batch)
 
 
-class SplicingVCFDataloader(SampleIterator):
+class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
     """
     Load genome annotation (gtf) file along with a vcf file,
       return wt sequence and mut sequence.
 
     Args:
-        gtf: gtf file. Can be dowloaded from ensembl/gencode.
-          Filter for protein coding genes.
-        fasta_file: file path; Genome sequence
-        vcf_file: vcf file, each line should contain one
-          and only one variant, left-normalized
-        spit_seq: whether or not already split the sequence
-          when loading the data. Otherwise it can be done in the model class.
-        endcode: if split sequence, should it be one-hot-encoded
+      gtf: gtf file. Can be dowloaded from ensembl/gencode.
+        Filter for protein coding genes.
+      fasta_file: file path; Genome sequence
+      vcf_file: vcf file, each line should contain one
+        and only one variant, left-normalized
+      split_seq: whether or not already split the sequence
+        when loading the data. Otherwise it can be done in the model class.
+      endcode: if split sequence, should it be one-hot-encoded.
+      overhang: overhang of exon to fetch flanking sequence of exon.
+      seq_spliter: SeqSpliter class instance specific how to split seqs.
     """
 
     def __init__(self, gtf, fasta_file, vcf_file,
                  variant_filter=True, split_seq=True, encode=True,
                  overhang=(100, 100), seq_spliter=None):
-
+        super().__init__(fasta_file, split_seq, encode, overhang, seq_spliter)
         self.gtf_file = gtf
-        self.fasta_file = fasta_file
-        self.vcf_file = vcf_file
-        self.split_seq = split_seq
-        self.encode = encode
-        self.spliter = seq_spliter or SeqSpliter()
-
         self.pr_exons = self._read_exons(gtf, overhang)
-        self.vseq_extractor = ExonSeqVcfSeqExtrator(fasta_file)
-        self.fasta = self.vseq_extractor.fasta
-        self.variants_batchs = read_vcf_pyranges(vcf_file)
+        self.vcf_file = vcf_file
         self.vcf = MultiSampleVCF(vcf_file)
+        self.variants_batchs = read_vcf_pyranges(vcf_file)
 
         self._check_chrom_annotation()
-
         self._generator = self._generate(variant_filter=variant_filter)
 
     def _check_chrom_annotation(self):
@@ -182,9 +175,6 @@ class SplicingVCFDataloader(SampleIterator):
             for i, row in exon_variant_pairs.df.iterrows():
                 yield row
 
-    def __iter__(self):
-        return self
-
     def __next__(self):
         row = next(self._generator)
         overhang = (row['left_overhang'], row['right_overhang'])
@@ -193,49 +183,7 @@ class SplicingVCFDataloader(SampleIterator):
                         row['End_exon'] - overhang[1],
                         strand=row['Strand'])
         variant = row['variant']
+        return self._next(row, exon, variant, overhang)
 
-        seq = self.fasta.extract(Interval(
-            exon.chrom, exon.start - overhang[0],
-            exon.end + overhang[1], strand=exon.strand)).upper()
-        mut_seq = self.vseq_extractor.extract(
-            exon, [variant], overhang=overhang).upper()
-
-        if exon.strand == '-':
-            overhang = (overhang[1], overhang[0])
-
-        if self.split_seq:
-            seq = self.spliter.split(seq, overhang, exon)
-            mut_seq = self.spliter.split(mut_seq, overhang, exon,
-                                         pattern_warning=False)
-            if self.encode:
-                seq = self._encode_seq(seq)
-                mut_seq = self._encode_seq(mut_seq)
-
-        return {
-            'inputs': {
-                'seq': seq,
-                'mut_seq': mut_seq
-            },
-            'metadata': {
-                'variant': self._variant_to_dict(variant),
-                'exon': self._exon_to_dict(row, exon, overhang)
-            }
-        }
-
-    def batch_iter(self, batch_size=32):
-        encode = self.encode
-        self.encode = False
-
-        for batch in super().batch_iter(batch_size):
-            if encode:
-                batch['inputs']['seq'] = self._encode_batch_seq(
-                    batch['inputs']['seq'])
-                batch['inputs']['mut_seq'] = self._encode_batch_seq(
-                    batch['inputs']['mut_seq'])
-
-            yield batch
-
-        self.encode = encode
-
-    def _encode_batch_seq(self, batch):
-        return {k: encodeDNA(v.tolist()) for k, v in batch.items()}
+    def __iter__(self):
+        return self
