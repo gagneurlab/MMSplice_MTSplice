@@ -139,18 +139,18 @@ def read_vep(vep_result_path,
         max_per_var: return maximum absolute effect size per variant.
     '''
     keys = [
-        'mmsplice_alt_acceptor',
-        'mmsplice_alt_acceptorIntron',
-        'mmsplice_alt_donor',
-        'mmsplice_alt_donorIntron',
-        'mmsplice_alt_exon',
-        'mmsplice_delta_logit_psi',
-        'mmsplice_pathogenicity',
-        'mmsplice_ref_acceptor',
-        'mmsplice_ref_acceptorIntron',
-        'mmsplice_ref_donor',
-        'mmsplice_ref_donorIntron',
-        'mmsplice_ref_exon'
+        'alt_acceptor',
+        'alt_acceptorIntron',
+        'alt_donor',
+        'alt_donorIntron',
+        'alt_exon',
+        'delta_logit_psi',
+        'pathogenicity',
+        'ref_acceptor',
+        'ref_acceptorIntron',
+        'ref_donor',
+        'ref_donorIntron',
+        'ref_exon'
     ]
 
     score_pred = []
@@ -202,3 +202,13 @@ def get_var_side(variant, exon):
             return "left"
         else:
             return "exon"
+
+bases = ['A', 'C', 'G', 'T']
+def onehot(seq):
+    X = np.zeros((len(seq), len(bases)))
+    for i, char in enumerate(seq):
+        if char == "N":
+            pass
+        else:
+            X[i, bases.index(char.upper())] = 1
+    return X

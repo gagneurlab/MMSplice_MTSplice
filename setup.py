@@ -16,7 +16,6 @@ requirements = [
     'scikit-learn==0.19.2',
     'tensorflow<=1.13.1',
     'keras',
-    'kipoi>=0.4.1',
     'pandas',
     'concise',
     'pybedtools',
