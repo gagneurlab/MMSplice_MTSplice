@@ -294,7 +294,7 @@ class ExonDataset(ExonSplicingMixin, Dataset):
         super().__init__(fasta_file, split_seq, encode, overhang, seq_spliter)
         self.exon_file = exon_file
         self.exons = self.read_exon_file(exon_file, **kwargs)
-        self._check_CHROM_annotation()
+        self._check_chrom_annotation()
 
     @staticmethod
     def read_exon_file(exon_file, **kwargs):
