@@ -10,7 +10,7 @@ logger = logging.getLogger('mmsplice')
 logger.addHandler(logging.NullHandler())
 
 
-class ExonSeqVcfSeqExtrator:
+class ExonVariantSeqExtrator:
     """
     Extracts sequence with the variant integrated. The lengths overhang 
     are fixed irrelevant to variants, even if the variants are indels and 
@@ -146,8 +146,10 @@ class SeqSpliter:
 
 class ExonSplicingMixin:
     """
-    Dataloader to run mmsplice on specific set of variant-exon pairs
-    provided in csv files.
+    Dataloader to run mmsplice on specific set of variant-exon pairs. 
+    This class will be inherited both by ExonDataset, which is the dataloader
+    for variants provided in a csv file with match exons provided, and by 
+    SplicingVCFDataloader, which takes variants in vcf format.
 
     Args:
       fasta_file: fasta file to fetch exon sequences.
@@ -165,7 +167,7 @@ class ExonSplicingMixin:
         self.encode = encode
         self.overhang = overhang
         self.spliter = seq_spliter or SeqSpliter()
-        self.vseq_extractor = ExonSeqVcfSeqExtrator(fasta_file)
+        self.vseq_extractor = ExonVariantSeqExtrator(fasta_file)
         self.fasta = self.vseq_extractor.fasta
 
     def _next(self, row, exon, variant, overhang=None):
@@ -199,11 +201,11 @@ class ExonSplicingMixin:
             }
         }
 
-    def batch_iter(self, batch_size=32):
+    def batch_iter(self, batch_size=32, **kwargs):
         encode = self.encode
         self.encode = False
 
-        for batch in super().batch_iter(batch_size):
+        for batch in super().batch_iter(batch_size, **kwargs):
             if encode:
                 batch['inputs']['seq'] = self._encode_batch_seq(
                     batch['inputs']['seq'])
@@ -248,7 +250,23 @@ class ExonSplicingMixin:
 
 
 class ExonDataset(ExonSplicingMixin, Dataset):
-
+    """
+    Dataloader to run mmsplice on specific set of variant-exon pairs
+    provided by csv file.
+    
+    Args:
+        exon_file: csv file specify exon-variant pairs with required
+        columns of ('chrom', 'start', 'end', 'strand', 'pos', 'ref', 'alt')
+        and optional columns of
+        ('exon_id', 'gene_id', 'gene_name', 'transcript_id').
+        fasta_file: fasta file to fetch exon sequences.
+        split_seq: whether or not already split the sequence
+        when loading the data. Otherwise it can be done in the model class.
+        endcode: if split sequence, should it be one-hot-encoded.
+        overhang: overhang of exon to fetch flanking sequence of exon.
+        seq_spliter: SeqSpliter class instance specific how to split seqs.
+    """
+    
     exon_cols_mapping = {
         "hg19_variant_position": "pos",
         "variant_position": "pos",
@@ -256,30 +274,25 @@ class ExonDataset(ExonSplicingMixin, Dataset):
         "variant": "alt",
         "exon_start": "start",
         "exon_end": "end",
+        "Exon_Start": "start",
+        "Exon_End": "end",        
         "chr": "chrom",
         "seqnames": "chrom",
-        "chromosome": "chrom"
+        "chromosome": "chrom",
+        "POS": "pos",
+        "CHR": "chrom",
+        "CHROM": "chrom",
+        "REF": "ref",
+        "ALT": "alt",
+        "Start": "start",
+        "End": "end",
+        "Stop": "end"
     }
     required_cols = ('chrom', 'start', 'end', 'strand', 'pos', 'ref', 'alt')
 
     def __init__(self, exon_file, fasta_file, split_seq=True, encode=True,
                  overhang=(100, 100), seq_spliter=None, **kwargs):
-        """
-        Dataloader to run mmsplice on specific set of variant-exon pairs
-        provided by csv file.
 
-        Args:
-          exon_file: csv file specify exon-variant pairs with required
-            columns of ('chrom', 'start', 'end', 'strand', 'pos', 'ref', 'alt')
-            and optional columns of
-            ('exon_id', 'gene_id', 'gene_name', 'transcript_id').
-          fasta_file: fasta file to fetch exon sequences.
-          split_seq: whether or not already split the sequence
-            when loading the data. Otherwise it can be done in the model class.
-          endcode: if split sequence, should it be one-hot-encoded.
-          overhang: overhang of exon to fetch flanking sequence of exon.
-          seq_spliter: SeqSpliter class instance specific how to split seqs.
-        """
         super().__init__(fasta_file, split_seq, encode, overhang, seq_spliter)
         self.exon_file = exon_file
         self.exons = self.read_exon_file(exon_file, **kwargs)
