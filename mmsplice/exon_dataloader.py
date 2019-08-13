@@ -268,27 +268,25 @@ class ExonDataset(ExonSplicingMixin, Dataset):
     """
     
     exon_cols_mapping = {
-        "hg19_variant_position": "pos",
-        "variant_position": "pos",
-        "reference": "ref",
-        "variant": "alt",
-        "exon_start": "start",
-        "exon_end": "end",
-        "Exon_Start": "start",
-        "Exon_End": "end",        
-        "chr": "chrom",
-        "seqnames": "chrom",
-        "chromosome": "chrom",
-        "POS": "pos",
-        "CHR": "chrom",
-        "CHROM": "chrom",
-        "REF": "ref",
-        "ALT": "alt",
-        "Start": "start",
-        "End": "end",
-        "Stop": "end"
+        "hg19_variant_position": "POS",
+        "variant_position": "POS",
+        "pos": "POS",
+        "reference": "REF",
+        "variant": "ALT",
+        "ref": "REF",
+        "alt": "ALT",
+        "exon_start": "Exon_Start",
+        "exon_end": "Exon_End",
+        "start": "Exon_Start",
+        "end": "Exon_End",
+        "Stop": "Exon_End",
+        "chr": "CHROM",
+        "chrom": "CHROM",
+        "seqnames": "CHROM",
+        "chromosome": "CHROM",
+        "CHR": "CHROM"
     }
-    required_cols = ('chrom', 'start', 'end', 'strand', 'pos', 'ref', 'alt')
+    required_cols = ('CHROM', 'Exon_Start', 'Exon_End', 'strand', 'POS', 'REF', 'ALT')
 
     def __init__(self, exon_file, fasta_file, split_seq=True, encode=True,
                  overhang=(100, 100), seq_spliter=None, **kwargs):
@@ -296,13 +294,13 @@ class ExonDataset(ExonSplicingMixin, Dataset):
         super().__init__(fasta_file, split_seq, encode, overhang, seq_spliter)
         self.exon_file = exon_file
         self.exons = self.read_exon_file(exon_file, **kwargs)
-        self._check_chrom_annotation()
+        self._check_CHROM_annotation()
 
     @staticmethod
     def read_exon_file(exon_file, **kwargs):
         df = pd.read_csv(exon_file, **kwargs) \
                .rename(columns=ExonDataset.exon_cols_mapping)
-        df['chrom'] = df['chrom'].astype('str')
+        df['CHROM'] = df['CHROM'].astype('str')
         missing_cols = [c for c in ExonDataset.required_cols
                         if c not in df.columns]
         assert len(missing_cols) == 0, \
@@ -311,7 +309,7 @@ class ExonDataset(ExonSplicingMixin, Dataset):
 
     def _check_chrom_annotation(self):
         fasta_chroms = set(self.fasta.fasta.keys())
-        exon_chroms = set(self.exons['chrom'])
+        exon_chroms = set(self.exons['CHROM'])
 
         if not fasta_chroms.intersection(exon_chroms):
             raise ValueError(
@@ -319,9 +317,9 @@ class ExonDataset(ExonSplicingMixin, Dataset):
 
     def __getitem__(self, idx):
         row = self.exons.iloc[idx]
-        exon = Interval(row['chrom'], row['start'] - 1,
-                        row['end'], strand=row['strand'])
-        variant = Variant(row['chrom'], row['pos'], row['ref'], [row['alt']])
+        exon = Interval(row['CHROM'], row['Exon_Start'] - 1,
+                        row['Exon_End'], strand=row['strand'])
+        variant = Variant(row['CHROM'], row['POS'], row['REF'], [row['ALT']])
         return self._next(row, exon, variant)
 
     def __len__(self):
