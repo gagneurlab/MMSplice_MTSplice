@@ -12,9 +12,11 @@ logger.addHandler(logging.NullHandler())
 
 class ExonSeqVcfSeqExtrator:
     """
-    Extracts variant applied sequence of exon with give overhang. If variant
-    is in exon extractor extends exon but if variant is in intron it keeps
-    intron (overhang) length fixed.
+    Extracts sequence with the variant integrated. The lengths overhang 
+    are fixed irrelevant to variants, even if the variants are indels and 
+    is in introns, lengths overhang will adapt. If the variant is in the 
+    exon, the length of the alternative exon (with variant) might change 
+    for indels.    
     """
 
     def __init__(self, fasta_file):
@@ -150,7 +152,7 @@ class ExonSplicingMixin:
     Args:
       fasta_file: fasta file to fetch exon sequences.
       split_seq: whether or not already split the sequence
-        when loading the data. Otherwise it can be done in the model class.
+        when loading the data. 
       endcode: if split sequence, should it be one-hot-encoded.
       overhang: overhang of exon to fetch flanking sequence of exon.
       seq_spliter: SeqSpliter class instance specific how to split seqs.
