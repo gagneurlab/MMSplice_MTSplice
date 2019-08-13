@@ -1,13 +1,12 @@
-
-# -*- coding: utf-8 -*-
-
 """Tests for `mmsplice` package."""
+import pandas as pd
 from concise.preprocessing import encodeDNA
 from mmsplice import MMSplice
 from mmsplice.vcf_dataloader import SplicingVCFDataloader
+from mmsplice.exon_dataloader import ExonDataset
 from mmsplice import predict_all_table
 
-from conftest import gtf_file, fasta_file, variants
+from conftest import gtf_file, fasta_file, variants, exon_file
 
 
 def test_mmsplice():
@@ -30,6 +29,16 @@ def test_predict_all_table(vcf_path):
                            splicing_efficiency=True)
 
     assert len(df['delta_logit_psi']) == len(variants) - 1
+
+
+def test_predict_all_table_exon_dataloader(vcf_path):
+    model = MMSplice()
+    df_exons = pd.read_csv(exon_file)
+    dl = ExonDataset(exon_file, fasta_file)
+    df = predict_all_table(model, dl, pathogenicity=True,
+                           splicing_efficiency=True)
+
+    assert len(df['delta_logit_psi']) == df_exons.shape[0]
 
 
 def test_exon_model_masking():

@@ -9,8 +9,9 @@ from concise.preprocessing import encodeDNA
 
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency
-from mmsplice.vcf_dataloader import SeqSpliter
+from mmsplice.exon_dataloader import SeqSpliter
 from mmsplice.layers import GlobalAveragePooling1D_Mask0
+
 
 ACCEPTOR_INTRON = resource_filename('mmsplice', 'models/Intron3.h5')
 DONOR = resource_filename('mmsplice', 'models/Donor.h5')
@@ -115,7 +116,6 @@ def predict_batch(model, dataloader, batch_size=512, progress=True,
       iterator of pd.DataFrame of modular prediction, delta_logit_psi,
         splicing_efficiency, pathogenicity.
     """
-
     dt_iter = dataloader.batch_iter(batch_size=batch_size)
     if progress:
         dt_iter = tqdm(dt_iter)
@@ -134,11 +134,11 @@ def predict_batch(model, dataloader, batch_size=512, progress=True,
         df = pd.DataFrame({
             'ID': batch['metadata']['variant']['STR'],
             'exons': batch['metadata']['exon']['annotation'],
-            'exon_id': batch['metadata']['exon']['exon_id'],
-            'transcript_id': batch['metadata']['exon']['transcript_id'],
-            'gene_id': batch['metadata']['exon']['gene_id'],
-            'gene_name': batch['metadata']['exon']['gene_name']
         })
+        for k in ['exon_id', 'gene_id', 'gene_name', 'transcript_id']:
+            if k in batch['metadata']['exon']:
+                df[k] = batch['metadata']['exon'][k]
+
         df['delta_logit_psi'] = predict_deltaLogitPsi(X_ref, X_alt)
         df = pd.concat([df, ref_pred, alt_pred], axis=1)
 
