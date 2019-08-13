@@ -104,7 +104,7 @@ def read_vcf_pyranges(vcf_file, batch_size=10000):
 class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
     """
     Load genome annotation (gtf) file along with a vcf file,
-      return wt sequence and mut sequence.
+      return reference sequence and alternative sequence.
 
     Args:
       gtf: gtf file. Can be dowloaded from ensembl/gencode.
@@ -117,6 +117,7 @@ class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
       endcode: if split sequence, should it be one-hot-encoded.
       overhang: overhang of exon to fetch flanking sequence of exon.
       seq_spliter: SeqSpliter class instance specific how to split seqs.
+         if None, use the default arguments of SeqSpliter
       tissue_specific: tissue specific predicts
       tissue_overhang: overhang of exon to fetch flanking sequence of
         tissue specific model.

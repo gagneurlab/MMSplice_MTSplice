@@ -5,7 +5,8 @@ from mmsplice.exon_dataloader import ExonDataset
 
 def test_ExonDataset():
     dl = ExonDataset(exon_file, fasta_file)
-    required_cols = ('chrom', 'start', 'end', 'strand', 'pos', 'ref', 'alt')
+    required_cols = ('CHROM', 'Exon_Start', 'Exon_End',
+                     'strand', 'POS', 'REF', 'ALT')
     assert all(c in dl.exons.columns for c in required_cols)
 
 

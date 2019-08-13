@@ -49,7 +49,7 @@ def test_predict_all_table_exon_dataloader(vcf_path):
     assert len(df['delta_logit_psi']) == df_exons.shape[0]
 
 
-def test_predict_all_table_tissue_specific_exon_dataloader(vcf_path):
+def test_predict_all_table_tissue_specific_exon_dataloader():
     model = MMSplice()
     df_exons = pd.read_csv(exon_file)
     dl = ExonDataset(exon_file, fasta_file, tissue_specific=True)
