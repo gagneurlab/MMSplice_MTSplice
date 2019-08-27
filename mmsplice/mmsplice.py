@@ -158,6 +158,7 @@ def predict_batch(model, dataloader, batch_size=512, progress=True,
 def predict_save(model, dataloader, output_csv, batch_size=512, progress=True,
                  pathogenicity=False, splicing_efficiency=False):
     df_iter = predict_batch(model, dataloader, progress=progress,
+                            batch_size=batch_size,
                             pathogenicity=pathogenicity,
                             splicing_efficiency=splicing_efficiency)
 
@@ -191,6 +192,7 @@ def predict_all_table(model,
         pathogenicity.
     """
     return pd.concat(predict_batch(model, dataloader, progress=progress,
+                                   batch_size=batch_size,
                                    pathogenicity=pathogenicity,
                                    splicing_efficiency=splicing_efficiency))
 

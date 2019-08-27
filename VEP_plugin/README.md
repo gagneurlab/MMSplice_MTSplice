@@ -117,3 +117,7 @@ The plugin don't filters any variant. Some of the variants may not have predicti
 ### Gziped Vcf
 
 VEP don't support gzip files. So if you get `gzip: stdout: Broken pipe` this error, or tring to run gziped vcf file, please unzip your file first. Then, use unzipped vcf version.
+
+### Forking and Thread-safety
+
+MMSplice VEP plugin is not thread-safe so avoid running with `fork` parameter to prevent unintended behaviors.

@@ -44,13 +44,13 @@ class MTSplice:
       donor_intronM: donor intron model, score donor intron sequence.
     """
 
-    def __init__(self, mtspliceM=MTSPLICE, seq_spliter=None):
-        self.mtspliceM = load_model(MTSPLICE)
+    def __init__(self, seq_spliter=None):
+        self.mtsplice_model = load_model(MTSPLICE)
         self.spliter = seq_spliter or SeqSpliter()
 
     def predict_on_batch(self, batch):
         '''
-        Performe prediction on batch of dataloader.
+        Perform prediction on batch of dataloader.
 
         Args:
           batch: batch of dataloader.
@@ -58,7 +58,7 @@ class MTSplice:
         Returns:
           np.matrix of tissue predictions as [[tissues]]
         '''
-        return self.mtspliceM.predict([batch['acceptor'], batch['donor']])
+        return self.mtsplice_model.predict([batch['acceptor'], batch['donor']])
 
     def predict(self, seq, overhang=(300, 300)):
         """
