@@ -124,7 +124,7 @@ class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
     """
 
     def __init__(self, gtf, fasta_file, vcf_file,
-                 variant_filter=True, split_seq=True, encode=True,
+                 split_seq=True, encode=True,
                  overhang=(100, 100), seq_spliter=None,
                  tissue_specific=False, tissue_overhang=(300, 300)):
         super().__init__(fasta_file, split_seq, encode, overhang, seq_spliter,
