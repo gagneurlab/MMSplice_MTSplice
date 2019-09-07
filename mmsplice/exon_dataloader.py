@@ -55,7 +55,10 @@ class ExonVariantSeqExtrator:
 class SeqSpliter:
     """
     Splits given seq for each modules.
-
+    
+    length arguments of the __init__ function refer to the prefered sequence 
+    length of the models
+    
     Args:
       exon_cut_l: number of bp to cut out at the begining of an exon
       exon_cut_r: number of bp to cut out at the end of an exon
@@ -208,9 +211,9 @@ class ExonSplicingMixin:
       encode: if split sequence, should it be one-hot-encoded.
       overhang: overhang of exon to fetch flanking sequence of exon.
       seq_spliter: SeqSpliter class instance specific how to split seqs.
-      tissue_specific: tissue specific predicts
+      tissue_specific: provide sequences for tissue specific prediction
       tissue_overhang: overhang of exon to fetch flanking sequence of
-        tissue specific model.
+        tissue specific model. The current model only accepts 300.
     """
 
     def __init__(self, fasta_file, split_seq=True, encode=True,
