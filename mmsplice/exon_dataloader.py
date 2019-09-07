@@ -93,42 +93,48 @@ class SeqSpliter:
         self.tissue_donor_exon = tissue_donor_exon
         self.pattern_warning = pattern_warning
 
-    def split(self, x, overhang, exon_row='', pattern_warning=True):
+    def split(self, seq, overhang, exon_row='', pattern_warning=True):
         """
         Split seqeunce for each module.
 
         Args:
           seq: seqeunce to split.
-          overhang: (acceptor, donor) overhang.
+          overhang: (intron_length acceptor side, intron_length donor side) of 
+                    the input sequence
         """
         pattern_warning = self.pattern_warning and pattern_warning
 
         intronl_len, intronr_len = overhang
+        assert intronl_len < len(seq), "Input sequence acceptor intron length \
+        cann't be longer than the input sequence"
+        assert intronr_len < len(seq), "Input sequence donor intron length \
+        cann't be longer than the input sequence"
+        
         # need to pad N if left seq not enough long
         lackl = self.acceptor_intron_len - intronl_len
         if lackl >= 0:
-            x = "N" * (lackl + 1) + x
+            seq = "N" * (lackl + 1) + seq
             intronl_len += lackl + 1
         lackr = self.donor_intron_len - intronr_len
         if lackr >= 0:
-            x = x + "N" * (lackr + 1)
+            seq = seq + "N" * (lackr + 1)
             intronr_len += lackr + 1
 
-        acceptor_intron = x[:intronl_len - self.acceptor_intron_cut]
+        acceptor_intron = seq[:intronl_len - self.acceptor_intron_cut]
 
         acceptor_start = intronl_len - self.acceptor_intron_len
         acceptor_end = intronl_len + self.acceptor_exon_len
-        acceptor = x[acceptor_start: acceptor_end]
+        acceptor = seq[acceptor_start: acceptor_end]
 
         exon_start = intronl_len + self.exon_cut_l
         exon_end = -intronr_len - self.exon_cut_r
-        exon = x[exon_start: exon_end]
+        exon = seq[exon_start: exon_end]
 
         donor_start = -intronr_len - self.donor_exon_len
         donor_end = -intronr_len + self.donor_intron_len
-        donor = x[donor_start: donor_end]
+        donor = seq[donor_start: donor_end]
 
-        donor_intron = x[-intronr_len + self.donor_intron_cut:]
+        donor_intron = seq[-intronr_len + self.donor_intron_cut:]
 
         if not exon:
             exon = 'N'
@@ -157,9 +163,15 @@ class SeqSpliter:
         Split seq for tissue specific predictions
         Args:
           seq: seqeunce to split
-          overhang: ((acceptor_left,acceptor_right),(donor_left,donor_right))
+          overhang: (intron_length acceptor side, intron_length donor side) of 
+                    the input sequence
         """
         (acceptor_intron, donor_intron) = overhang
+
+        assert acceptor_intron < len(seq), "Input sequence acceptor intron length \
+        cann't be longer than the input sequence"
+        assert donor_intron < len(seq), "Input sequence donor intron length \
+        cann't be longer than the input sequence"
 
         # need to pad N if seq not enough long
         diff_acceptor = acceptor_intron - self.tissue_acceptor_intron

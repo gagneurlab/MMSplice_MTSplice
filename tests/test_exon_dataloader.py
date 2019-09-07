@@ -48,6 +48,17 @@ def test_ExonDataset__getitem__():
     assert dl[10]['metadata']['exon']['annotation'] == '17:18159839-18159911:-'
 
 
+def test_ExonDataset_tissue():
+    dl = ExonDataset(exon_file, fasta_file,
+                     overhang=(300, 300),
+                     encode=False,
+                     split_seq=False,
+                     tissue_specific=True)
+    for x in dl:
+        assert x['inputs']['mut_seq'] == x['inputs']['tissue_seq']
+    
+
+
 def test_ExonDataset__len__():
     dl = ExonDataset(exon_file, fasta_file)
     df = pd.read_csv(exon_file)

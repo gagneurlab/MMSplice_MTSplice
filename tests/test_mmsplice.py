@@ -12,7 +12,7 @@ def test_mmsplice():
     seq = 'ATGCGACGTACCCAGTAAAT'
     overhang = (4, 4)
     model = MMSplice()
-    pred = model.predict(seq, overhang)
+    pred = model.predict_on_seq(seq, overhang)
     assert len(pred) == 5
 
 
