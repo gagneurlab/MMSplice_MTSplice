@@ -1,10 +1,9 @@
 import logging
 import pandas as pd
 from pybedtools import Interval
-from concise.preprocessing import encodeDNA
 from kipoi.data import Dataset
 from kipoiseq.extractors import VariantSeqExtractor
-from mmsplice.utils import Variant
+from mmsplice.utils import Variant, encodeDNA
 
 logger = logging.getLogger('mmsplice')
 logger.addHandler(logging.NullHandler())
@@ -55,10 +54,10 @@ class ExonVariantSeqExtrator:
 class SeqSpliter:
     """
     Splits given seq for each modules.
-    
-    length arguments of the __init__ function refer to the prefered sequence 
-    length of the models
-    
+
+    length arguments of the __init__ function refer to the prefered
+    sequence  length of the models
+
     Args:
       exon_cut_l: number of bp to cut out at the begining of an exon
       exon_cut_r: number of bp to cut out at the end of an exon
@@ -102,17 +101,17 @@ class SeqSpliter:
 
         Args:
           seq: seqeunce to split.
-          overhang: (intron_length acceptor side, intron_length donor side) of 
+          overhang: (intron_length acceptor side, intron_length donor side) of
                     the input sequence
         """
         pattern_warning = self.pattern_warning and pattern_warning
 
         intronl_len, intronr_len = overhang
-        assert intronl_len < len(seq), "Input sequence acceptor intron length \
-        cann't be longer than the input sequence"
-        assert intronr_len < len(seq), "Input sequence donor intron length \
-        cann't be longer than the input sequence"
-        
+        assert intronl_len <= len(seq), "Input sequence acceptor intron" \
+            " length cannot be longer than the input sequence"
+        assert intronr_len <= len(seq), "Input sequence donor intron length" \
+            " cannot be longer than the input sequence"
+
         # need to pad N if left seq not enough long
         lackl = self.acceptor_intron_len - intronl_len
         if lackl >= 0:
@@ -166,15 +165,15 @@ class SeqSpliter:
         Split seq for tissue specific predictions
         Args:
           seq: seqeunce to split
-          overhang: (intron_length acceptor side, intron_length donor side) of 
+          overhang: (intron_length acceptor side, intron_length donor side) of
                     the input sequence
         """
         (acceptor_intron, donor_intron) = overhang
 
-        assert acceptor_intron < len(seq), "Input sequence acceptor intron length \
-        cann't be longer than the input sequence"
-        assert donor_intron < len(seq), "Input sequence donor intron length \
-        cann't be longer than the input sequence"
+        assert acceptor_intron <= len(seq), "Input sequence acceptor intron" \
+            " length cannot be longer than the input sequence"
+        assert donor_intron <= len(seq), "Input sequence donor intron length" \
+            " cannot be longer than the input sequence"
 
         # need to pad N if seq not enough long
         diff_acceptor = acceptor_intron - self.tissue_acceptor_intron

@@ -1,8 +1,9 @@
 from collections import namedtuple
 import pandas as pd
 import numpy as np
-from pybedtools import Interval
 import pyranges
+from pybedtools import Interval
+import kipoiseq.transforms.functional as F
 from kipoiseq.extractors import MultiSampleVCF
 from sklearn.externals import joblib
 from pkg_resources import resource_filename
@@ -217,7 +218,10 @@ def get_var_side(variant, exon):
         else:
             return "exon"
 
+
 bases = ['A', 'C', 'G', 'T']
+
+
 def onehot(seq):
     X = np.zeros((len(seq), len(bases)))
     for i, char in enumerate(seq):
@@ -226,3 +230,11 @@ def onehot(seq):
         else:
             X[i, bases.index(char.upper())] = 1
     return X
+
+
+def encodeDNA(seq_vec):
+    max_len = max(map(len, seq_vec))
+    return np.array([
+        F.one_hot(F.pad(seq, max_len, anchor="start"), neutral_value=0)
+        for seq in seq_vec
+    ])

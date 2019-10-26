@@ -42,11 +42,11 @@ def test_read_vcf_pyranges(vcf_path):
     assert sum(i.df.shape[0] for i in batchs) == len(variants)
 
 
-def test_SplicingVCFDataloader__chech_chrom_annotation():
+def test_SplicingVCFDataloader__check_chrom_annotation():
     dl = SplicingVCFDataloader('grch37', fasta_file, vcf_file)
     chroms = {str(i) for i in range(1, 22)}.union(['X', 'Y', 'M'])
     assert len(chroms.difference(set(dl.pr_exons.Chromosome))) == 0
-    assert sum(1 for i in dl) > 0
+    # assert sum(1 for i in dl) > 0
 
 
 def test_SplicingVCFDataloader__encode_seq(vcf_path):
@@ -94,6 +94,9 @@ def test_splicing_vcf_dataloader_prebuild_grch38(vcf_path):
 def test_splicing_vcf_loads_all(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
     assert sum(1 for i in dl) == len(variants) - 1
+
+    dl = SplicingVCFDataloader('grch37', fasta_file, vcf_file)
+    assert sum(1 for i in dl) > 0
 
 
 def test_SepSpliter_split_tissue_seq():

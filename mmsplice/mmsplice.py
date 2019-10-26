@@ -1,11 +1,11 @@
+import warnings
 from pkg_resources import resource_filename
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from keras.models import load_model
 from sklearn.externals import joblib
-from concise.preprocessing import encodeDNA
-import warnings
+from mmsplice.utils import encodeDNA
 
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency
@@ -113,7 +113,9 @@ class MMSplice(object):
 
     def _predict_on_dataloader(self, dataloader, batch_size=512, progress=True,
                                pathogenicity=False, splicing_efficiency=False):
-        """Make prediction from a dataloader, return results as a table
+        """
+        Make prediction from a dataloader, return results as a table
+
         Args:
            model: mmsplice model object.
            dataloader: dataloader object.
@@ -122,13 +124,13 @@ class MMSplice(object):
            splicing_efficiency: adds splicing_efficiency prediction as column
 
         Returns:
-           iterator of pd.DataFrame includes modular prediction, delta_logit_psi,
-           splicing_efficiency, pathogenicity.
-
+           iterator of pd.DataFrame includes modular prediction,
+             delta_logit_psi, splicing_efficiency, pathogenicity.
         """
         from mmsplice.exon_dataloader import ExonSplicingMixin
-        assert isinstance(dataloader, ExonSplicingMixin), "Unknown dataloader type"
-        
+        assert isinstance(dataloader, ExonSplicingMixin), \
+            "Unknown dataloader type"
+
         if dataloader.tissue_specific:
             mtsplice = MTSplice()
 
@@ -142,8 +144,10 @@ class MMSplice(object):
                     'alt_exon', 'alt_donor', 'alt_donorIntron']
 
         for batch in dt_iter:
-            X_ref = self.predict_modular_scores_on_batch(batch['inputs']['seq'])
-            X_alt = self.predict_modular_scores_on_batch(batch['inputs']['mut_seq'])
+            X_ref = self.predict_modular_scores_on_batch(
+                batch['inputs']['seq'])
+            X_alt = self.predict_modular_scores_on_batch(
+                batch['inputs']['mut_seq'])
             ref_pred = pd.DataFrame(X_ref, columns=ref_cols)
             alt_pred = pd.DataFrame(X_alt, columns=alt_cols)
 
@@ -159,8 +163,10 @@ class MMSplice(object):
             df = pd.concat([df, ref_pred, alt_pred], axis=1)
 
             if dataloader.tissue_specific:
-                X_tissue = mtsplice.predict_on_batch(batch['inputs']['tissue_seq'])
-                X_tissue += np.expand_dims(df['delta_logit_psi'].values, axis=1)
+                X_tissue = mtsplice.predict_on_batch(
+                    batch['inputs']['tissue_seq'])
+                X_tissue += np.expand_dims(
+                    df['delta_logit_psi'].values, axis=1)
                 tissue_pred = pd.DataFrame(X_tissue, columns=tissue_names)
                 df = pd.concat([df, tissue_pred], axis=1)
             if pathogenicity:
@@ -171,8 +177,7 @@ class MMSplice(object):
             yield df
 
     def predict_on_dataloader(self, dataloader, batch_size=512, progress=True,
-                               pathogenicity=False, splicing_efficiency=False):
-        
+                              pathogenicity=False, splicing_efficiency=False):
         """Make prediction from a dataloader, return results as a table
         Args:
            model: mmsplice model object.
@@ -187,29 +192,37 @@ class MMSplice(object):
 
         """
         return pd.concat(
-            self._predict_on_dataloader(dataloader,
-                                        batch_size=batch_size,
-                                        progress=progress,
-                                        pathogenicity=pathogenicity,
-                                        splicing_efficiency=splicing_efficiency)
+            self._predict_on_dataloader(
+                dataloader,
+                batch_size=batch_size,
+                progress=progress,
+                pathogenicity=pathogenicity,
+                splicing_efficiency=splicing_efficiency)
         )
-        
 
-##TODO: implement prediction methods within MMSplice class, should be more error prone
+
+# TODO: implement prediction methods within MMSplice class,
+#   should be more error prone
 
 
 def predict_save(model, dataloader, output_csv, batch_size=512, progress=True,
                  pathogenicity=False, splicing_efficiency=False):
     from mmsplice import MMSplice
-    assert isinstance(model, MMSplice), "model should be a mmsplice.MMSplice class instance"
-    
-    df = model.predict_on_dataloader(dataloader, progress=progress,
-                                     batch_size=batch_size,
-                                     pathogenicity=pathogenicity,
-                                     splicing_efficiency=splicing_efficiency)
-    df.to_csv(output_csv, index=False)
-    
-    return True
+    assert isinstance(model, MMSplice), \
+        "model should be a mmsplice.MMSplice class instance"
+
+    df_iter = model._predict_on_dataloader(
+        dataloader, progress=progress,
+        pathogenicity=pathogenicity,
+        splicing_efficiency=splicing_efficiency)
+
+    df = next(df_iter)
+    with open(output_csv, 'w') as f:
+        df.to_csv(f, index=False)
+
+    for df in df_iter:
+        with open(output_csv, 'a') as f:
+            df.to_csv(f, index=False, header=False)
 
 
 def predict_all_table(model,
@@ -233,8 +246,9 @@ def predict_all_table(model,
         pathogenicity.
     """
     from mmsplice import MMSplice
-    assert isinstance(model, MMSplice), "model should be a mmsplice.MMSplice class instance"
-        
+    assert isinstance(model, MMSplice), \
+        "model should be a mmsplice.MMSplice class instance"
+
     return model.predict_on_dataloader(dataloader, progress=progress,
                                        batch_size=batch_size,
                                        pathogenicity=pathogenicity,

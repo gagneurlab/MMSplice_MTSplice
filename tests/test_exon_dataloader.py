@@ -56,7 +56,6 @@ def test_ExonDataset_tissue():
                      tissue_specific=True)
     for x in dl:
         assert x['inputs']['mut_seq'] == x['inputs']['tissue_seq']
-    
 
 
 def test_ExonDataset__len__():

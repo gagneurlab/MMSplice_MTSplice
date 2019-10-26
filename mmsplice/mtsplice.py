@@ -1,6 +1,6 @@
 from pkg_resources import resource_filename
 from keras.models import load_model
-from concise.preprocessing import encodeDNA
+from mmsplice.utils import encodeDNA
 from mmsplice.exon_dataloader import SeqSpliter
 
 

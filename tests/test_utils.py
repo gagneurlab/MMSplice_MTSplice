@@ -1,7 +1,8 @@
+import numpy as np
 import pyranges
 from pybedtools import Interval
 from mmsplice.utils import pyrange_remove_chr_from_chrom_annotation, Variant, \
-    left_normalized, get_var_side, overhang_interval
+    left_normalized, get_var_side, overhang_interval, encodeDNA
 
 
 def test_overhang_interval():
@@ -59,3 +60,40 @@ def test_get_var_side():
 
     variant = Variant('chr1', 20, 'A', 'AGG')
     assert get_var_side(variant, exon) == 'left'
+
+
+def test_encodeDNA():
+    seq_vec = ['ACGTN']
+    np.testing.assert_array_equal(
+        encodeDNA(seq_vec),
+        np.array([[[1., 0., 0., 0.],
+                   [0., 1., 0., 0.],
+                   [0., 0., 1., 0.],
+                   [0., 0., 0., 1.],
+                   [0., 0., 0., 0.]]])
+    )
+
+    seq_vec = ['AA', 'ATT', 'ATTCGG']
+    np.testing.assert_array_equal(
+        encodeDNA(seq_vec),
+        np.array([[[1., 0., 0., 0.],
+                   [1., 0., 0., 0.],
+                   [0., 0., 0., 0.],
+                   [0., 0., 0., 0.],
+                   [0., 0., 0., 0.],
+                   [0., 0., 0., 0.]],
+
+                  [[1., 0., 0., 0.],
+                   [0., 0., 0., 1.],
+                   [0., 0., 0., 1.],
+                   [0., 0., 0., 0.],
+                   [0., 0., 0., 0.],
+                   [0., 0., 0., 0.]],
+
+                  [[1., 0., 0., 0.],
+                   [0., 0., 0., 1.],
+                   [0., 0., 0., 1.],
+                   [0., 1., 0., 0.],
+                   [0., 0., 1., 0.],
+                   [0., 0., 1., 0.]]])
+    )
