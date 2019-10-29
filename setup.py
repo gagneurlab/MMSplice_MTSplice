@@ -18,7 +18,6 @@ requirements = [
     'keras',
     'pandas',
     'concise',
-    'pybedtools',
     'kipoiseq',
     'pyfaidx',
     'tqdm',
