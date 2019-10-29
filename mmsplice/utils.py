@@ -1,8 +1,7 @@
-from collections import namedtuple
 import pandas as pd
 import numpy as np
 import pyranges
-from pybedtools import Interval
+from kipoiseq.dataclasses import Variant
 import kipoiseq.transforms.functional as F
 from kipoiseq.extractors import MultiSampleVCF
 from sklearn.externals import joblib
@@ -16,48 +15,25 @@ EFFICIENCY_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/splicing_efficiency.pkl'))
 
 
-def overhang_interval(interval, overhang):
-    """
-    Retuns overhanged interval with changed start and end locations.
-
-    Args:
-      interval: pybedtools.Interval
-      overhang: (int, int) tuple of left and right overhang
-    """
-    return Interval(
-        interval.chrom, interval.start - overhang[0],
-        interval.end + overhang[1], strand=interval.strand)
-
-
-class Variant(namedtuple('Variant', ['CHROM', 'POS', 'REF', 'ALT'])):
-
-    @property
-    def start(self):
-        """
-        0-based indexed start of variant.
-        """
-        return self.POS - 1
-
-
 def left_normalized(variant):
     """
     Left normalizated version of variant object.
     Example:
       CA:CAGG -> '':GC
     """
-    POS = variant.POS
+    pos = variant.pos
 
-    for i in range(min(len(variant.REF), len(variant.ALT[0]))):
-        if variant.REF[i] == variant.ALT[0][i]:
-            POS += 1
+    for i in range(min(len(variant.ref), len(variant.alt))):
+        if variant.ref[i] == variant.alt[i]:
+            pos += 1
         else:
             break
 
-    diff = POS - variant.POS
-    REF = variant.REF[diff:]
-    ALT = variant.ALT[0][diff:]
+    diff = pos - variant.pos
+    ref = variant.ref[diff:]
+    alt = variant.alt[diff:]
 
-    return Variant(variant.CHROM, POS, REF, [ALT])
+    return Variant(variant.chrom, pos, ref, alt)
 
 
 def clip(x):
@@ -198,10 +174,10 @@ def get_var_side(variant, exon):
       variant: Variant class 1-based.
       exon: pybedtools.Interval 0-based.
     '''
-    assert variant.CHROM == exon.chrom
+    assert variant.chrom == exon.chrom
 
     variant = left_normalized(variant)
-    var_end = variant.start + max(len(variant.REF), len(variant.ALT))
+    var_end = variant.start + max(len(variant.ref), len(variant.alt))
 
     if exon.strand == '+':
         if variant.start < exon.start:

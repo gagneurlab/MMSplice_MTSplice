@@ -1,45 +1,8 @@
 import numpy as np
-from kipoiseq.extractors import MultiSampleVCF
-from mmsplice.utils import Variant
-from mmsplice.vcf_dataloader import SplicingVCFDataloader, \
-    read_exon_pyranges, batch_iter_vcf, variants_to_pyranges, \
-    read_vcf_pyranges
+from kipoiseq.dataclasses import Interval, Variant
+from mmsplice.vcf_dataloader import SplicingVCFDataloader
 from mmsplice.exon_dataloader import SeqSpliter
-
-from conftest import gtf_file, fasta_file, snps, deletions, \
-    insertions, variants, vcf_file
-
-
-def test_read_exon_pyranges():
-    df_exons = read_exon_pyranges(gtf_file).df
-
-    assert df_exons.shape[0] == 68
-    exon = df_exons[df_exons['exon_id'] == 'ENSE00001831829'].iloc[0]
-    assert exon['Start'] == 41196822
-    assert exon['End'] == 41197819 + 100
-
-
-def test_batch_iter_vcf(vcf_path):
-    batchs = list(batch_iter_vcf(vcf_path, 10))
-    assert sum(len(i) for i in batchs) == len(variants)
-
-
-def test_variants_to_pyranges(vcf_path):
-    variants = list(MultiSampleVCF(vcf_path))
-    df = variants_to_pyranges(variants).df
-    assert df.shape[0] == len(variants)
-
-    v = df.iloc[0]
-    assert v.Chromosome == '13'
-    assert v.Start == 32953886
-    assert v.End == 32953889
-    assert v.variant.REF == 'GTT'
-    assert v.variant.ALT[0] == 'AA'
-
-
-def test_read_vcf_pyranges(vcf_path):
-    batchs = list(read_vcf_pyranges(vcf_path, batch_size=10))
-    assert sum(i.df.shape[0] for i in batchs) == len(variants)
+from conftest import gtf_file, fasta_file, variants, vcf_file
 
 
 def test_SplicingVCFDataloader__check_chrom_annotation():
@@ -131,19 +94,20 @@ def test_SplicingVCFDataloader__next__(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
                                split_seq=False, encode=False,
                                tissue_specific=True)
-    dl._generator = iter([{
-        'left_overhang': 100,
-        'right_overhang': 100,
-        'Chromosome': '17',
-        'Start_exon': 41275934,
-        'End_exon': 41276232,
-        'Strand': '-',
-        'exon_id': 'exon_id',
-        'gene_id': 'gene_id',
-        'gene_name': 'gene_name',
-        'transcript_id': 'transcript_id',
-        'variant': Variant('17', 41276033, 'C', ['G'])
-    }])
+    dl._generator = iter([
+        (
+            Interval('17', 41275934, 41276232, strand='-',
+                     attrs={
+                         'left_overhang': 100,
+                         'right_overhang': 100,
+                         'exon_id': 'exon_id',
+                         'gene_id': 'gene_id',
+                         'gene_name': 'gene_name',
+                         'transcript_id': 'transcript_id',
+                     }),
+            Variant('17', 41276033, 'C', 'G')
+        )
+    ])
 
     expected_snps_seq = {
         'seq':
@@ -182,19 +146,20 @@ def test_SplicingVCFDataloader__next__(vcf_path):
     assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
     assert d['inputs']['tissue_seq'] == expected_snps_seq['tissue_seq']
 
-    dl._generator = iter([{
-        'left_overhang': 100,
-        'right_overhang': 0,
-        'Chromosome': '17',
-        'Start_exon': 41275934,
-        'End_exon': 41276132,
-        'Strand': '-',
-        'exon_id': 'exon_id',
-        'gene_id': 'gene_id',
-        'gene_name': 'gene_name',
-        'transcript_id': 'transcript_id',
-        'variant': Variant('17', 41276033, 'C', ['G'])
-    }])
+    dl._generator = iter([
+        (
+            Interval('17', 41275934, 41276132, strand='-',
+                     attrs={
+                         'left_overhang': 100,
+                         'right_overhang': 0,
+                         'exon_id': 'exon_id',
+                         'gene_id': 'gene_id',
+                         'gene_name': 'gene_name',
+                         'transcript_id': 'transcript_id',
+                     }),
+            Variant('17', 41276033, 'C', 'G')
+        )
+    ])
 
     expected_snps_seq = {
         'seq':
@@ -228,19 +193,20 @@ def test_SplicingVCFDataloader__next__split(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
                                split_seq=True, encode=False,
                                tissue_specific=True)
-    dl._generator = iter([{
-        'left_overhang': 100,
-        'right_overhang': 100,
-        'Chromosome': '17',
-        'Start_exon': 41275934,
-        'End_exon': 41276232,
-        'Strand': '-',
-        'exon_id': 'exon_id',
-        'gene_id': 'gene_id',
-        'gene_name': 'gene_name',
-        'transcript_id': 'transcript_id',
-        'variant': Variant('17', 41276033, 'C', ['G'])
-    }])
+    dl._generator = iter([
+        (
+            Interval('17', 41275934, 41276232, strand='-',
+                     attrs={
+                         'left_overhang': 100,
+                         'right_overhang': 100,
+                         'exon_id': 'exon_id',
+                         'gene_id': 'gene_id',
+                         'gene_name': 'gene_name',
+                         'transcript_id': 'transcript_id',
+                     }),
+            Variant('17', 41276033, 'C', 'G')
+        )
+    ])
 
     expected_snps_seq = {
         'seq':
@@ -285,19 +251,34 @@ def test_SplicingVCFDataloader__next__split(vcf_path):
     # assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
     assert d['inputs']['tissue_seq'] == expected_snps_seq['tissue_seq']
 
-    dl._generator = iter([{
-        'left_overhang': 100,
-        'right_overhang': 0,
-        'Chromosome': '17',
-        'Start_exon': 41275934,
-        'End_exon': 41276132,
-        'Strand': '-',
-        'exon_id': 'exon_id',
-        'gene_id': 'gene_id',
-        'gene_name': 'gene_name',
-        'transcript_id': 'transcript_id',
-        'variant': Variant('17', 41276033, 'C', ['G'])
-    }])
+    dl._generator = iter([
+        (
+            Interval('17', 41275934, 41276132, strand='-',
+                     attrs={
+                         'left_overhang': 100,
+                         'right_overhang': 0,
+                         'exon_id': 'exon_id',
+                         'gene_id': 'gene_id',
+                         'gene_name': 'gene_name',
+                         'transcript_id': 'transcript_id',
+                     }),
+            Variant('17', 41276033, 'C', 'G')
+        )
+    ])
+
+    # dl._generator = iter([{
+    #     'left_overhang': 100,
+    #     'right_overhang': 0,
+    #     'Chromosome': '17',
+    #     'Start_exon': 41275934,
+    #     'End_exon': 41276132,
+    #     'Strand': '-',
+    #     'exon_id': 'exon_id',
+    #     'gene_id': 'gene_id',
+    #     'gene_name': 'gene_name',
+    #     'transcript_id': 'transcript_id',
+    #     'variant': Variant('17', 41276033, 'C', ['G'])
+    # }])
 
     expected_snps_seq = {
         'seq':
@@ -333,8 +314,6 @@ def test_SplicingVCFDataloader__next__split(vcf_path):
     }
 
     d = next(dl)
-    # assert d['inputs']['seq'] == expected_snps_seq['seq']
-    # assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
     assert d['inputs']['tissue_seq'] == expected_snps_seq['tissue_seq']
     assert len(d['inputs']['tissue_seq']['acceptor']) == 400
     assert len(d['inputs']['tissue_seq']['donor']) == 400
@@ -344,68 +323,33 @@ def test_splicing_vcf_loads_snps(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
                                split_seq=False, encode=False)
 
-    expected_snps_seq = [
-        {
-            'seq':
-            'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTT'
-            'TATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAG'
-            'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
-            'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGG'
-            'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
-            'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+    expected_snps_seq = {
+        'seq':
+        'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTT'
+        'TATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAG'
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGG'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+        'alt_seq':
+        'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTT'
+        'TATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAG'
+        'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
+        'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC'
+        'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
+        'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC'
+    }
 
-            'alt_seq':
-            'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTT'
-            'TATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAG'
-            'TTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAG'
-            'TACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGC'
-            'TAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTA'
-            'TGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC'
-        }
-    ]
-
-    for i in range(len(snps)):
-        d = next(dl)
-        print(d)
-        print(d['metadata']['exon']['start'])
-        print(d['metadata']['exon']['end'])
-        assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
-        assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']
+    rows = list(dl)
+    d = rows[11]
+    assert d['inputs']['seq'] == expected_snps_seq['seq']
+    assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
 
 
 def test_splicing_vcf_loads_deletions(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
                                split_seq=False, encode=False)
-
     expected_snps_seq = [
-        {
-            'seq':
-            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
-            'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
-            'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCA'
-            'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
-            'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT',
-            'alt_seq':
-            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
-            'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
-            'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCG'
-            'TAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTT'
-            'CATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
-        },
-        {
-            'seq':
-            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
-            'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
-            'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCA'
-            'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
-            'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT',
-            'alt_seq':
-            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
-            'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
-            'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCG'
-            'TAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTT'
-            'CATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
-        },
         {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
@@ -428,11 +372,11 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
             'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT',
             'alt_seq':
-            'ATAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAAT'
-            'AAATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTATC'
-            'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCA'
-            'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
-            'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
+            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
+            'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
+            'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCG'
+            'TAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTT'
+            'CATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         },
         {
             'seq':
@@ -442,8 +386,35 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
             'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT',
             'alt_seq':
-            'CATAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAA'
-            'TAAATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTTC'
+            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
+            'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGGT'
+            'AAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTTC'
+            'ATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
+        },
+        {
+            'seq':
+            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
+            'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
+            'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCA'
+            'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
+            'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT',
+            'alt_seq':
+            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
+            'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
+            'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCG'
+            'TAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTT'
+            'CATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
+        },
+        {
+            'seq':
+            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
+            'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
+            'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCA'
+            'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
+            'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT',
+            'alt_seq':
+            'ATAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAAT'
+            'AAATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTATC'
             'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCA'
             'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
             'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
@@ -470,25 +441,18 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
             'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT',
             'alt_seq':
-            'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
-            'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGGT'
-            'AAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTTC'
-            'ATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
+            'CATAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAA'
+            'TAAATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTTC'
+            'TGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCA'
+            'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
+            'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         }
     ]
 
-    for i in range(len(snps)):
-        d = next(dl)
+    rows = list(dl)
 
-    for i in range(len(deletions) - 1):
-        d = next(dl)
-
-        print('Variant position:', d['metadata']['variant']['POS'])
-        print('Interval:',
-              d['metadata']['exon']['start'],
-              '-',
-              d['metadata']['exon']['end'])
-        print(d)
+    for i, j in enumerate(list(range(0, 5)) + [6, 7]):
+        d = rows[j]
         assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
         assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']
 
@@ -497,42 +461,7 @@ def test_splicing_vcf_loads_insertions(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
                                split_seq=False, encode=False)
 
-    for i in range(len(snps) + len(deletions) - 1):
-        d = next(dl)
-
     expected_snps_seq = [
-        {
-            'seq':
-            'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTTTA'
-            'TAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCA'
-            'TTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
-            'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGGTAAGTCAG'
-            'CACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCAAATGAA'
-            'CAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
-            'alt_seq':
-            'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTTTA'
-            'TAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCA'
-            'TTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
-            'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGCATCTGGTA'
-            'AGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCA'
-            'AATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGA'
-        },
-        {
-            'seq':
-            'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTTTA'
-            'TAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCA'
-            'TTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
-            'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGGTAAGTCAG'
-            'CACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCAAATGAA'
-            'CAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
-            'alt_seq':
-            'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTTTA'
-            'TAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCA'
-            'TTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
-            'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTGGTAAGTC'
-            'AGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCAAATG'
-            'AACAGAATTGACCTTACATACTAGGGAAGAAAAGACATG'
-        },
         {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATAA'
@@ -562,6 +491,38 @@ def test_splicing_vcf_loads_insertions(vcf_path):
             'TAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         },
         {
+            'seq':
+            'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTTTA'
+            'TAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCA'
+            'TTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
+            'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGGTAAGTCAG'
+            'CACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCAAATGAA'
+            'CAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+            'alt_seq':
+            'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTTTA'
+            'TAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCA'
+            'TTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
+            'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTGGTAAGTC'
+            'AGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCAAATG'
+            'AACAGAATTGACCTTACATACTAGGGAAGAAAAGACATG'
+        },
+        {
+            'seq':
+            'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTTTA'
+            'TAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCA'
+            'TTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
+            'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGGTAAGTCAG'
+            'CACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCAAATGAA'
+            'CAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC',
+            'alt_seq':
+            'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTTTA'
+            'TAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCA'
+            'TTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAA'
+            'ATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGCATCTGGTA'
+            'AGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCA'
+            'AATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGA'
+        },
+        {
             'seq': 'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGT'
             'CATTTTATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTA'
             'AAGTTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAA'
@@ -577,12 +538,9 @@ def test_splicing_vcf_loads_insertions(vcf_path):
         }
     ]
 
-    for i in range(len(insertions)):
+    rows = list(dl)
 
-        d = next(dl)
-
-        print(d)
-        print(d['metadata']['exon']['start'])
-        print(d['metadata']['exon']['end'])
+    for i, j in enumerate([5] + list(range(8, 11)) + [12]):
+        d = rows[j]
         assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
         assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']

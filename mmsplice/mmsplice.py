@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 from keras.models import load_model
 from sklearn.externals import joblib
-from mmsplice.utils import encodeDNA
+import concise
 
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
-    predict_pathogenicity, predict_splicing_efficiency
+    predict_pathogenicity, predict_splicing_efficiency, encodeDNA
 from mmsplice.exon_dataloader import SeqSpliter
 from mmsplice.mtsplice import MTSplice, tissue_names
 from mmsplice.layers import GlobalAveragePooling1D_Mask0
@@ -62,7 +62,8 @@ class MMSplice(object):
 
     def predict_on_batch(self, batch):
         warnings.warn(
-            "self.predict_on_batch is deprecated, use self.predict_modular_scores_on_batch instead",
+            "`self.predict_on_batch` is deprecated,"
+            " use `self.predict_modular_scores_on_batch instead`",
             DeprecationWarning
         )
         return self.predict_modular_scores_on_batch(batch)
@@ -152,9 +153,10 @@ class MMSplice(object):
             alt_pred = pd.DataFrame(X_alt, columns=alt_cols)
 
             df = pd.DataFrame({
-                'ID': batch['metadata']['variant']['STR'],
+                'ID': batch['metadata']['variant']['annotation'],
                 'exons': batch['metadata']['exon']['annotation'],
             })
+
             for k in ['exon_id', 'gene_id', 'gene_name', 'transcript_id']:
                 if k in batch['metadata']['exon']:
                     df[k] = batch['metadata']['exon'][k]

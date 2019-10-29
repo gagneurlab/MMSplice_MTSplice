@@ -1,12 +1,9 @@
 import logging
-from itertools import islice
 from pkg_resources import resource_filename
-
 import pandas as pd
 import pyranges
-from pybedtools import Interval
 from kipoi.data import SampleIterator
-from kipoiseq.extractors import MultiSampleVCF
+from kipoiseq.extractors import MultiSampleVCF, SingleVariantMatcher
 from mmsplice.utils import pyrange_remove_chr_from_chrom_annotation
 from mmsplice.exon_dataloader import ExonSplicingMixin
 
@@ -50,57 +47,6 @@ def read_exon_pyranges(gtf_file, overhang=(100, 100), first_last=True):
     return pyranges.PyRanges(df_exons)
 
 
-def batch_iter_vcf(vcf_file, batch_size=10000):
-    '''
-    Iterates variatns in vcf file.
-
-    Args:
-      vcf_file: path of vcf file.
-      batch_size: size of each batch.
-    '''
-    variants = MultiSampleVCF(vcf_file)
-    batch = list(islice(variants, batch_size))
-
-    while batch:
-        yield batch
-        batch = list(islice(variants, batch_size))
-
-
-def variants_to_pyranges(variants):
-    '''
-    Create pyrange object given list of variant objects.
-
-    Args:
-      variants: list of variant objects have CHROM, POS, REF, ALT properties.
-    '''
-    def _from_variants(variants):
-        for v in variants:
-            if len(v.ALT) == 1:
-                yield v.CHROM, v.POS, v.POS + max(len(v.REF), len(v.ALT[0])), v
-            else:
-                # Only support one alternative.
-                # If multiple alternative, need to split into multiple variants
-                logger.warning(
-                    '%s has more than one or nan ALT sequence,'
-                    'split into mutliple variants with bedtools' % v)
-
-    df = pd.DataFrame(list(_from_variants(variants)),
-                      columns=['Chromosome', 'Start', 'End', 'variant'])
-    return pyranges.PyRanges(df)
-
-
-def read_vcf_pyranges(vcf_file, batch_size=10000):
-    '''
-    Reads vcf and returns batch of pyranges objects.
-
-    Args:
-      vcf_file: path of vcf file.
-      batch_size: size of each batch.
-    '''
-    for batch in batch_iter_vcf(vcf_file, batch_size):
-        yield variants_to_pyranges(batch)
-
-
 class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
     """
     Load genome annotation (gtf) file along with a vcf file,
@@ -133,10 +79,14 @@ class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
         self.pr_exons = self._read_exons(gtf, overhang)
         self.vcf_file = vcf_file
         self.vcf = MultiSampleVCF(vcf_file)
-        self.variants_batchs = read_vcf_pyranges(vcf_file)
-
         self._check_chrom_annotation()
-        self._generator = self._generate()
+        self.matcher = SingleVariantMatcher(
+            vcf_file, pranges=self.pr_exons,
+            interval_attrs=['left_overhang', 'right_overhang',
+                            'exon_id', 'gene_id',
+                            'gene_name', 'transcript_id']
+        )
+        self._generator = iter(self.matcher)
 
     def _check_chrom_annotation(self):
         fasta_chroms = set(self.fasta.fasta.keys())
@@ -172,24 +122,12 @@ class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
         else:
             return read_exon_pyranges(self.gtf_file, overhang=overhang)
 
-    def _generate(self):
-        for pr_variants in self.variants_batchs:
-
-            exon_variant_pairs = pr_variants.join(
-                self.pr_exons, suffix="_exon")
-
-            for i, row in exon_variant_pairs.df.iterrows():
-                yield row
-
     def __next__(self):
-        row = next(self._generator)
-        overhang = (row['left_overhang'], row['right_overhang'])
-        exon = Interval(row['Chromosome'],
-                        row['Start_exon'] + overhang[0] - 1,
-                        row['End_exon'] - overhang[1],
-                        strand=row['Strand'])
-        variant = row['variant']
-        return self._next(row, exon, variant, overhang)
+        exon, variant = next(self._generator)
+        overhang = (exon.attrs['left_overhang'], exon.attrs['right_overhang'])
+        exon._start += overhang[0] - 1
+        exon._end -= overhang[1]
+        return self._next(exon, variant, overhang)
 
     def __iter__(self):
         return self

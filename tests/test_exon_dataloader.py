@@ -33,11 +33,11 @@ def test_ExonDataset__getitem__():
     )
     assert dl[10]['inputs']['mut_seq'] == mut_seq
 
-    assert dl[10]['metadata']['variant']['CHROM'] == '17'
-    assert dl[10]['metadata']['variant']['POS'] == 18159891
-    assert dl[10]['metadata']['variant']['REF'] == 'G'
-    assert dl[10]['metadata']['variant']['ALT'][0] == 'A'
-    assert dl[10]['metadata']['variant']['STR'] == "17:18159891:G:['A']"
+    assert dl[10]['metadata']['variant']['chrom'] == '17'
+    assert dl[10]['metadata']['variant']['pos'] == 18159891
+    assert dl[10]['metadata']['variant']['ref'] == 'G'
+    assert dl[10]['metadata']['variant']['alt'][0] == 'A'
+    assert dl[10]['metadata']['variant']['annotation'] == "17:18159891:G>A"
 
     assert dl[10]['metadata']['exon']['chrom'] == '17'
     assert dl[10]['metadata']['exon']['start'] == 18159839

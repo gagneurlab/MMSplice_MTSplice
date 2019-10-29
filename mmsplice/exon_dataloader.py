@@ -1,9 +1,9 @@
 import logging
 import pandas as pd
-from pybedtools import Interval
+from kipoiseq.dataclasses import Interval, Variant
 from kipoi.data import Dataset
 from kipoiseq.extractors import VariantSeqExtractor
-from mmsplice.utils import Variant, encodeDNA
+from mmsplice.utils import encodeDNA
 
 logger = logging.getLogger('mmsplice')
 logger.addHandler(logging.NullHandler())
@@ -214,6 +214,8 @@ class ExonSplicingMixin:
       tissue_overhang: overhang of exon to fetch flanking sequence of
         tissue specific model. The current model only accepts 300.
     """
+    optional_metadata = ('exon_id', 'gene_id', 'gene_name',
+                         'transcript_id', 'junction', 'side')
 
     def __init__(self, fasta_file, split_seq=True, encode=True,
                  overhang=(100, 100), seq_spliter=None,
@@ -228,7 +230,7 @@ class ExonSplicingMixin:
         self.tissue_specific = tissue_specific
         self.tissue_overhang = tissue_overhang
 
-    def _next(self, row, exon, variant, overhang=None):
+    def _next(self, exon, variant, overhang=None):
         overhang = overhang or self.overhang
 
         inputs = {
@@ -266,7 +268,7 @@ class ExonSplicingMixin:
             'inputs': inputs,
             'metadata': {
                 'variant': self._variant_to_dict(variant),
-                'exon': self._exon_to_dict(row, exon, overhang)
+                'exon': self._exon_to_dict(exon, overhang)
             }
         }
 
@@ -296,29 +298,24 @@ class ExonSplicingMixin:
 
     def _variant_to_dict(self, variant):
         return {
-            'CHROM': variant.CHROM,
-            'POS': variant.POS,
-            'REF': variant.REF,
-            'ALT': variant.ALT,
-            'STR': "%s:%s:%s:['%s']" % (variant.CHROM, str(variant.POS),
-                                        variant.REF, variant.ALT[0])
+            'chrom': variant.chrom,
+            'pos': variant.pos,
+            'ref': variant.ref,
+            'alt': variant.alt,
+            'annotation': str(variant)
         }
 
-    def _exon_to_dict(self, row, exon, overhang):
-        d = {
+    def _exon_to_dict(self, exon, overhang):
+        return {
             'chrom': exon.chrom,
             'start': exon.start,
             'end': exon.end,
             'strand': exon.strand,
             'left_overhang': overhang[0],
             'right_overhang': overhang[1],
-            'annotation': '%s:%d-%d:%s' % (exon.chrom, exon.start,
-                                           exon.end, exon.strand)
+            'annotation': str(exon),
+            **exon.attrs
         }
-        for k in ('exon_id', 'gene_id', 'gene_name', 'transcript_id'):
-            if k in row:
-                d[k] = row[k]
-        return d
 
 
 class ExonDataset(ExonSplicingMixin, Dataset):
@@ -392,10 +389,12 @@ class ExonDataset(ExonSplicingMixin, Dataset):
 
     def __getitem__(self, idx):
         row = self.exons.iloc[idx]
+        exon_attrs = {k: row[k] for k in self.optional_metadata if k in row}
         exon = Interval(row['CHROM'], row['Exon_Start'] - 1,
-                        row['Exon_End'], strand=row['strand'])
-        variant = Variant(row['CHROM'], row['POS'], row['REF'], [row['ALT']])
-        return self._next(row, exon, variant)
+                        row['Exon_End'], strand=row['strand'],
+                        attrs=exon_attrs)
+        variant = Variant(row['CHROM'], row['POS'], row['REF'], row['ALT'])
+        return self._next(exon, variant)
 
     def __len__(self):
         return len(self.exons)

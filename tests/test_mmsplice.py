@@ -28,6 +28,7 @@ def test_predict_all_table(vcf_path):
                            splicing_efficiency=True)
 
     assert len(df['delta_logit_psi']) == len(variants) - 1
+    assert df.shape[1] == 7 + 10 + 2
 
 
 def test_predict_all_table_tissue_specific(vcf_path):
@@ -36,6 +37,7 @@ def test_predict_all_table_tissue_specific(vcf_path):
         gtf_file, fasta_file, vcf_path, tissue_specific=True)
     df = predict_all_table(model, dl)
     assert len(df['delta_logit_psi']) == len(variants) - 1
+
     assert df.shape[1] == 7 + 10 + 56
 
 
