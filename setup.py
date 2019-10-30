@@ -14,7 +14,7 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'setuptools',
     'scikit-learn==0.19.2',
-    'tensorflow<=1.13.1',
+    'tensorflow',
     'keras',
     'pandas',
     'concise',
