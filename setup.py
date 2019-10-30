@@ -18,7 +18,7 @@ requirements = [
     'keras',
     'pandas',
     'concise',
-    'kipoiseq',
+    'kipoiseq>=0.3.0',
     'pyfaidx',
     'tqdm',
     'click',
