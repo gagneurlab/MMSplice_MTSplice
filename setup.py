@@ -19,7 +19,7 @@ requirements = [
     'pandas',
     'concise',
     'pybedtools',
-    'kipoiseq',
+    'kipoiseq==0.2.7',
     'pyfaidx',
     'tqdm',
     'click',
@@ -59,6 +59,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/gagneurlab/mmsplice',
-    version='1.0.1',
+    version='1.0.2',
     zip_safe=False
 )
