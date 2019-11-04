@@ -19,7 +19,7 @@ requirements = [
     'pandas',
     'concise',
     'pybedtools',
-    'kipoiseq',
+    'kipoiseq==0.2.7',
     'pyfaidx',
     'tqdm',
     'click',
