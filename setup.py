@@ -15,7 +15,7 @@ requirements = [
     'setuptools',
     'scikit-learn==0.19.2',
     'tensorflow<=1.13.1',
-    'keras',
+    'keras>=2.0.4,<=2.2.4',
     'pandas',
     'concise',
     'pybedtools',
@@ -59,6 +59,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/gagneurlab/mmsplice',
-    version='1.0.2',
+    version='1.0.3',
     zip_safe=False
 )

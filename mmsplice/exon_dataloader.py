@@ -12,11 +12,11 @@ logger.addHandler(logging.NullHandler())
 
 class ExonVariantSeqExtrator:
     """
-    Extracts sequence with the variant integrated. The lengths overhang 
-    are fixed irrelevant to variants, even if the variants are indels and 
-    is in introns, lengths overhang will adapt. If the variant is in the 
-    exon, the length of the alternative exon (with variant) might change 
-    for indels.    
+    Extracts sequence with the variant integrated. The lengths overhang
+    are fixed irrelevant to variants, even if the variants are indels and
+    is in introns, lengths overhang will adapt. If the variant is in the
+    exon, the length of the alternative exon (with variant) might change
+    for indels.
     """
 
     def __init__(self, fasta_file):
@@ -146,15 +146,15 @@ class SeqSpliter:
 
 class ExonSplicingMixin:
     """
-    Dataloader to run mmsplice on specific set of variant-exon pairs. 
+    Dataloader to run mmsplice on specific set of variant-exon pairs.
     This class will be inherited both by ExonDataset, which is the dataloader
-    for variants provided in a csv file with match exons provided, and by 
+    for variants provided in a csv file with match exons provided, and by
     SplicingVCFDataloader, which takes variants in vcf format.
 
     Args:
       fasta_file: fasta file to fetch exon sequences.
       split_seq: whether or not already split the sequence
-        when loading the data. 
+        when loading the data.
       endcode: if split sequence, should it be one-hot-encoded.
       overhang: overhang of exon to fetch flanking sequence of exon.
       seq_spliter: SeqSpliter class instance specific how to split seqs.
@@ -227,7 +227,7 @@ class ExonSplicingMixin:
             'CHROM': variant.CHROM,
             'POS': variant.POS,
             'REF': variant.REF,
-            'ALT': variant.ALT,
+            'ALT': variant.ALT[0],
             'STR': "%s:%s:%s:['%s']" % (variant.CHROM, str(variant.POS),
                                         variant.REF, variant.ALT[0])
         }
@@ -253,7 +253,7 @@ class ExonDataset(ExonSplicingMixin, Dataset):
     """
     Dataloader to run mmsplice on specific set of variant-exon pairs
     provided by csv file.
-    
+
     Args:
         exon_file: csv file specify exon-variant pairs with required
         columns of ('chrom', 'start', 'end', 'strand', 'pos', 'ref', 'alt')
@@ -266,7 +266,7 @@ class ExonDataset(ExonSplicingMixin, Dataset):
         overhang: overhang of exon to fetch flanking sequence of exon.
         seq_spliter: SeqSpliter class instance specific how to split seqs.
     """
-    
+
     exon_cols_mapping = {
         "hg19_variant_position": "POS",
         "variant_position": "POS",
@@ -286,7 +286,8 @@ class ExonDataset(ExonSplicingMixin, Dataset):
         "chromosome": "CHROM",
         "CHR": "CHROM"
     }
-    required_cols = ('CHROM', 'Exon_Start', 'Exon_End', 'strand', 'POS', 'REF', 'ALT')
+    required_cols = ('CHROM', 'Exon_Start', 'Exon_End',
+                     'strand', 'POS', 'REF', 'ALT')
 
     def __init__(self, exon_file, fasta_file, split_seq=True, encode=True,
                  overhang=(100, 100), seq_spliter=None, **kwargs):

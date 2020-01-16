@@ -5,7 +5,8 @@ from mmsplice.exon_dataloader import ExonDataset
 
 def test_ExonDataset():
     dl = ExonDataset(exon_file, fasta_file)
-    required_cols = ('CHROM', 'Exon_Start', 'Exon_End', 'strand', 'POS', 'REF', 'ALT')
+    required_cols = ('CHROM', 'Exon_Start', 'Exon_End',
+                     'strand', 'POS', 'REF', 'ALT')
     assert all(c in dl.exons.columns for c in required_cols)
 
 
@@ -35,7 +36,7 @@ def test_ExonDataset__getitem__():
     assert dl[10]['metadata']['variant']['CHROM'] == '17'
     assert dl[10]['metadata']['variant']['POS'] == 18159891
     assert dl[10]['metadata']['variant']['REF'] == 'G'
-    assert dl[10]['metadata']['variant']['ALT'][0] == 'A'
+    assert dl[10]['metadata']['variant']['ALT'] == 'A'
     assert dl[10]['metadata']['variant']['STR'] == "17:18159891:G:['A']"
 
     assert dl[10]['metadata']['exon']['chrom'] == '17'
