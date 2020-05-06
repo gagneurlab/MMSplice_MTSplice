@@ -96,7 +96,7 @@ def test_SplicingVCFDataloader__next__(vcf_path):
                                tissue_specific=True)
     dl._generator = iter([
         (
-            Interval('17', 41275934, 41276232, strand='-',
+            Interval('17', 41275933, 41276232, strand='-',
                      attrs={
                          'left_overhang': 100,
                          'right_overhang': 100,
@@ -148,7 +148,7 @@ def test_SplicingVCFDataloader__next__(vcf_path):
 
     dl._generator = iter([
         (
-            Interval('17', 41275934, 41276132, strand='-',
+            Interval('17', 41275933, 41276132, strand='-',
                      attrs={
                          'left_overhang': 100,
                          'right_overhang': 0,
@@ -195,7 +195,7 @@ def test_SplicingVCFDataloader__next__split(vcf_path):
                                tissue_specific=True)
     dl._generator = iter([
         (
-            Interval('17', 41275934, 41276232, strand='-',
+            Interval('17', 41275933, 41276232, strand='-',
                      attrs={
                          'left_overhang': 100,
                          'right_overhang': 100,
@@ -253,7 +253,7 @@ def test_SplicingVCFDataloader__next__split(vcf_path):
 
     dl._generator = iter([
         (
-            Interval('17', 41275934, 41276132, strand='-',
+            Interval('17', 41275933, 41276132, strand='-',
                      attrs={
                          'left_overhang': 100,
                          'right_overhang': 0,
@@ -265,20 +265,6 @@ def test_SplicingVCFDataloader__next__split(vcf_path):
             Variant('17', 41276033, 'C', 'G')
         )
     ])
-
-    # dl._generator = iter([{
-    #     'left_overhang': 100,
-    #     'right_overhang': 0,
-    #     'Chromosome': '17',
-    #     'Start_exon': 41275934,
-    #     'End_exon': 41276132,
-    #     'Strand': '-',
-    #     'exon_id': 'exon_id',
-    #     'gene_id': 'gene_id',
-    #     'gene_name': 'gene_name',
-    #     'transcript_id': 'transcript_id',
-    #     'variant': Variant('17', 41276033, 'C', ['G'])
-    # }])
 
     expected_snps_seq = {
         'seq':

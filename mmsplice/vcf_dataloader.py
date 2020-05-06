@@ -125,7 +125,7 @@ class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
     def __next__(self):
         exon, variant = next(self._generator)
         overhang = (exon.attrs['left_overhang'], exon.attrs['right_overhang'])
-        exon._start += overhang[0] - 1
+        exon._start += overhang[0]
         exon._end -= overhang[1]
         return self._next(exon, variant, overhang)
 
