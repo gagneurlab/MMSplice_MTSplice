@@ -2,11 +2,12 @@ from pkg_resources import resource_filename
 from keras.models import load_model
 from mmsplice.utils import encodeDNA
 from mmsplice.exon_dataloader import SeqSpliter
+import numpy as np
 
+_MODELS = ['models/mtsplice'+str(i)+'.h5' for i in range(8)]
+MTSPLICE = [resource_filename('mmsplice', m) for m in _MODELS]
 
-MTSPLICE = resource_filename('mmsplice', 'models/mtsplice.h5')
-
-tissue_names = [
+TISSUES = [
     'Retina - Eye', 'RPE/Choroid/Sclera - Eye', 'Subcutaneous - Adipose',
     'Visceral (Omentum) - Adipose', 'Adrenal Gland', 'Aorta - Artery',
     'Coronary - Artery', 'Tibial - Artery', 'Bladder', 'Amygdala - Brain',
@@ -27,6 +28,7 @@ tissue_names = [
     'Ileum - Small Intestine', 'Spleen', 'Stomach', 'Testis', 'Thyroid',
     'Uterus', 'Vagina', 'Whole Blood'
 ]
+tissue_names = TISSUES
 
 
 class MTSplice:
@@ -45,7 +47,7 @@ class MTSplice:
     """
 
     def __init__(self, seq_spliter=None):
-        self.mtsplice_model = load_model(MTSPLICE)
+        self.mtsplice_models = [load_model(m) for m in MTSPLICE]
         self.spliter = seq_spliter or SeqSpliter()
 
     def predict_on_batch(self, batch):
@@ -58,7 +60,9 @@ class MTSplice:
         Returns:
           np.matrix of tissue predictions as [[tissues]]
         '''
-        return self.mtsplice_model.predict([batch['acceptor'], batch['donor']])
+        pred = [m.predict([batch['acceptor'], batch['donor']])
+                for m in self.mtsplice_models]
+        return np.mean(pred, 0)
 
     def predict(self, seq, overhang=(300, 300)):
         """
@@ -74,4 +78,4 @@ class MTSplice:
         """
         batch = self.spliter.split_tissue_seq(seq, overhang)
         batch = {k: encodeDNA([v]) for k, v in batch.items()}
-        return self.predict_on_batch(batch)[0]
+        return self.predict_on_batch(batch)

@@ -110,7 +110,7 @@ class MMSplice(object):
         """
         batch = self.spliter.split(seq, overhang)
         batch = {k: encodeDNA([v]) for k, v in batch.items()}
-        return self.predict_on_batch(batch)[0]
+        return self.predict_modular_scores_on_batch(batch)[0]
 
     def _predict_on_dataloader(self, dataloader, batch_size=512, progress=True,
                                pathogenicity=False, splicing_efficiency=False):
