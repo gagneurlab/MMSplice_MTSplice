@@ -307,8 +307,7 @@ def test_SplicingVCFDataloader__next__split(vcf_path):
 
 def test_SplicingVCFDataloader__next__split_seq_True(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
-                               split_seq=True, encode=False,
-                               tissue_specific=True)
+                               split_seq=True, encode=False)
     dl._generator = iter([
         (
             Interval('17', 61278131 - 100, 61278318 + 100, strand='+',

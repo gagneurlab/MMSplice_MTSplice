@@ -10,8 +10,10 @@ from mmsplice.exon_dataloader import ExonSplicingMixin
 logger = logging.getLogger('mmsplice')
 logger.addHandler(logging.NullHandler())
 
-GRCH37 = resource_filename('mmsplice', 'models/grch37_exons.csv.gz')
-GRCH38 = resource_filename('mmsplice', 'models/grch38_exons.csv.gz')
+prebuild_annotation = {
+    'grch37': resource_filename('mmsplice', 'models/grch37_exons.csv.gz'),
+    'grch38': resource_filename('mmsplice', 'models/grch38_exons.csv.gz')
+}
 
 
 def read_exon_pyranges(gtf_file, overhang=(100, 100), first_last=True):
@@ -109,16 +111,13 @@ class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
                 'GTF chrom names do not match with vcf chrom names')
 
     def _read_exons(self, gtf, overhang=(100, 100)):
-        if gtf == 'grch37':
+        if gtf in prebuild_annotation:
             if overhang != (100, 100):
                 logger.warning('Overhang argument will be ignored'
                                ' for prebuild annotation.')
-            return pyranges.PyRanges(pd.read_csv(GRCH37))
-        elif gtf == 'grch38':
-            if overhang != (100, 100):
-                logger.warning('Overhang argument will be ignored'
-                               ' for prebuild annotation.')
-            return pyranges.PyRanges(pd.read_csv(GRCH38))
+            df = pd.read_csv(prebuild_annotation[gtf])
+            df['Start'] -= 1  # convert prebuild annotation to 0-based
+            return pyranges.PyRanges(df)
         else:
             return read_exon_pyranges(self.gtf_file, overhang=overhang)
 
