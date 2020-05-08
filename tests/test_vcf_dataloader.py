@@ -305,6 +305,65 @@ def test_SplicingVCFDataloader__next__split(vcf_path):
     assert len(d['inputs']['tissue_seq']['donor']) == 400
 
 
+def test_SplicingVCFDataloader__next__split_seq_True(vcf_path):
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
+                               split_seq=True, encode=False,
+                               tissue_specific=True)
+    dl._generator = iter([
+        (
+            Interval('17', 61278131 - 100, 61278318 + 100, strand='+',
+                     attrs={
+                         'left_overhang': 100,
+                         'right_overhang': 100,
+                         'exon_id': 'exon_id',
+                         'gene_id': 'gene_id',
+                         'gene_name': 'gene_name',
+                         'transcript_id': 'transcript_id',
+                     }),
+            Variant('17', 61278319, 'G', 'A')
+        )
+    ])
+
+    expected_snps_seq = {
+        'seq': {
+            'acceptor_intron':
+            'GCATGTAGTTTTTTTTTTCATCAAAGCATTTATTTTATCTTAAAATATACTTT'
+            'AACAGCTGATCAGGTTATCTTACTTATTCATGATTCCAATT',
+            'acceptor':
+            'TTTAACAGCTGATCAGGTTATCTTACTTATTCATGATTCCAATTTTTCAGACC',
+            'exon':
+            'ACCTCAGCAATCACCCAGCGGATAAGTCCTTGTTCCACTCTGACTAGCAGCAC'
+            'TGCCTCTCCACCAGCCAGTAGCCCCTGCTCTACACTCCCACCCATCAGTACAA'
+            'ATGCAACTGCCAAGGACTGCAGCTATGGGGCTGTTACTAGTCCAACCTCTACC'
+            'CTTGAAAGCAGAGATAGTGGCATCATTG',
+            'donor':
+            'CATTGGTGAGTTGGTTTT',
+            'donor_intron':
+            'TGGTTTTTATATTGATAATTTTGTGTCCTTTTTTTCCTTTTTAAAATAATTAC'
+            'ACAAGCTTAAGGTTTTTAAAAATTCTGCTTTTGAATTGTTG'
+        },
+        'alt_seq': {
+            'acceptor_intron':
+            'GCATGTAGTTTTTTTTTTCATCAAAGCATTTATTTTATCTTAAAATATACTTT'
+            'AACAGCTGATCAGGTTATCTTACTTATTCATGATTCCAATT',
+            'acceptor':
+            'TTTAACAGCTGATCAGGTTATCTTACTTATTCATGATTCCAATTTTTCAGACC',
+            'exon': 'ACCTCAGCAATCACCCAGCGGATAAGTCCTTGTTCCACTCTGACT'
+            'AGCAGCACTGCCTCTCCACCAGCCAGTAGCCCCTGCTCTACACTCCCACCCAT'
+            'CAGTACAAATGCAACTGCCAAGGACTGCAGCTATGGGGCTGTTACTAGTCCAA'
+            'CCTCTACCCTTGAAAGCAGAGATAGTGGCATCATTG',
+            'donor': 'CATTGATGAGTTGGTTTT',
+            'donor_intron':
+            'TGGTTTTTATATTGATAATTTTGTGTCCTTTTTTTCCTTTTTAAAATAATTAC'
+            'ACAAGCTTAAGGTTTTTAAAAATTCTGCTTTTGAATTGTTG'
+        }
+    }
+
+    d = next(dl)
+    assert d['inputs']['seq'] == expected_snps_seq['seq']
+    assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
+
+
 def test_splicing_vcf_loads_snps(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
                                split_seq=False, encode=False)
