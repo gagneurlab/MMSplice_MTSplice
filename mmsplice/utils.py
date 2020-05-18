@@ -7,12 +7,20 @@ from kipoiseq.extractors import MultiSampleVCF
 from sklearn.externals import joblib
 from pkg_resources import resource_filename
 
+
 LINEAR_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/linear_model.pkl'))
 LOGISTIC_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/Pathogenicity.pkl'))
 EFFICIENCY_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/splicing_efficiency.pkl'))
+
+ref_psi_annotation = {
+    'grch37': resource_filename(
+        'mmsplice', 'models/gtex_psi_map37_ranges.csv.gz'),
+    'grch38': resource_filename(
+        'mmsplice', 'models/gtex_psi_map_ranges.csv.gz')
+}
 
 
 def left_normalized(variant):
@@ -36,8 +44,8 @@ def left_normalized(variant):
     return Variant(variant.chrom, pos, ref, alt)
 
 
-def clip(x):
-    return np.clip(x, 0.00001, 0.99999)
+def clip(x, clip_threshold=0.00001):
+    return np.clip(x, clip_threshold, 1 - clip_threshold)
 
 
 def logit(x):
@@ -214,3 +222,99 @@ def encodeDNA(seq_vec):
         F.one_hot(F.pad(seq, max_len, anchor="start"), neutral_value=0)
         for seq in seq_vec
     ])
+
+
+ascot_to_gtex_tissue_mapping = {
+    'Adrenal Gland': 'Adrenal Gland',
+    'Amygdala - Brain': 'Brain - Amygdala',
+    'Anterior cingulate - Brain': 'Brain - Anterior cingulate cortex (BA24)',
+    'Aorta - Artery': 'Artery - Aorta',
+    'Atrial Appendage - Heart': 'Heart - Atrial Appendage',
+    'Bladder': 'Bladder',
+    'Caudate nucleus - Brain': 'Brain - Caudate (basal ganglia)',
+    'Cerebellar Hemisphere - Brain': 'Brain - Cerebellar Hemisphere',
+    'Cerebellum - Brain': 'Brain - Cerebellum',
+    'Coronary - Artery': 'Artery - Coronary',
+    'Cortex - Brain': 'Brain - Cortex',
+    'Cortex - Kidney': 'Kidney - Cortex',
+    'EBV-xform lymphocytes - Cells': 'Cells - EBV-transformed lymphocytes',
+    'Ectocervix - Cervix': 'Cervix - Ectocervix',
+    'Endocervix - Cervix': 'Cervix - Endocervix',
+    'Fallopian Tube': 'Fallopian Tube',
+    'Frontal Cortex - Brain': 'Brain - Frontal Cortex (BA9)',
+    'Gastroesoph. Junc. - Esophagus': 'Esophagus - Gastroesophageal Junction',
+    'Hippocampus - Brain': 'Brain - Hippocampus',
+    'Hypothalamus - Brain': 'Brain - Hypothalamus',
+    'Ileum - Small Intestine': 'Small Intestine - Terminal Ileum',
+    'Left Ventricle - Heart': 'Heart - Left Ventricle',
+    'Leukemia (CML) - Cells': 'Cells - Leukemia cell line (CML)',
+    'Liver': 'Liver',
+    'Lung': 'Lung',
+    'Mammary Tissue - Breast': 'Breast - Mammary Tissue',
+    'Minor Salivary Gland': 'Minor Salivary Gland',
+    'Mucosa - Esophagus': 'Esophagus - Mucosa',
+    'Muscularis - Esophagus': 'Esophagus - Muscularis',
+    'Not Sun Exposed - Skin': 'Skin - Not Sun Exposed (Suprapubic)',
+    'Nucleus accumbens - Brain': 'Brain - Nucleus accumbens (basal ganglia)',
+    'Ovary': 'Ovary',
+    'Pancreas': 'Pancreas',
+    'Pituitary': 'Pituitary',
+    'Prostate': 'Prostate',
+    'Putamen - Brain': 'Brain - Putamen (basal ganglia)',
+    'Sigmoid - Colon': 'Colon - Sigmoid',
+    'Skeletal - Muscle': 'Muscle - Skeletal',
+    'Spinal cord (C1) - Brain': 'Brain - Spinal cord (cervical c-1)',
+    'Spleen': 'Spleen',
+    'Stomach': 'Stomach',
+    'Subcutaneous - Adipose': 'Adipose - Subcutaneous',
+    'Substantia nigra - Brain': 'Brain - Substantia nigra',
+    'Sun Exposed (Lower leg) - Skin': 'Skin - Sun Exposed (Lower leg)',
+    'Testis': 'Testis',
+    'Thyroid': 'Thyroid',
+    'Tibial - Artery': 'Artery - Tibial',
+    'Tibial - Nerve': 'Nerve - Tibial',
+    'Transverse - Colon': 'Colon - Transverse',
+    'Uterus': 'Uterus',
+    'Vagina': 'Vagina',
+    'Visceral (Omentum) - Adipose': 'Adipose - Visceral (Omentum)',
+    'Whole Blood': 'Whole Blood',
+    'Xform. fibroblasts - Cells': 'Cells - Transformed fibroblasts'
+}
+
+
+def read_ref_psi_annotation(ref_psi_version, chroms=None):
+    if ref_psi_version in ref_psi_annotation:
+        df_ref = pd.read_csv(ref_psi_annotation[ref_psi_version])
+    else:
+        raise ValueError('ref_psi_version should be one of %s'
+                         % str(list(ref_psi_annotation.keys())))
+
+    df_ref = df_ref.rename(columns={
+        v: k
+        for k, v in ascot_to_gtex_tissue_mapping.items()
+    })
+    df_ref['Start'] -= 1  # 1-based to zero based
+
+    chr_annotaion = any(chrom.startswith('chr') for chrom in chroms)
+    if not chr_annotaion:
+        df_ref['Chromosome'] = df_ref['Chromosome'].str.replace('chr', '')
+
+    index_col = df_ref['Chromosome'].astype(str) + ':' + \
+        df_ref['Start'].astype(str) + '-' + df_ref['End'].astype(str) \
+        + ':' + df_ref['Strand'].astype(str)
+    df_ref['exons'] = index_col
+
+    return df_ref.set_index('exons')
+
+
+def delta_logit_PSI_to_delta_PSI(delta_logit_psi, ref_psi,
+                                 genotype=None, clip_threshold=0.001):
+    ref_psi = clip(ref_psi, clip_threshold)
+    pred_psi = expit(delta_logit_psi + logit(ref_psi))
+
+    if genotype is not None:
+        pred_psi = np.where(np.array(genotype) == 1,
+                            (pred_psi + ref_psi) / 2,
+                            pred_psi)
+
+    return pred_psi - ref_psi

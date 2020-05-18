@@ -1,7 +1,8 @@
 """Tests for `mmsplice` package."""
 import pandas as pd
+from numpy.testing import assert_almost_equal
 from mmsplice import MMSplice
-from mmsplice.utils import encodeDNA
+from mmsplice.utils import encodeDNA, delta_logit_PSI_to_delta_PSI
 from mmsplice.vcf_dataloader import SplicingVCFDataloader
 from mmsplice.exon_dataloader import ExonDataset
 from mmsplice import predict_all_table
@@ -35,10 +36,17 @@ def test_predict_all_table_tissue_specific(vcf_path):
     model = MMSplice()
     dl = SplicingVCFDataloader(
         gtf_file, fasta_file, vcf_path, tissue_specific=True)
-    df = predict_all_table(model, dl)
+    df = predict_all_table(model, dl, natural_scale=True,
+                           ref_psi_version='grch37')
     assert len(df['delta_logit_psi']) == len(variants) - 1
 
-    assert df.shape[1] == 7 + 10 + 56
+    assert df.shape[1] == 7 + 10 + 56 + 54 * 2
+
+    assert all(df['Whole Blood_ref'] == 1)
+
+    expected = delta_logit_PSI_to_delta_PSI(df['Whole Blood'].values,
+                                            df['Whole Blood_ref'].values)
+    assert_almost_equal(df['Whole Blood_delta_psi'].values, expected)
 
 
 def test_predict_all_table_exon_dataloader(vcf_path):

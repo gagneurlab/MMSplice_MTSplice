@@ -8,7 +8,8 @@ from sklearn.externals import joblib
 import concise
 
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
-    predict_pathogenicity, predict_splicing_efficiency, encodeDNA
+    predict_pathogenicity, predict_splicing_efficiency, encodeDNA, \
+    read_ref_psi_annotation, delta_logit_PSI_to_delta_PSI
 from mmsplice.exon_dataloader import SeqSpliter
 from mmsplice.mtsplice import MTSplice, tissue_names
 from mmsplice.layers import GlobalAveragePooling1D_Mask0
@@ -113,7 +114,8 @@ class MMSplice(object):
         return self.predict_modular_scores_on_batch(batch)[0]
 
     def _predict_on_dataloader(self, dataloader, batch_size=512, progress=True,
-                               pathogenicity=False, splicing_efficiency=False):
+                               pathogenicity=False, splicing_efficiency=False,
+                               natural_scale=False, ref_psi_version=None):
         """
         Make prediction from a dataloader, return results as a table
 
@@ -134,6 +136,9 @@ class MMSplice(object):
 
         if dataloader.tissue_specific:
             mtsplice = MTSplice()
+            if natural_scale:
+                df_ref = read_ref_psi_annotation(
+                    ref_psi_version, set(dataloader.vcf.seqnames))
 
         dt_iter = dataloader.batch_iter(batch_size=batch_size)
         if progress:
@@ -162,6 +167,7 @@ class MMSplice(object):
                     df[k] = batch['metadata']['exon'][k]
 
             df['delta_logit_psi'] = predict_deltaLogitPsi(X_ref, X_alt)
+
             df = pd.concat([df, ref_pred, alt_pred], axis=1)
 
             if dataloader.tissue_specific:
@@ -171,6 +177,21 @@ class MMSplice(object):
                     df['delta_logit_psi'].values, axis=1)
                 tissue_pred = pd.DataFrame(X_tissue, columns=tissue_names)
                 df = pd.concat([df, tissue_pred], axis=1)
+
+                if natural_scale:
+                    df_ref = df_ref[df_ref.columns[6:]]
+                    df = df.join(df_ref, on='exons', rsuffix='_ref')
+
+                    ref_tissue_names = ['%s_ref' % i for i in df_ref.columns]
+
+                    delta_psi_pred = pd.DataFrame(
+                        delta_logit_PSI_to_delta_PSI(
+                            df[df_ref.columns].values,
+                            df[ref_tissue_names].values
+                        ), columns=['%s_delta_psi' % i
+                                    for i in df_ref.columns])
+                    df = pd.concat([df, delta_psi_pred], axis=1)
+
             if pathogenicity:
                 df['pathogenicity'] = predict_pathogenicity(X_ref, X_alt)
             if splicing_efficiency:
@@ -179,7 +200,8 @@ class MMSplice(object):
             yield df
 
     def predict_on_dataloader(self, dataloader, batch_size=512, progress=True,
-                              pathogenicity=False, splicing_efficiency=False):
+                              pathogenicity=False, splicing_efficiency=False,
+                              natural_scale=False, ref_psi_version=None):
         """Make prediction from a dataloader, return results as a table
         Args:
            model: mmsplice model object.
@@ -199,7 +221,8 @@ class MMSplice(object):
                 batch_size=batch_size,
                 progress=progress,
                 pathogenicity=pathogenicity,
-                splicing_efficiency=splicing_efficiency)
+                splicing_efficiency=splicing_efficiency,
+                natural_scale=natural_scale, ref_psi_version=ref_psi_version)
         )
 
 
@@ -227,12 +250,9 @@ def predict_save(model, dataloader, output_csv, batch_size=512, progress=True,
             df.to_csv(f, index=False, header=False)
 
 
-def predict_all_table(model,
-                      dataloader,
-                      batch_size=512,
-                      progress=True,
-                      pathogenicity=False,
-                      splicing_efficiency=False):
+def predict_all_table(model, dataloader, batch_size=512, progress=True,
+                      pathogenicity=False, splicing_efficiency=False,
+                      natural_scale=False, ref_psi_version=None):
     """
     Return the prediction as a table
 
@@ -251,10 +271,10 @@ def predict_all_table(model,
     assert isinstance(model, MMSplice), \
         "model should be a mmsplice.MMSplice class instance"
 
-    return model.predict_on_dataloader(dataloader, progress=progress,
-                                       batch_size=batch_size,
-                                       pathogenicity=pathogenicity,
-                                       splicing_efficiency=splicing_efficiency)
+    return model.predict_on_dataloader(
+        dataloader, progress=progress, batch_size=batch_size,
+        pathogenicity=pathogenicity, splicing_efficiency=splicing_efficiency,
+        natural_scale=natural_scale, ref_psi_version=ref_psi_version)
 
 
 def writeVCF(vcf_in, vcf_out, predictions):
