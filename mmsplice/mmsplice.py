@@ -133,7 +133,7 @@ class MMSplice(object):
         from mmsplice.exon_dataloader import ExonSplicingMixin
         assert isinstance(dataloader, ExonSplicingMixin), \
             "Unknown dataloader type"
-
+            
         if dataloader.tissue_specific:
             mtsplice = MTSplice()
             if natural_scale:
@@ -167,7 +167,6 @@ class MMSplice(object):
                     df[k] = batch['metadata']['exon'][k]
 
             df['delta_logit_psi'] = predict_deltaLogitPsi(X_ref, X_alt)
-
             df = pd.concat([df, ref_pred, alt_pred], axis=1)
 
             if dataloader.tissue_specific:
@@ -190,6 +189,8 @@ class MMSplice(object):
                             df[ref_tissue_names].values
                         ), columns=['%s_delta_psi' % i
                                     for i in df_ref.columns])
+                    df.reset_index(drop=True, inplace=True)
+                    delta_psi_pred.reset_index(drop=True, inplace=True)
                     df = pd.concat([df, delta_psi_pred], axis=1)
 
             if pathogenicity:
