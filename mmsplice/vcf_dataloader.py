@@ -8,7 +8,6 @@ from mmsplice.utils import pyrange_remove_chr_from_chrom_annotation
 from mmsplice.exon_dataloader import ExonSplicingMixin
 
 logger = logging.getLogger('mmsplice')
-logger.addHandler(logging.NullHandler())
 
 prebuild_annotation = {
     'grch37': resource_filename('mmsplice', 'models/grch37_exons.csv.gz'),

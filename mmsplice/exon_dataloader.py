@@ -6,7 +6,6 @@ from kipoiseq.extractors import VariantSeqExtractor
 from mmsplice.utils import encodeDNA
 
 logger = logging.getLogger('mmsplice')
-logger.addHandler(logging.NullHandler())
 
 
 class ExonVariantSeqExtrator:

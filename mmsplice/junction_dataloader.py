@@ -7,7 +7,6 @@ from mmsplice.exon_dataloader import ExonDataset
 from mmsplice.vcf_dataloader import SplicingVCFMixin
 
 logger = logging.getLogger('mmsplice')
-logger.addHandler(logging.NullHandler())
 
 
 def junction_df_junction_str(df):

@@ -6,7 +6,6 @@ import pandas as pd
 from keras.models import load_model
 from sklearn.externals import joblib
 import concise
-
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency, encodeDNA, \
     read_ref_psi_annotation, delta_logit_PSI_to_delta_PSI
