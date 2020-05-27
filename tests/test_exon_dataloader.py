@@ -5,8 +5,8 @@ from mmsplice.exon_dataloader import ExonDataset
 
 def test_ExonDataset():
     dl = ExonDataset(exon_file, fasta_file)
-    required_cols = ('CHROM', 'Exon_Start', 'Exon_End',
-                     'strand', 'POS', 'REF', 'ALT')
+    required_cols = ('Chromosome', 'Exon_Start', 'Exon_End',
+                     'Strand', 'pos', 'ref', 'alt')
     assert all(c in dl.exons.columns for c in required_cols)
 
 

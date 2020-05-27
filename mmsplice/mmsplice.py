@@ -133,7 +133,7 @@ class MMSplice(object):
         from mmsplice.exon_dataloader import ExonSplicingMixin
         assert isinstance(dataloader, ExonSplicingMixin), \
             "Unknown dataloader type"
-            
+
         if dataloader.tissue_specific:
             mtsplice = MTSplice()
             if natural_scale:
@@ -162,7 +162,7 @@ class MMSplice(object):
                 'exons': batch['metadata']['exon']['annotation'],
             })
 
-            for k in ['exon_id', 'gene_id', 'gene_name', 'transcript_id']:
+            for k in dataloader.optional_metadata:
                 if k in batch['metadata']['exon']:
                     df[k] = batch['metadata']['exon'][k]
 

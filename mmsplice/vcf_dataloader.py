@@ -49,7 +49,48 @@ def read_exon_pyranges(gtf_file, overhang=(100, 100), first_last=True):
     return pyranges.PyRanges(df_exons)
 
 
-class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
+class SplicingVCFMixin(ExonSplicingMixin):
+
+    def __init__(self, pr_exons, annotation, fasta_file, vcf_file,
+                 split_seq=True, encode=True,
+                 overhang=(100, 100), seq_spliter=None,
+                 tissue_specific=False, tissue_overhang=(300, 300),
+                 interval_attrs=tuple()):
+        super().__init__(fasta_file, split_seq, encode, overhang, seq_spliter,
+                         tissue_specific, tissue_overhang)
+        self.pr_exons = pr_exons
+        self.annotation = annotation
+        self.vcf_file = vcf_file
+        self.vcf = MultiSampleVCF(vcf_file)
+        self._check_chrom_annotation()
+        self.matcher = SingleVariantMatcher(
+            vcf_file, pranges=self.pr_exons,
+            interval_attrs=interval_attrs
+        )
+        self._generator = iter(self.matcher)
+
+    def _check_chrom_annotation(self):
+        fasta_chroms = set(self.fasta.fasta.keys())
+        vcf_chroms = set(self.vcf.seqnames)
+
+        if not fasta_chroms.intersection(vcf_chroms):
+            raise ValueError(
+                'Fasta chrom names do not match with vcf chrom names')
+
+        if self.annotation == 'grch37' or self.annotation == 'grch38':
+            chr_annotaion = any(chrom.startswith('chr')
+                                for chrom in vcf_chroms)
+            if not chr_annotaion:
+                self.pr_exons = pyrange_remove_chr_from_chrom_annotation(
+                    self.pr_exons)
+
+        gtf_chroms = set(self.pr_exons.Chromosome)
+        if not gtf_chroms.intersection(vcf_chroms):
+            raise ValueError(
+                'GTF chrom names do not match with vcf chrom names')
+
+
+class SplicingVCFDataloader(SplicingVCFMixin, SampleIterator):
     """
     Load genome annotation (gtf) file along with a vcf file,
       return reference sequence and alternative sequence.
@@ -75,40 +116,13 @@ class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
                  split_seq=True, encode=True,
                  overhang=(100, 100), seq_spliter=None,
                  tissue_specific=False, tissue_overhang=(300, 300)):
-        super().__init__(fasta_file, split_seq, encode, overhang, seq_spliter,
-                         tissue_specific, tissue_overhang)
-        self.gtf_file = gtf
-        self.pr_exons = self._read_exons(gtf, overhang)
-        self.vcf_file = vcf_file
-        self.vcf = MultiSampleVCF(vcf_file)
-        self._check_chrom_annotation()
-        self.matcher = SingleVariantMatcher(
-            vcf_file, pranges=self.pr_exons,
-            interval_attrs=['left_overhang', 'right_overhang',
-                            'exon_id', 'gene_id',
-                            'gene_name', 'transcript_id']
-        )
-        self._generator = iter(self.matcher)
-
-    def _check_chrom_annotation(self):
-        fasta_chroms = set(self.fasta.fasta.keys())
-        vcf_chroms = set(self.vcf.seqnames)
-
-        if not fasta_chroms.intersection(vcf_chroms):
-            raise ValueError(
-                'Fasta chrom names do not match with vcf chrom names')
-
-        if self.gtf_file == 'grch37' or self.gtf_file == 'grch38':
-            chr_annotaion = any(chrom.startswith('chr')
-                                for chrom in vcf_chroms)
-            if not chr_annotaion:
-                self.pr_exons = pyrange_remove_chr_from_chrom_annotation(
-                    self.pr_exons)
-
-        gtf_chroms = set(self.pr_exons.Chromosome)
-        if not gtf_chroms.intersection(vcf_chroms):
-            raise ValueError(
-                'GTF chrom names do not match with vcf chrom names')
+        pr_exons = self._read_exons(gtf, overhang)
+        super().__init__(pr_exons, gtf, fasta_file, vcf_file,
+                         split_seq, encode, overhang, seq_spliter,
+                         tissue_specific, tissue_overhang,
+                         interval_attrs=('left_overhang', 'right_overhang',
+                                         'exon_id', 'gene_id',
+                                         'gene_name', 'transcript_id'))
 
     def _read_exons(self, gtf, overhang=(100, 100)):
         if gtf in prebuild_annotation:
@@ -119,7 +133,7 @@ class SplicingVCFDataloader(ExonSplicingMixin, SampleIterator):
             df['Start'] -= 1  # convert prebuild annotation to 0-based
             return pyranges.PyRanges(df)
         else:
-            return read_exon_pyranges(self.gtf_file, overhang=overhang)
+            return read_exon_pyranges(gtf, overhang=overhang)
 
     def __next__(self):
         exon, variant = next(self._generator)
