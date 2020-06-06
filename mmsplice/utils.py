@@ -155,16 +155,15 @@ def read_vep(vep_result_path,
 
     score_pred = []
 
-    for l in MultiSampleVCF(vep_result_path):
-        csq = l.INFO['CSQ'].split(',')
+    for v in MultiSampleVCF(vep_result_path):
+        csq = v.source.INFO['CSQ'].split(',')
         predictions = map(lambda x: tuple(x.split('|')[-len(keys):]), csq)
 
         for pred in predictions:
             if pred != ('',) * len(keys):
                 x = dict(
                     zip(keys, map(float, (i if i != '' else 0 for i in pred))))
-                x['ID'] = "%s:%d:%s:%s" % (
-                    l.CHROM, int(l.start) + 1, l.REF, l.ALT)
+                x['ID'] = str(v)
                 score_pred.append(x)
 
     df_plugin = pd.DataFrame(score_pred)
@@ -203,7 +202,10 @@ def get_var_side(variant, exon):
         else:
             return "exon"
 
+
 bases = ['A', 'C', 'G', 'T']
+
+
 def onehot(seq):
     X = np.zeros((len(seq), len(bases)))
     for i, char in enumerate(seq):
