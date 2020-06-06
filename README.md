@@ -1,4 +1,4 @@
-# mmsplice
+# MMSplice & MTSplice
 [![CircleCI](https://circleci.com/gh/gagneurlab/MMSplice.svg?style=svg)](https://circleci.com/gh/gagneurlab/MMSplice)
 [![pypi](https://img.shields.io/pypi/v/mmsplice.svg)](https://pypi.python.org/pypi/mmsplice)
 
@@ -78,7 +78,7 @@ fasta = 'tests/data/hg19.nochr.chr17.fa'
 csv = 'pred.csv'
 
 # dataloader to load variants from vcf
-dl = SplicingVCFDataloader(gtf, fasta, vcf)
+dl = SplicingVCFDataloader(gtf, fasta, vcf, tissue_specific=False)
 
 # Specify model
 model = MMSplice()
