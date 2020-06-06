@@ -14,16 +14,16 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'setuptools',
     'scikit-learn==0.19.2',
+    'kipoiseq>=0.3.0',
     'tensorflow<=1.13.1',
     'keras>=2.0.4,<=2.2.4',
     'pandas',
     'concise',
     'pybedtools',
-    'kipoiseq==0.2.7',
     'pyfaidx',
     'tqdm',
     'click',
-    'pyranges'
+    'pyranges>=0.0.71'
 ]
 
 setup_requirements = ['pytest-runner', ]
