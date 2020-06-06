@@ -205,8 +205,8 @@ class ExonSplicingMixin:
     Args:
       fasta_file: fasta file to fetch exon sequences.
       split_seq: whether or not already split the sequence
-        when loading the data. Otherwise it can be done in the model class.
-      encode: if split sequence, should it be one-hot-encoded.
+        when loading the data.
+      endcode: if split sequence, should it be one-hot-encoded.
       overhang: overhang of exon to fetch flanking sequence of exon.
       seq_spliter: SeqSpliter class instance specific how to split seqs.
       tissue_specific: provide sequences for tissue specific prediction

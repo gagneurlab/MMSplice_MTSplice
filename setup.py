@@ -14,15 +14,16 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'setuptools',
     'scikit-learn==0.19.2',
-    'tensorflow',
-    'keras',
+    'kipoiseq>=0.3.0',
+    'tensorflow<=1.13.1',
+    'keras>=2.0.4,<=2.2.4',
     'pandas',
     'concise',
-    'kipoiseq>=0.3.0',
+    'pybedtools',
     'pyfaidx',
     'tqdm',
     'click',
-    'pyranges'
+    'pyranges>=0.0.71'
 ]
 
 setup_requirements = ['pytest-runner', ]
@@ -58,6 +59,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/gagneurlab/mmsplice',
-    version='1.0.1',
+    version='1.0.3',
     zip_safe=False
 )

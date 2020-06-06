@@ -93,6 +93,31 @@ predictions = predict_all_table(model, dl, pathogenicity=True, splicing_efficien
 predictionsMax = max_varEff(predictions)
 ```
 
+### Output
+
+Output of MMSplice is an tabular data which contains following described columns:
+
+* `ID`: id string of the variant
+* `delta_logit_psi`: The main score is predicted by MMSplice, which shows the effect of the variant on the inclusion level (PSI percent spliced in) of the exon. The score is on a logit scale.  If the score is positive, it shows that variant leads higher inclusion rate for the exon. If the score is negative, it shows that variant leads higher exclusion rate for the exon. If delta_logit_psi is bigger than 2 or smaller than -2, the effect of variant can be considered strong.
+* `exons`: Genetics location of exon whose inclusion rate is effected by variant
+* `exon_id`: Genetic id of exon whose inclusion rate is effected by variant
+* `gene_id`: Genetic id of the gene which the exon belongs to. 
+* `gene_name`:  Name of the gene which the exon belongs to. 
+* `transcript_id`: Genetic id of the transcript which the exon belongs to. 
+* `ref_acceptorIntron`: acceptor intron score of the reference sequence
+* `ref_acceptor`: acceptor score of the reference sequence
+* `ref_exon`: exon score of the reference sequence
+* `ref_donor`: donor score of the reference sequence
+* `ref_donorIntron`: donor intron score of the reference sequence
+* `alt_acceptorIntron`: acceptor intron score of variant sequence
+* `alt_acceptor`: acceptor score of the sequence with variant
+* `alt_exon`: exon score of the sequence with variant
+* `alt_donor`: donor score of the sequence with variant
+* `alt_donorIntron`: donor intron score of the sequence with variant
+* `pathogenicity`: Potential pathogenic effect of the variant.
+* `efficiency`: The effect of the variant on the splicing efficiency of the exon.
+
+
 ## VEP Plugin
 
 The VEP plugin wraps the prediction function from `mmsplice` python package. Please check documentation of vep plugin [under VEP_plugin/README.md](VEP_plugin/README.md).
