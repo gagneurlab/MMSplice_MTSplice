@@ -2,12 +2,12 @@
 [![CircleCI](https://circleci.com/gh/gagneurlab/MMSplice.svg?style=svg)](https://circleci.com/gh/gagneurlab/MMSplice)
 [![pypi](https://img.shields.io/pypi/v/mmsplice.svg)](https://pypi.python.org/pypi/mmsplice)
 
-Predict splicing variant effect from VCF
+Predict (tissue-specific) splicing variant effect from VCF. MTSplice is integrated into MMSplice with the same API. 
 
 Paper: Cheng et al. https://doi.org/10.1101/438986
 
 ![MMSplice](https://raw.githubusercontent.com/kipoi/models/master/MMSplice/Model.png)
-
+![MTSplice](https://raw.githubusercontent.com/s6juncheng/figshare/master/MTSplice.JPG)
 
 ## Installation
 -----------------
@@ -64,6 +64,8 @@ Human reference fasta file can be downloaded from ensembl/gencode. Make sure the
 Check [notebooks/example.ipynb](https://github.com/gagneurlab/MMSplice/blob/master/notebooks/example.ipynb)
 
 To score variants (including indels), we suggest to use primarily the `deltaLogitPSI` predictions, which is the default output. The differential splicing efficiency (dse) model was trained from MMSplice modules and exonic variants from MaPSy, thus only the predictions for exonic variants are calibrated.
+
+**MTSplice** To predict tissue-specific variant effect with MTSplice, specify `tissue_specific=True` in `SplicingVCFDataloader`. 
 
 ```python
 # Import
