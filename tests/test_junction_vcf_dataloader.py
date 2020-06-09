@@ -11,9 +11,9 @@ from mmsplice import predict_all_table
 
 def test_JunctionPSI5Dataset_junction_to_acceptor_exons():
     df_junc = JunctionPSI5Dataset(junction_psi5_file, fasta_file).exons
-    assert df_junc.iloc[0].Exon_Start == 18159912
+    assert df_junc.iloc[0].Exon_Start == 18159911
     assert df_junc.iloc[0].Exon_End == 18160011
-    assert df_junc.iloc[1].Exon_Start == 18159740
+    assert df_junc.iloc[1].Exon_Start == 18159739
     assert df_junc.iloc[1].Exon_End == 18159839
 
 
@@ -27,7 +27,7 @@ def test_JunctionPSI5Dataset__getitem__():
         'acceptor': 'AGCTCCCCATGAAGCGTGGTCAGGTTGTTGTGGCTCACAGACAAGTGTTCCTG',
         'exon': 'CTGGGCCGGAATGGGGAGCACAGGCTCAGCAGGGTGGGTGGGGTGTCCAGAGTCCCT'
         'GCCTGCCTCCACAACTCTGCACCATCCAGGAAGGCCTCAGCCA',
-        'donor': 'AGCCANNNNNNNNNNNNN',
+        'donor': 'NNNNNNNNNNNNNNNNNN',
         'donor_intron': 'NNNNNNNN'
     }
     assert d['inputs']['mut_seq'] == {
@@ -36,7 +36,7 @@ def test_JunctionPSI5Dataset__getitem__():
         'acceptor': 'AGCTCCCCATGAAGCGTGGTCAGGTTGTTGTGGCTCACAGACAAGTGTTCCTG',
         'exon': 'CTGGGCCGGAATGGGGAGCACAGGCTCAGCAGGGTGGGTGGGGTGTCCAGAGTCCCT'
         'GCCTGCCTCCACAACTCTGCACCATCCAGGAAGGCCTCAGCCA',
-        'donor': 'AGCCANNNNNNNNNNNNN',
+        'donor': 'NNNNNNNNNNNNNNNNNN',
         'donor_intron': 'NNNNNNNN'
     }
     assert d['metadata'] == {
@@ -59,38 +59,76 @@ def test_JunctionPSI5Dataset__getitem__():
         }
     }
 
+    d = dl[1]
+    assert d['inputs']['seq'] == {
+        'acceptor_intron': 'TGAGCCTGTGCTCCCCATTCCGGCCCAGGAACACTTGTCTGTGAGC'
+        'CACAACAACCTGACCACGCTTCATGGGGAGCTGTCCAGCCTGCCATCG',
+        'acceptor': 'ACAACCTGACCACGCTTCATGGGGAGCTGTCCAGCCTGCCATCGCTGCGCGTG',
+        'exon': 'GTGAGTGCTGGCCGGGAGGCCACCGAGCTTGGGGTTGGGGCCAAGGTCCGGTCAGGG'
+        'ACGTGAAGCCTGGGCTAGACACCAAGCTGGGCCAGCATTTCTG',
+        'donor': 'NNNNNNNNNNNNNNNNNN',
+        'donor_intron': 'NNNNNNNN'
+    }
+    assert d['inputs']['mut_seq'] == {
+        'acceptor_intron': 'TGAGCCTGTGCTCCCCATTCCGGCCCAGGAACACTTGTCTGTGAGC'
+        'CACAACAACCTGACCACGCTTCATGGGGAGCTGTCCAGCCTGCCATCG',
+        'acceptor': 'ACAACCTGACCACGCTTCATGGGGAGCTGTCCAGCCTGCCATCGCTGCGCGTG',
+        'exon': 'GTGAGTGCTGGCCGGGAGGCCACCAAGCTTGGGGTTGGGGCCAAGGTCCGGTCAGGG'
+        'ACGTGAAGCCTGGGCTAGACACCAAGCTGGGCCAGCATTTCTG',
+        'donor': 'NNNNNNNNNNNNNNNNNN',
+        'donor_intron': 'NNNNNNNN'
+    }
+    assert d['metadata'] == {
+        'variant': {
+            'chrom': '17',
+            'pos': 18159815,
+            'ref': 'C',
+            'alt': 'T',
+            'annotation': '17:18159815:C>T'
+        },
+        'exon': {
+            'chrom': '17',
+            'start': 18159739,
+            'end': 18159839,
+            'strand': '-',
+            'left_overhang': 100,
+            'right_overhang': 0,
+            'annotation': '17:18159739-18159839:-',
+            'junction': '17:18159839-18159911:-'
+        }
+    }
+
 
 def test_JunctionPSI3Dataset_junction_to_donor_exons():
     df_junc = JunctionPSI3Dataset(junction_psi3_file, fasta_file).exons
-    assert df_junc.iloc[0].Exon_Start == 18159840 - 100
-    assert df_junc.iloc[0].Exon_End == 18159840 - 1
-    assert df_junc.iloc[1].Exon_Start == 18159911 + 1
+    assert df_junc.iloc[0].Exon_Start == 18159839 - 100
+    assert df_junc.iloc[0].Exon_End == 18159839
+    assert df_junc.iloc[1].Exon_Start == 18159911
     assert df_junc.iloc[1].Exon_End == 18159911 + 100
 
 
 def test_JunctionPSI3Dataset__getitem__():
-    dl = JunctionPSI3Dataset(junction_psi5_file, fasta_file, encode=False)
-    d = dl[0]
+    dl = JunctionPSI3Dataset(junction_psi3_file, fasta_file, encode=False)
 
+    d = dl[0]
     assert d['inputs']['seq'] == {
-        'donor_intron': 'CGATGGCAGGCTGGACAGCTCCCCATGAAGCGTGGTCAGGTTGTTGTGG'
-        'CTCACAGACAAGTGTTCCTGGGCCGGAATGGGGAGCACAGGCTCA',
-        'donor': 'CTCACGCGCAGCGATGGC',
+        'acceptor_intron': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN',
+        'acceptor': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN',
         'exon': 'CAGAAATGCTGGCCCAGCTTGGTGTCTAGCCCAGGCTTCACGTCCCTGACCGGACCT'
         'TGGCCCCAACCCCAAGCTCGGTGGCCTCCCGGCCAGCACTCAC',
-        'acceptor': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNCAG',
-        'acceptor_intron': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN'
+        'donor_intron': 'CGATGGCAGGCTGGACAGCTCCCCATGAAGCGTGGTCAGGTTGTTGTGG'
+        'CTCACAGACAAGTGTTCCTGGGCCGGAATGGGGAGCACAGGCTCA',
+        'donor': 'CTCACGCGCAGCGATGGC'
     }
     assert d['inputs']['mut_seq'] == {
         'acceptor_intron': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN',
-        'acceptor': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNCAG',
+        'acceptor': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN',
         'exon': 'CAGAAATGCTGGCCCAGCTTGGTGTCTAGCCCAGGCTTCACGTCCCTGACCGGACCT'
         'TGGCCCCAACCGCAAGCTCGGTGGCCTCCCGGCCAGCACTCAC',
         'donor': 'CTCACGCGCAGCGATGGC',
         'donor_intron': 'CGATGGCAGGCTGGACAGCTCCCCATGAAGCGTGGTCAGGTTGTTGTGG'
         'CTCACAGACAAGTGTTCCTGGGCCGGAATGGGGAGCACAGGCTCA'
     }
-
     assert d['metadata'] == {
         'variant': {
             'annotation': '17:18159808:C>G',
@@ -108,6 +146,45 @@ def test_JunctionPSI3Dataset__getitem__():
             'right_overhang': 100,
             'annotation': '17:18159739-18159839:+',
             'junction': '17:18159839-18159911:+'
+        }
+    }
+
+    d = dl[1]
+    assert d['inputs']['seq'] == {
+        'acceptor_intron': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN',
+        'acceptor': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN',
+        'exon': 'TGGCTGAGGCCTTCCTGGATGGTGCAGAGTTGTGGAGGCAGGCAGGGACTCTGGACA'
+        'CCCCACCCACCCTGCTGAGCCTGTGCTCCCCATTCCGGCCCAG',
+        'donor': 'CCCAGGAACACTTGTCTG',
+        'donor_intron': 'TTGTCTGTGAGCCACAACAACCTGACCACGCTTCATGGGGAGCTGTCCA'
+        'GCCTGCCATCGCTGCGCGTGAGTGCTGGCCGGGAGGCCACCGAGC'
+    }
+    assert d['inputs']['mut_seq'] == {
+        'acceptor_intron': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN',
+        'acceptor': 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN',
+        'exon': 'TGGCTGAGGCCTTCCTGGATGGTGCAGAGTTGTGGAGGCAGGCAGGGACTCTGGACA'
+        'CCCCACCCACCCTGCTGAGCCTGTGCTCCCCATTCCGGCCCAG',
+        'donor': 'CCCAGGAACACTTGTCTG',
+        'donor_intron': 'TTGTCTGTGAGCCACAACAACCTGACCACGCTTCATGGGGAGCTGTCCA'
+        'GCCTGCCATCGCTGCGCGTGAGTGCTGGCCGGGAGGCCACCAAGC'
+    }
+    assert d['metadata'] == {
+        'variant': {
+            'chrom': '17',
+            'pos': 18159815,
+            'ref': 'C',
+            'alt': 'T',
+            'annotation': '17:18159815:C>T'
+        },
+        'exon': {
+            'chrom': '17',
+            'start': 18159911,
+            'end': 18160011,
+            'strand': '-',
+            'left_overhang': 0,
+            'right_overhang': 100,
+            'annotation': '17:18159911-18160011:-',
+            'junction': '17:18159839-18159911:-'
         }
     }
 

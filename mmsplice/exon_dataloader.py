@@ -229,7 +229,7 @@ class ExonSplicingMixin:
         self.tissue_specific = tissue_specific
         self.tissue_overhang = tissue_overhang
 
-    def _next(self, exon, variant, overhang=None):
+    def _next(self, exon, variant, overhang=None, mask_module=None):
         overhang = overhang or self.overhang
 
         inputs = {
@@ -257,6 +257,14 @@ class ExonSplicingMixin:
             inputs['seq'] = self.spliter.split(inputs['seq'], overhang, exon)
             inputs['mut_seq'] = self.spliter.split(inputs['mut_seq'], overhang,
                                                    exon, pattern_warning=False)
+            if mask_module:
+                for i in mask_module:
+                    if i in inputs['seq']:
+                        inputs['seq'][i] = 'N' * len(inputs['seq'][i])
+                        inputs['mut_seq'][i] = 'N' * len(inputs['mut_seq'][i])
+                    else:
+                        raise ValueError('%s is not in mmsplice modules' % i)
+
             if self.tissue_specific:
                 inputs['tissue_seq'] = self.spliter.split_tissue_seq(
                     inputs['tissue_seq'], tissue_overhang)
