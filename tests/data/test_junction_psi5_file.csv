@@ -1,0 +1,3 @@
+seqnames,Junction_Start,Junction_End,width,strand,ID,hg19_variant_position,reference,variant,HepG2_ref_psi
+17,18159840,18159911,72,+,chr17_18159808_C_G,18159808,C,G,13.4878863826
+17,18159840,18159911,72,-,chr17_18159815_C_T,18159815,C,T,13.4878863826
