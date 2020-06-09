@@ -5,6 +5,7 @@ import pyranges
 from kipoi.data import SampleIterator
 from mmsplice.exon_dataloader import ExonDataset
 from mmsplice.vcf_dataloader import SplicingVCFMixin
+from kipoiseq.dataclasses import Interval, Variant
 
 logger = logging.getLogger('mmsplice')
 
@@ -16,68 +17,92 @@ def junction_df_junction_str(df):
         ':' + df['Strand']
 
 
-class JunctionPSI5Dataset(ExonDataset):
+class _JunctionDataset(ExonDataset):
     required_cols = ('Chromosome', 'Junction_Start', 'Junction_End',
                      'Strand', 'pos', 'ref', 'alt')
 
-    def __init__(self, exon_file, fasta_file, split_seq=True, encode=True,
+    def __init__(self, exon_file, fasta_file, event_type, split_seq=True, encode=True,
                  overhang=100, seq_spliter=None,
                  exon_len=100, **kwargs):
+        self.event_type = event_type
         super().__init__(exon_file, fasta_file, split_seq=split_seq,
-                         encode=encode, overhang=(overhang, 0),
+                         encode=encode, overhang=self._get_overhang(overhang),
                          seq_spliter=seq_spliter, **kwargs)
         self.exon_len = exon_len
-        self.exons = self._junction_to_acceptor_exons(self.exons, exon_len)
+        self.exons = self._junction_to_acceptor_exons(
+            self.exons, exon_len, event_type)
+
+    def _get_overhang(self, overhang):
+        if self.event_type == 'psi5':
+            return (overhang, 0)
+        elif self.event_type == 'psi3':
+            return (0, overhang)
+        else:
+            raise ValueError('event_type should be "psi5" or "psi3"')
 
     @staticmethod
-    def _junction_to_acceptor_exons(df, exon_len):
-        # intron start-end position to exon start-end position (1-based)
+    def _junction_to_acceptor_exons(df, exon_len, event_type):
+        # intron to 0-based position
         df['Junction_Start'] -= 1
-        df['Junction_End'] += 1
 
         # calculates acceptor exon start end based
-        # on given fixed exon lenght parameter and overhang (1-based)
-        df['Exon_Start'] = np.where(df['Strand'] == '-',
-                                    df['Junction_Start'] - exon_len + 1,
-                                    df['Junction_End'])
-        df['Exon_End'] = df['Exon_Start'] + exon_len - 1
+        if event_type == 'psi5':
+            df['Exon_Start'] = np.where(df['Strand'] == '-',
+                                        df['Junction_Start'] - exon_len,
+                                        df['Junction_End'])
+        elif event_type == 'psi3':
+            df['Exon_Start'] = np.where(df['Strand'] == '-',
+                                        df['Junction_End'],
+                                        df['Junction_Start'] - exon_len)
 
-        # convert junction position to 0-based
-        df['Junction_End'] -= 1
+        df['Exon_End'] = df['Exon_Start'] + exon_len
         df['junction'] = junction_df_junction_str(df)
         return df.rename(columns=ExonDataset.exon_cols_mapping)
 
+    def __getitem__(self, idx):
+        row = self.exons.iloc[idx]
+        exon_attrs = {k: row[k] for k in self.optional_metadata if k in row}
+        exon = Interval(row['Chromosome'], row['Exon_Start'],
+                        row['Exon_End'], strand=row['Strand'],
+                        attrs=exon_attrs)
+        variant = Variant(row['Chromosome'], row['pos'],
+                          row['ref'], row['alt'])
 
-class JunctionPSI3Dataset(ExonDataset):
-    required_cols = ('Chromosome', 'Junction_Start', 'Junction_End',
-                     'Strand', 'pos', 'ref', 'alt')
+        overhang = self.overhang
+        if exon.strand == '-':
+            overhang = (overhang[1], overhang[0])
+
+        if self.event_type == 'psi5':
+            mask = ['donor', 'donor_intron']
+        else:
+            mask = ['acceptor', 'acceptor_intron']
+
+        row = self._next(exon, variant, overhang, mask)
+
+        if self.event_type == 'psi5':
+            row['inputs']['seq']['donor'] = 'N' * len(
+                row['inputs']['seq']['donor'])
+            row['inputs']['seq']['donor'] = 'N' * len(
+                row['inputs']['seq']['donor'])
+        return row
+
+
+class JunctionPSI5Dataset(_JunctionDataset):
 
     def __init__(self, exon_file, fasta_file, split_seq=True, encode=True,
-                 overhang=100, seq_spliter=None,
-                 exon_len=100, **kwargs):
-        super().__init__(exon_file, fasta_file, split_seq=split_seq,
-                         encode=encode, overhang=(0, overhang),
-                         seq_spliter=seq_spliter, **kwargs)
-        self.exon_len = exon_len
-        self.exons = self._junction_to_donor_exons(self.exons, exon_len)
+                 overhang=100, seq_spliter=None, exon_len=100, **kwargs):
+        super().__init__(exon_file, fasta_file, 'psi5', split_seq=split_seq,
+                         encode=encode, overhang=overhang,
+                         seq_spliter=seq_spliter, exon_len=exon_len, **kwargs)
 
-    @staticmethod
-    def _junction_to_donor_exons(df, exon_len):
-        # intron start-end position to exon start-end position (1-based)
-        df['Junction_Start'] -= 1
-        df['Junction_End'] += 1
 
-        # calculates acceptor exon start end based
-        # on given fixed exon lenght parameter and overhang (1-based)
-        df['Exon_Start'] = np.where(df['Strand'] == '-',
-                                    df['Junction_End'],
-                                    df['Junction_Start'] - exon_len + 1)
-        df['Exon_End'] = df['Exon_Start'] + exon_len - 1
+class JunctionPSI3Dataset(_JunctionDataset):
 
-        # convert junction position to 0-based
-        df['Junction_End'] -= 1
-        df['junction'] = junction_df_junction_str(df)
-        return df
+    def __init__(self, exon_file, fasta_file, split_seq=True, encode=True,
+                 overhang=100, seq_spliter=None, exon_len=100, **kwargs):
+        super().__init__(exon_file, fasta_file, 'psi3', split_seq=split_seq,
+                         encode=encode, overhang=overhang,
+                         seq_spliter=seq_spliter, exon_len=exon_len, **kwargs)
 
 
 class JunctionVCFDataloader(SplicingVCFMixin, SampleIterator):
