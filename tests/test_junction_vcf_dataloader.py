@@ -2,8 +2,8 @@ import pandas as pd
 from kipoiseq import Interval
 from conftest import junction_file, fasta_file, junction_psi5_file,  \
     junction_psi3_file
-from mmsplice.junction_dataloader import JunctionVCFDataloader, \
-    JunctionPSI5Dataset, JunctionPSI3Dataset
+from mmsplice.junction_dataloader import JunctionPSI5VCFDataloader, \
+    JunctionPSI3VCFDataloader, JunctionPSI5Dataset, JunctionPSI3Dataset
 from mmsplice.utils import Variant
 from mmsplice import MMSplice
 from mmsplice import predict_all_table
@@ -189,8 +189,16 @@ def test_JunctionPSI3Dataset__getitem__():
     }
 
 
-def test_JunctionVCFDataloader__init__(vcf_path):
-    junc_dl = JunctionVCFDataloader(junction_file, fasta_file, vcf_path)
+def test_JunctionPSI5VCFDataloader__init__(vcf_path):
+    junc_dl = JunctionPSI5VCFDataloader(junction_file, fasta_file, vcf_path)
+    assert junc_dl
+
+    rows = list(junc_dl._generator)
+    assert len(rows) != 0
+
+
+def test_JunctionPSI3VCFDataloader__init__(vcf_path):
+    junc_dl = JunctionPSI5VCFDataloader(junction_file, fasta_file, vcf_path)
     assert junc_dl
 
     rows = list(junc_dl._generator)
@@ -199,34 +207,36 @@ def test_JunctionVCFDataloader__init__(vcf_path):
 
 def test_JunctionVCFDataloader_read_junction(vcf_path):
     df = pd.read_csv(junction_file)
-    df_junc = JunctionVCFDataloader._read_junction(
-        junction_file, overhang=(100, 100), exon_len=50).df
 
-    assert df_junc.shape[0] == df.shape[0] * 2
+    df_junc = JunctionPSI3VCFDataloader._read_junction(
+        junction_file, 'psi3', overhang=(100, 100), exon_len=50).df
 
-    row = df_junc[(df_junc['side'] == 'donor') &
-                  (df_junc['Strand'] == '-')].iloc[0]
+    assert df_junc.shape[0] == df.shape[0]
+
+    row = df_junc[df_junc['Strand'] == '-'].iloc[0]
     assert row['Start'] == 41279742 - 100
     assert row['End'] == 41279742 + 50
 
-    row = df_junc[(df_junc['side'] == 'acceptor') &
-                  (df_junc['Strand'] == '-')].iloc[0]
-    assert row['Start'] == 41276032 - 50
-    assert row['End'] == 41276032 + 100
-
-    row = df_junc[(df_junc['side'] == 'donor') &
-                  (df_junc['Strand'] == '+')].iloc[0]
+    row = df_junc[df_junc['Strand'] == '+'].iloc[0]
     assert row['Start'] == 41276002 - 50
     assert row['End'] == 41276002 + 100
 
-    row = df_junc[(df_junc['side'] == 'acceptor') &
-                  (df_junc['Strand'] == '+')].iloc[0]
+    df_junc = JunctionPSI5VCFDataloader._read_junction(
+        junction_file, 'psi5', overhang=(100, 100), exon_len=50).df
+
+    assert df_junc.shape[0] == df.shape[0]
+
+    row = df_junc[df_junc['Strand'] == '-'].iloc[0]
+    assert row['Start'] == 41276032 - 50
+    assert row['End'] == 41276032 + 100
+
+    row = df_junc[df_junc['Strand'] == '+'].iloc[0]
     assert row['Start'] == 41279042 - 100
     assert row['End'] == 41279042 + 50
 
 
 def test_JunctionVCFDataloader__next__(vcf_path):
-    junc_dl = JunctionVCFDataloader(
+    junc_dl = JunctionPSI3VCFDataloader(
         junction_file, fasta_file, vcf_path,
         encode=False, split_seq=False)
 
@@ -237,7 +247,6 @@ def test_JunctionVCFDataloader__next__(vcf_path):
                          'left_overhang': 100,
                          'right_overhang': 0,
                          'junction': '17:41276003-41279042:-',
-                         'side': 'donor'
                      }),
             Variant('17', 41279035, 'C', 'G')
         )
@@ -253,7 +262,6 @@ def test_JunctionVCFDataloader__next__(vcf_path):
         'left_overhang': 100,
         'annotation': '17:41279042-41279142:-',
         'junction': '17:41276003-41279042:-',
-        'side': 'donor'
     }
 
     assert d['inputs']['seq'] == (
@@ -270,7 +278,7 @@ def test_JunctionVCFDataloader__next__(vcf_path):
 
 
 def test_JunctionVCFDataloader__next__split(vcf_path):
-    junc_dl = JunctionVCFDataloader(
+    junc_dl = JunctionPSI3VCFDataloader(
         junction_file, fasta_file, vcf_path,
         encode=False, split_seq=True)
 
@@ -281,7 +289,6 @@ def test_JunctionVCFDataloader__next__split(vcf_path):
                          'left_overhang': 100,
                          'right_overhang': 0,
                          'junction': '17:41276003-41279042:-',
-                         'side': 'donor'
                      }),
             Variant('17', 41279035, 'C', 'G')
         )
@@ -293,11 +300,16 @@ def test_JunctionVCFDataloader__next__split(vcf_path):
 
 def test_predict_all_table(vcf_path):
     model = MMSplice()
-    dl = JunctionVCFDataloader(junction_file, fasta_file, vcf_path)
+    dl = JunctionPSI5VCFDataloader(junction_file, fasta_file, vcf_path)
     df = predict_all_table(model, dl, pathogenicity=True,
                            splicing_efficiency=True)
     assert 'junction' in df.columns
-    assert 'side' in df.columns
+    assert len(df['delta_logit_psi']) > 0
+
+    dl = JunctionPSI3VCFDataloader(junction_file, fasta_file, vcf_path)
+    df = predict_all_table(model, dl, pathogenicity=True,
+                           splicing_efficiency=True)
+    assert 'junction' in df.columns
     assert len(df['delta_logit_psi']) > 0
 
     dl = JunctionPSI5Dataset(junction_psi5_file, fasta_file)

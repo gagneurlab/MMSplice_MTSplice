@@ -78,12 +78,6 @@ class _JunctionDataset(ExonDataset):
             mask = ['acceptor', 'acceptor_intron']
 
         row = self._next(exon, variant, overhang, mask)
-
-        if self.event_type == 'psi5':
-            row['inputs']['seq']['donor'] = 'N' * len(
-                row['inputs']['seq']['donor'])
-            row['inputs']['seq']['donor'] = 'N' * len(
-                row['inputs']['seq']['donor'])
         return row
 
 
@@ -105,7 +99,7 @@ class JunctionPSI3Dataset(_JunctionDataset):
                          seq_spliter=seq_spliter, exon_len=exon_len, **kwargs)
 
 
-class JunctionVCFDataloader(SplicingVCFMixin, SampleIterator):
+class _JunctionVCFDataloader(SplicingVCFMixin, SampleIterator):
     """
     Load intron annotation (bed) file along with a vcf file,
       return reference sequence and alternative sequence.
@@ -126,35 +120,39 @@ class JunctionVCFDataloader(SplicingVCFMixin, SampleIterator):
     """
 
     def __init__(self, intron_annotation, fasta_file, vcf_file,
-                 split_seq=True, encode=True,
+                 event_type, split_seq=True, encode=True,
                  overhang=(100, 100), seq_spliter=None, exon_len=100):
-        pr_exons = self._read_junction(intron_annotation, overhang, exon_len)
+        self.event_type = event_type
+        pr_exons = self._read_junction(intron_annotation, event_type,
+                                       overhang, exon_len)
         super().__init__(pr_exons, intron_annotation, fasta_file, vcf_file,
                          split_seq, encode, overhang, seq_spliter,
-                         interval_attrs=('side', 'junction'))
+                         interval_attrs=('junction', ))
 
     @staticmethod
-    def _read_junction(intron_annotation, overhang=(100, 100), exon_len=100):
+    def _read_junction(intron_annotation, event_type, overhang=(100, 100), exon_len=100):
         df = pd.read_csv(intron_annotation, dtype={'Chromosome': str})
 
         # TODO: rearrange overhang
         # TO REFACTOR: refactor with junction_loader classes.
-        df = pd.concat([df, JunctionVCFDataloader._junction_to_exon(
+        df = pd.concat([df, _JunctionVCFDataloader._junction_to_exon(
             df, overhang, exon_len)], axis=1)
 
         # split donor-acceptor from horizontal dataframe to two df
         # and merge this two df as one vertical dataframes
         df = df.rename(columns={"Start": "Junction_Start",
                                 "End": "Junction_End"})
-        df_donor = df[['Chromosome', 'Donor_Start', 'Donor_End',
-                       'Strand', 'Junction_Start', 'Junction_End']] \
-            .rename(columns={'Donor_Start': 'Start', 'Donor_End': 'End'})
-        df_acceptor = df[['Chromosome', 'Acceptor_Start', 'Acceptor_End',
-                          'Strand', 'Junction_Start', 'Junction_End']] \
-            .rename(columns={'Acceptor_Start': 'Start', 'Acceptor_End': 'End'})
-        df_donor['side'] = 'donor'
-        df_acceptor['side'] = 'acceptor'
-        df_exons = pd.concat([df_acceptor, df_donor])
+
+        if event_type == 'psi5':
+            df_exons = df[['Chromosome', 'Acceptor_Start', 'Acceptor_End',
+                           'Strand', 'Junction_Start', 'Junction_End']] \
+                .rename(columns={'Acceptor_Start': 'Start', 'Acceptor_End': 'End'})
+        elif event_type == 'psi3':
+            df_exons = df[['Chromosome', 'Donor_Start', 'Donor_End',
+                           'Strand', 'Junction_Start', 'Junction_End']] \
+                .rename(columns={'Donor_Start': 'Start', 'Donor_End': 'End'})
+        else:
+            raise ValueError('event_type should be "psi5" or "psi3"')
 
         df_exons['junction'] = junction_df_junction_str(df_exons)
 
@@ -190,17 +188,44 @@ class JunctionVCFDataloader(SplicingVCFMixin, SampleIterator):
         # TODO: fix overhang will be reversed based on strand
         #   in `ExonSplicingMixin`
         # ---...*---
-        if (exon.attrs['side'] == 'donor' and exon.strand == '-') \
-           or (exon.attrs['side'] == 'acceptor' and exon.strand == '+'):
+        if (self.event_type == 'psi3' and exon.strand == '-') \
+           or (self.event_type == 'psi5' and exon.strand == '+'):
             overhang = (self.overhang[0], 0)
         # ---*...---
-        elif (exon.attrs['side'] == 'acceptor' and exon.strand == '-') \
-                or (exon.attrs['side'] == 'donor' and exon.strand == '+'):
+        elif (self.event_type == 'psi5' and exon.strand == '-') \
+                or (self.event_type == 'psi3' and exon.strand == '+'):
             overhang = (0, self.overhang[1])
 
         exon._start += overhang[0]
         exon._end -= overhang[1]
-        return self._next(exon, variant, overhang)
+
+        if self.event_type == 'psi5':
+            mask = ['donor', 'donor_intron']
+        else:
+            mask = ['acceptor', 'acceptor_intron']
+
+        row = self._next(exon, variant, overhang, mask)
+        return row
 
     def __iter__(self):
         return self
+
+
+class JunctionPSI5VCFDataloader(_JunctionVCFDataloader):
+    def __init__(self, intron_annotation, fasta_file, vcf_file,
+                 split_seq=True, encode=True, overhang=(100, 100),
+                 seq_spliter=None, exon_len=100, **kwargs):
+        super().__init__(intron_annotation, fasta_file, vcf_file,
+                         'psi5', split_seq=split_seq, encode=encode,
+                         overhang=overhang, seq_spliter=seq_spliter,
+                         exon_len=exon_len, **kwargs)
+
+
+class JunctionPSI3VCFDataloader(_JunctionVCFDataloader):
+    def __init__(self, intron_annotation, fasta_file, vcf_file,
+                 split_seq=True, encode=True, overhang=(100, 100),
+                 seq_spliter=None, exon_len=100, **kwargs):
+        super().__init__(intron_annotation, fasta_file, vcf_file, 'psi3',
+                         split_seq=split_seq, encode=encode,
+                         overhang=overhang, seq_spliter=seq_spliter,
+                         exon_len=exon_len, **kwargs)
