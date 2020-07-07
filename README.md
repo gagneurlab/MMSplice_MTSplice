@@ -4,7 +4,7 @@
 
 Predict (tissue-specific) splicing variant effect from VCF. MTSplice is integrated into MMSplice with the same API. 
 
-Paper: Cheng et al. https://doi.org/10.1101/438986
+Paper: Cheng et al. https://doi.org/10.1101/438986, https://www.biorxiv.org/content/10.1101/2020.06.07.138453v1
 
 ![MMSplice](https://raw.githubusercontent.com/kipoi/models/master/MMSplice/Model.png)
 ![MTSplice](https://raw.githubusercontent.com/s6juncheng/figshare/master/MTSplice.JPG)
