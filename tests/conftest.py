@@ -8,6 +8,7 @@ exon_file = 'tests/data/test_exons.csv'
 junction_file = 'tests/data/test_junction.csv'
 junction_psi5_file = 'tests/data/test_junction_psi5_file.csv'
 junction_psi3_file = 'tests/data/test_junction_psi3_file.csv'
+multi_vcf = 'tests/data/multi_test.vcf.gz'
 
 
 snps = [

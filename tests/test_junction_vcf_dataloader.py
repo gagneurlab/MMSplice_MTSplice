@@ -1,7 +1,7 @@
 import pandas as pd
 from kipoiseq import Interval
 from conftest import junction_file, fasta_file, junction_psi5_file,  \
-    junction_psi3_file
+    junction_psi3_file, multi_vcf
 from mmsplice.junction_dataloader import JunctionPSI5VCFDataloader, \
     JunctionPSI3VCFDataloader, JunctionPSI5Dataset, JunctionPSI3Dataset
 from mmsplice.utils import Variant
@@ -300,9 +300,13 @@ def test_JunctionVCFDataloader__next__split(vcf_path):
 
 def test_predict_all_table(vcf_path):
     model = MMSplice()
-    dl = JunctionPSI5VCFDataloader(junction_file, fasta_file, vcf_path)
+
+    dl = JunctionPSI5VCFDataloader(
+        junction_file, fasta_file, vcf_path)
+
     df = predict_all_table(model, dl, pathogenicity=True,
                            splicing_efficiency=True)
+
     assert 'junction' in df.columns
     assert len(df['delta_logit_psi']) > 0
 
@@ -323,3 +327,14 @@ def test_predict_all_table(vcf_path):
                            splicing_efficiency=True)
     assert 'junction' in df.columns
     assert len(df['delta_logit_psi']) > 0
+
+
+def test_JunctionDataloader_samples():
+    model = MMSplice()
+    dl = JunctionPSI5VCFDataloader(
+        junction_file, fasta_file, multi_vcf,
+        samples=True, maf=True)
+    df = predict_all_table(model, dl)
+
+    assert df['maf'].tolist() == [0.5, 0.5]
+    assert df['samples'].tolist() == ['NA00002;NA00003', 'NA00003']

@@ -162,8 +162,9 @@ class MMSplice(object):
             })
 
             for k in dataloader.optional_metadata:
-                if k in batch['metadata']['exon']:
-                    df[k] = batch['metadata']['exon'][k]
+                for j in ('variant', 'exon'):
+                    if k in batch['metadata'][j]:
+                        df[k] = batch['metadata'][j][k]
 
             df['delta_logit_psi'] = predict_deltaLogitPsi(X_ref, X_alt)
             df = pd.concat([df, ref_pred, alt_pred], axis=1)

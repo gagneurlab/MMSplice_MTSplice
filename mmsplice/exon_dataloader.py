@@ -214,7 +214,7 @@ class ExonSplicingMixin:
         tissue specific model. The current model only accepts 300.
     """
     optional_metadata = ('exon_id', 'gene_id', 'gene_name',
-                         'transcript_id', 'junction', 'side')
+                         'transcript_id', 'junction', 'side', 'maf', 'samples')
 
     def __init__(self, fasta_file, split_seq=True, encode=True,
                  overhang=(100, 100), seq_spliter=None,
