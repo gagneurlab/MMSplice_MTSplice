@@ -89,6 +89,12 @@ def pyrange_remove_chr_from_chrom_annotation(pr):
     return pyranges.PyRanges(df)
 
 
+def pyrange_add_chr_from_chrom_annotation(pr):
+    df = pr.df
+    df['Chromosome'] = 'chr' + df['Chromosome'].astype(str)
+    return pyranges.PyRanges(df)
+
+
 def max_varEff(df):
     """ Summarize largest absolute effect per variant across all affected exons.
     Args:

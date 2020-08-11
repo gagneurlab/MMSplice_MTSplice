@@ -4,7 +4,8 @@ import pandas as pd
 import pyranges
 from kipoi.data import SampleIterator
 from kipoiseq.extractors import MultiSampleVCF, SingleVariantMatcher
-from mmsplice.utils import pyrange_remove_chr_from_chrom_annotation
+from mmsplice.utils import pyrange_remove_chr_from_chrom_annotation,\
+    pyrange_add_chr_from_chrom_annotation
 from mmsplice.exon_dataloader import ExonSplicingMixin
 
 logger = logging.getLogger('mmsplice')
@@ -76,11 +77,15 @@ class SplicingVCFMixin(ExonSplicingMixin):
             raise ValueError(
                 'Fasta chrom names do not match with vcf chrom names')
 
-        if self.annotation == 'grch37' or self.annotation == 'grch38':
+        gtf_chroms = set(self.pr_exons.Chromosome)
+        if not gtf_chroms.intersection(vcf_chroms):
             chr_annotaion = any(chrom.startswith('chr')
                                 for chrom in vcf_chroms)
             if not chr_annotaion:
                 self.pr_exons = pyrange_remove_chr_from_chrom_annotation(
+                    self.pr_exons)
+            else:
+                self.pr_exons = pyrange_add_chr_from_chrom_annotation(
                     self.pr_exons)
 
         gtf_chroms = set(self.pr_exons.Chromosome)
