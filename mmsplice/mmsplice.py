@@ -8,7 +8,8 @@ from sklearn.externals import joblib
 import concise
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency, encodeDNA, \
-    read_ref_psi_annotation, delta_logit_PSI_to_delta_PSI
+    read_ref_psi_annotation, delta_logit_PSI_to_delta_PSI, \
+    mmsplice_ref_modules, mmsplice_alt_modules, df_batch_writer
 from mmsplice.exon_dataloader import SeqSpliter
 from mmsplice.mtsplice import MTSplice, tissue_names
 from mmsplice.layers import GlobalAveragePooling1D_Mask0
@@ -112,6 +113,56 @@ class MMSplice(object):
         batch = {k: encodeDNA([v]) for k, v in batch.items()}
         return self.predict_modular_scores_on_batch(batch)[0]
 
+    def _predict_batch(self, batch, optional_metadata=None):
+        optional_metadata = optional_metadata or []
+
+        X_ref = self.predict_modular_scores_on_batch(
+            batch['inputs']['seq'])
+        X_alt = self.predict_modular_scores_on_batch(
+            batch['inputs']['mut_seq'])
+        ref_pred = pd.DataFrame(X_ref, columns=mmsplice_ref_modules)
+        alt_pred = pd.DataFrame(X_alt, columns=mmsplice_alt_modules)
+
+        df = pd.DataFrame({
+            'ID': batch['metadata']['variant']['annotation'],
+            'exons': batch['metadata']['exon']['annotation'],
+        })
+
+        for key in optional_metadata:
+            for k, v in batch['metadata'].items():
+                if key in v:
+                    df[key] = v[key]
+
+        df['delta_logit_psi'] = predict_deltaLogitPsi(X_ref, X_alt)
+        df = pd.concat([df, ref_pred, alt_pred], axis=1)
+        return df
+
+    def _predict_batch_mtsplice(self, batch, df, mtsplice,
+                                natural_scale, df_ref):
+        X_tissue = mtsplice.predict_on_batch(
+            batch['inputs']['tissue_seq'])
+        X_tissue += np.expand_dims(
+            df['delta_logit_psi'].values, axis=1)
+        tissue_pred = pd.DataFrame(X_tissue, columns=tissue_names)
+        df = pd.concat([df, tissue_pred], axis=1)
+
+        if natural_scale:
+            df_ref = df_ref[df_ref.columns[6:]]
+            df = df.join(df_ref, on='exons', rsuffix='_ref')
+
+            ref_tissue_names = ['%s_ref' % i for i in df_ref.columns]
+
+            delta_psi_pred = pd.DataFrame(
+                delta_logit_PSI_to_delta_PSI(
+                    df[df_ref.columns].values,
+                    df[ref_tissue_names].values
+                ), columns=['%s_delta_psi' % i
+                            for i in df_ref.columns])
+            df.reset_index(drop=True, inplace=True)
+            delta_psi_pred.reset_index(drop=True, inplace=True)
+            df = pd.concat([df, delta_psi_pred], axis=1)
+        return df
+
     def _predict_on_dataloader(self, dataloader, batch_size=512, progress=True,
                                pathogenicity=False, splicing_efficiency=False,
                                natural_scale=False, ref_psi_version=None):
@@ -138,65 +189,29 @@ class MMSplice(object):
             if natural_scale:
                 df_ref = read_ref_psi_annotation(
                     ref_psi_version, set(dataloader.vcf.seqnames))
+            else:
+                df_ref = None
 
         dt_iter = dataloader.batch_iter(batch_size=batch_size)
         if progress:
             dt_iter = tqdm(dt_iter)
 
-        ref_cols = ['ref_acceptorIntron', 'ref_acceptor',
-                    'ref_exon', 'ref_donor', 'ref_donorIntron']
-        alt_cols = ['alt_acceptorIntron', 'alt_acceptor',
-                    'alt_exon', 'alt_donor', 'alt_donorIntron']
-
         for batch in dt_iter:
-            X_ref = self.predict_modular_scores_on_batch(
-                batch['inputs']['seq'])
-            X_alt = self.predict_modular_scores_on_batch(
-                batch['inputs']['mut_seq'])
-            ref_pred = pd.DataFrame(X_ref, columns=ref_cols)
-            alt_pred = pd.DataFrame(X_alt, columns=alt_cols)
-
-            df = pd.DataFrame({
-                'ID': batch['metadata']['variant']['annotation'],
-                'exons': batch['metadata']['exon']['annotation'],
-            })
-
-            for k in dataloader.optional_metadata:
-                for j in ('variant', 'exon'):
-                    if k in batch['metadata'][j]:
-                        df[k] = batch['metadata'][j][k]
-
-            df['delta_logit_psi'] = predict_deltaLogitPsi(X_ref, X_alt)
-            df = pd.concat([df, ref_pred, alt_pred], axis=1)
+            df = self._predict_batch(
+                batch, dataloader.optional_metadata)
+            X_ref = df[mmsplice_ref_modules].values
+            X_alt = df[mmsplice_alt_modules].values
 
             if dataloader.tissue_specific:
-                X_tissue = mtsplice.predict_on_batch(
-                    batch['inputs']['tissue_seq'])
-                X_tissue += np.expand_dims(
-                    df['delta_logit_psi'].values, axis=1)
-                tissue_pred = pd.DataFrame(X_tissue, columns=tissue_names)
-                df = pd.concat([df, tissue_pred], axis=1)
-
-                if natural_scale:
-                    df_ref = df_ref[df_ref.columns[6:]]
-                    df = df.join(df_ref, on='exons', rsuffix='_ref')
-
-                    ref_tissue_names = ['%s_ref' % i for i in df_ref.columns]
-
-                    delta_psi_pred = pd.DataFrame(
-                        delta_logit_PSI_to_delta_PSI(
-                            df[df_ref.columns].values,
-                            df[ref_tissue_names].values
-                        ), columns=['%s_delta_psi' % i
-                                    for i in df_ref.columns])
-                    df.reset_index(drop=True, inplace=True)
-                    delta_psi_pred.reset_index(drop=True, inplace=True)
-                    df = pd.concat([df, delta_psi_pred], axis=1)
+                df = self._predict_batch_mtsplice(
+                    batch, df, mtsplice, natural_scale, df_ref)
 
             if pathogenicity:
-                df['pathogenicity'] = predict_pathogenicity(X_ref, X_alt)
+                df['pathogenicity'] = predict_pathogenicity(
+                    X_ref, X_alt)
             if splicing_efficiency:
-                df['efficiency'] = predict_splicing_efficiency(X_ref, X_alt)
+                df['efficiency'] = predict_splicing_efficiency(
+                    X_ref, X_alt)
 
             yield df
 
@@ -229,8 +244,6 @@ class MMSplice(object):
 
 # TODO: implement prediction methods within MMSplice class,
 #   should be more error prone
-
-
 def predict_save(model, dataloader, output_csv, batch_size=512, progress=True,
                  pathogenicity=False, splicing_efficiency=False):
     from mmsplice import MMSplice
@@ -242,13 +255,7 @@ def predict_save(model, dataloader, output_csv, batch_size=512, progress=True,
         pathogenicity=pathogenicity,
         splicing_efficiency=splicing_efficiency)
 
-    df = next(df_iter)
-    with open(output_csv, 'w') as f:
-        df.to_csv(f, index=False)
-
-    for df in df_iter:
-        with open(output_csv, 'a') as f:
-            df.to_csv(f, index=False, header=False)
+    return df_batch_writer(df_iter)
 
 
 def predict_all_table(model, dataloader, batch_size=512, progress=True,

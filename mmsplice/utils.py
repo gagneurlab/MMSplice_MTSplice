@@ -8,6 +8,22 @@ from sklearn.externals import joblib
 from pkg_resources import resource_filename
 
 
+mmsplice_module_names = [
+    'acceptorIntron',
+    'acceptor',
+    'exon',
+    'donor',
+    'donorIntron'
+]
+
+mmsplice_ref_modules = ['ref_%s' % i for i in mmsplice_module_names]
+mmsplice_alt_modules = ['alt_%s' % i for i in mmsplice_module_names]
+mmsplice_modules = [
+    *mmsplice_alt_modules,
+    *mmsplice_ref_modules
+]
+
+
 LINEAR_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/linear_model.pkl'))
 LOGISTIC_MODEL = joblib.load(resource_filename(
@@ -21,6 +37,16 @@ ref_psi_annotation = {
     'grch38': resource_filename(
         'mmsplice', 'models/gtex_psi_map_ranges.csv.gz')
 }
+
+
+def df_batch_writer(df_iter, output):
+    df = next(df_iter)
+    with open(output, 'w') as f:
+        df.to_csv(f, index=False)
+
+    for df in df_iter:
+        with open(output, 'a') as f:
+            df.to_csv(f, index=False, header=False)
 
 
 def left_normalized(variant):
@@ -48,8 +74,8 @@ def clip(x, clip_threshold=0.00001):
     return np.clip(x, clip_threshold, 1 - clip_threshold)
 
 
-def logit(x):
-    x = clip(x)
+def logit(x, clip_threshold=0.00001):
+    x = clip(x, clip_threshold=clip_threshold)
     return np.log(x) - np.log(1 - x)
 
 
