@@ -255,7 +255,7 @@ def predict_save(model, dataloader, output_csv, batch_size=512, progress=True,
         pathogenicity=pathogenicity,
         splicing_efficiency=splicing_efficiency)
 
-    return df_batch_writer(df_iter)
+    return df_batch_writer(df_iter, output_csv)
 
 
 def predict_all_table(model, dataloader, batch_size=512, progress=True,
