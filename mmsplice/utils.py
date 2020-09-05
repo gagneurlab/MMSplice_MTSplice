@@ -349,3 +349,42 @@ def delta_logit_PSI_to_delta_PSI(delta_logit_psi, ref_psi,
                             pred_psi)
 
     return pred_psi - ref_psi
+
+def writeVCF(vcf_in, vcf_out, predictions):
+    from cyvcf2 import Writer, VCF
+    columns = [
+    'gene_name',
+    'transcript_id',
+    'exons',
+    'delta_logit_psi',
+    'ref_acceptorIntron',
+    'ref_acceptor',
+    'ref_exon',
+    'ref_donor',
+    'ref_donorIntron',
+    'alt_acceptorIntron',
+    'alt_acceptor',
+    'alt_exon',
+    'alt_donor',
+    'alt_donorIntron',
+    'pathogenicity',
+    'efficiency'
+    ]    
+    vcf = VCF(vcf_in)
+    vcf.add_info_to_header({
+        'ID': 'mmsplice',
+        'Description': 'mmsplice splice variant effect',
+        'Type': 'Character',
+        'Number': '.'
+    })
+
+    vcf_writer = Writer(vcf_out, vcf)
+    for var in vcf:
+        ID = str(Variant.from_cyvcf(var))
+        pred = predictions[predictions.ID == ID]
+        if pred is not None:
+            var.INFO['mmsplice'] = ','.join(
+                [k+':'+format(pred[k].values[0], ".3f") for k in columns[3:]])
+        vcf_writer.write_record(var)
+    vcf.close()
+    vcf_writer.close()
