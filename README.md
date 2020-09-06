@@ -1,5 +1,5 @@
 # MMSplice & MTSplice
-[![CircleCI](https://circleci.com/gh/gagneurlab/MMSplice.svg?style=svg)](https://circleci.com/gh/gagneurlab/MMSplice_MTSplice)
+[![CircleCI](https://circleci.com/gh/gagneurlab/MMSplice_MTSplice.svg?style=svg)](https://circleci.com/gh/gagneurlab/MMSplice_MTSplice)
 [![pypi](https://img.shields.io/pypi/v/mmsplice.svg)](https://pypi.python.org/pypi/mmsplice)
 
 Predict (tissue-specific) splicing variant effect from VCF. MTSplice is integrated into MMSplice with the same API. 
