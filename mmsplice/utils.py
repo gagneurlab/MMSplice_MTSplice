@@ -353,28 +353,28 @@ def delta_logit_PSI_to_delta_PSI(delta_logit_psi, ref_psi,
 def writeVCF(vcf_in, vcf_out, predictions):
     from cyvcf2 import Writer, VCF
     columns = [
-    'gene_name',
-    'transcript_id',
-    'exons',
-    'delta_logit_psi',
-    'ref_acceptorIntron',
-    'ref_acceptor',
-    'ref_exon',
-    'ref_donor',
-    'ref_donorIntron',
-    'alt_acceptorIntron',
-    'alt_acceptor',
-    'alt_exon',
-    'alt_donor',
-    'alt_donorIntron',
-    'pathogenicity',
-    'efficiency'
-    ]    
+        'alt_acceptor',
+        'alt_acceptorIntron',
+        'alt_donor',
+        'alt_donorIntron',
+        'alt_exon',
+        'delta_logit_psi',
+        'pathogenicity',
+        'ref_acceptor',
+        'ref_acceptorIntron',
+        'ref_donor',
+        'ref_donorIntron',
+        'ref_exon'
+    ]
+    m = 'mmsplice_'
+
     vcf = VCF(vcf_in)
     vcf.add_info_to_header({
-        'ID': 'mmsplice',
-        'Description': 'mmsplice splice variant effect',
-        'Type': 'Character',
+        'ID': 'CSQ',
+        'Description': """mmsplice splice variant effect. Format: mmsplice_alt_acceptor|mmsplice_alt_acceptorIntron \
+        |mmsplice_alt_donor|mmsplice_alt_donorIntron|mmsplice_alt_exon|mmsplice_delta_logit_psi|mmsplice_pathogenicity \
+        |mmsplice_ref_acceptor|mmsplice_ref_acceptorIntron|mmsplice_ref_donor|mmsplice_ref_donorIntron|mmsplice_ref_exon""",
+        'Type': 'String',
         'Number': '.'
     })
 
@@ -383,8 +383,8 @@ def writeVCF(vcf_in, vcf_out, predictions):
         ID = str(Variant.from_cyvcf(var))
         pred = predictions[predictions.ID == ID]
         if pred is not None:
-            var.INFO['mmsplice'] = ','.join(
-                [k+':'+format(pred[k].values[0], ".3f") for k in columns[3:]])
+            var.INFO['CSQ'] = '|'.join(
+                [format(pred[k].values[0], ".3f") for k in columns])
         vcf_writer.write_record(var)
     vcf.close()
     vcf_writer.close()
