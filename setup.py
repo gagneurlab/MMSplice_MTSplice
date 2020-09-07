@@ -59,6 +59,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/gagneurlab/mmsplice',
-    version='2.1.0',
+    version='2.1.1',
     zip_safe=False
 )
