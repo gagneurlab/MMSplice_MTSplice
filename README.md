@@ -70,7 +70,7 @@ To score variants (including indels), we suggest to use primarily the `deltaLogi
 ```python
 # Import
 from mmsplice.vcf_dataloader import SplicingVCFDataloader
-from mmsplice import MMSplice, predict_all_table
+from mmsplice import MMSplice, predict_save, predict_all_table
 from mmsplice.utils import max_varEff
 
 # example files
