@@ -46,7 +46,9 @@ def read_exon_pyranges(gtf_file, overhang=(100, 100), first_last=True):
 
             df_exons.loc[:, 'Start'] -= df_exons['left_overhang']
             df_exons.loc[:, 'End'] += df_exons['right_overhang']
-        
+            df_exons['Start'] = df_exons['Start'].astype('int32')
+            df_exons['End'] = df_exons['End'].astype('int32')
+
         return df_exons
 
     df_gtf = pyranges.read_gtf(gtf_file)
