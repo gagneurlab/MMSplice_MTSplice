@@ -26,27 +26,35 @@ def read_exon_pyranges(gtf_file, overhang=(100, 100), first_last=True):
       first_last: set overhang of first and last exon of the gene to zero
         so seq intergenic region will not be processed.
     '''
-    df_gtf = pyranges.read_gtf(gtf_file).df
-    df_exons = df_gtf[df_gtf['Feature'] == 'exon']
-    df_exons = df_exons[['Chromosome', 'Start', 'End', 'Strand',
-                         'exon_id', 'gene_id', 'gene_name', 'transcript_id']]
 
-    if first_last:
-        df_genes = df_gtf[df_gtf['Feature'] == 'transcript']
-        df_genes.set_index('transcript_id', inplace=True)
-        df_genes = df_genes.loc[df_exons['transcript_id']]
-        df_genes.set_index(df_exons.index, inplace=True)
+    def _exon_filter(df, overhang=overhang, first_last=first_last):
+        df_exons = df[df['Feature'] == 'exon']
+        df_exons = df_exons[['Chromosome', 'Start', 'End', 'Strand',
+                            'exon_id', 'gene_id', 'gene_name', 'transcript_id']]
 
-        starting = df_exons['Start'] == df_genes['Start']
-        ending = df_exons['End'] == df_genes['End']
+        if first_last:
+            df_genes = df[df['Feature'] == 'transcript']
+            df_genes.set_index('transcript_id', inplace=True)
+            df_genes = df_genes.loc[df_exons['transcript_id']]
+            df_genes.set_index(df_exons.index, inplace=True)
 
-        df_exons.loc[:, 'left_overhang'] = ~starting * overhang[0]
-        df_exons.loc[:, 'right_overhang'] = ~ending * overhang[1]
+            starting = df_exons['Start'] == df_genes['Start']
+            ending = df_exons['End'] == df_genes['End']
 
-        df_exons.loc[:, 'Start'] -= df_exons['left_overhang']
-        df_exons.loc[:, 'End'] += df_exons['right_overhang']
+            df_exons.loc[:, 'left_overhang'] = ~starting * overhang[0]
+            df_exons.loc[:, 'right_overhang'] = ~ending * overhang[1]
 
-    return pyranges.PyRanges(df_exons)
+            df_exons.loc[:, 'Start'] -= df_exons['left_overhang']
+            df_exons.loc[:, 'End'] += df_exons['right_overhang']
+            df_exons['Start'] = df_exons['Start'].astype('int32')
+            df_exons['End'] = df_exons['End'].astype('int32')
+
+        return df_exons
+
+    df_gtf = pyranges.read_gtf(gtf_file)
+    df_exons = df_gtf.apply(_exon_filter)
+
+    return df_exons
 
 
 class SplicingVCFMixin(ExonSplicingMixin):
