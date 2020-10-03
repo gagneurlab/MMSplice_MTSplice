@@ -13,7 +13,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'setuptools',
-    'scikit-learn==0.19.2',
+    'scikit-learn==0.23.2',
     'kipoiseq>=0.3.0',
     'tensorflow<=1.13.1',
     'keras>=2.0.4,<=2.2.4',
@@ -23,7 +23,8 @@ requirements = [
     'pyfaidx',
     'tqdm',
     'click',
-    'pyranges>=0.0.71'
+    'pyranges>=0.0.71',
+    'joblib'
 ]
 
 setup_requirements = ['pytest-runner', ]

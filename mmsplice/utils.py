@@ -4,7 +4,7 @@ import pyranges
 from kipoiseq.dataclasses import Variant
 import kipoiseq.transforms.functional as F
 from kipoiseq.extractors import MultiSampleVCF
-from sklearn.externals import joblib
+import joblib
 from pkg_resources import resource_filename
 
 

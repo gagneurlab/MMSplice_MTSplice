@@ -4,7 +4,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from keras.models import load_model
-from sklearn.externals import joblib
+import joblib
 import concise
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency, encodeDNA, \
@@ -50,7 +50,8 @@ class MMSplice(object):
                  exonM=EXON,
                  donorM=DONOR,
                  donor_intronM=DONOR_INTRON,
-                 seq_spliter=None):
+                 seq_spliter=None,
+                 deep=False):
         self.spliter = seq_spliter or SeqSpliter()
         self.acceptor_intronM = load_model(acceptor_intronM, compile=False)
         self.acceptorM = load_model(acceptorM, compile=False)
@@ -60,6 +61,7 @@ class MMSplice(object):
                                 compile=False)
         self.donorM = load_model(donorM, compile=False)
         self.donor_intronM = load_model(donor_intronM, compile=False)
+        self.deep = deep
 
     def predict_on_batch(self, batch):
         warnings.warn(
@@ -185,7 +187,7 @@ class MMSplice(object):
             "Unknown dataloader type"
 
         if dataloader.tissue_specific:
-            mtsplice = MTSplice()
+            mtsplice = MTSplice(deep=self.deep)
             if natural_scale:
                 df_ref = read_ref_psi_annotation(
                     ref_psi_version, set(dataloader.vcf.seqnames))
