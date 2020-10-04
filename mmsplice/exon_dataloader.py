@@ -358,14 +358,14 @@ class ExonDataset(ExonSplicingMixin, Dataset):
         "start": "Exon_Start",
         "end": "Exon_End",
         "Stop": "Exon_End",
-        "chr": "CHROM",
-        "chrom": "CHROM",
-        "seqnames": "CHROM",
-        "chromosome": "CHROM",
-        "CHR": "CHROM",
+        "chr": "Chromosome",
+        "chrom": "Chromosome",
+        "seqnames": "Chromosome",
+        "chromosome": "Chromosome",
+        "CHR": "Chromosome",
         "strand": "Strand"
     }
-    required_cols = ('CHROM', 'Exon_Start', 'Exon_End',
+    required_cols = ('Chromosome', 'Exon_Start', 'Exon_End',
                      'Strand', 'pos', 'ref', 'alt')
 
     def __init__(self, exon_file, fasta_file, split_seq=True, encode=True,
@@ -382,12 +382,12 @@ class ExonDataset(ExonSplicingMixin, Dataset):
     def read_exon_file(exon_file, **kwargs):
         df = pd.read_csv(exon_file, **kwargs) \
                .rename(columns=ExonDataset.exon_cols_mapping)
-        df['CHROM'] = df['CHROM'].astype('str')
+        df['Chromosome'] = df['Chromosome'].astype('str')
         return df
 
     def _check_chrom_annotation(self):
         fasta_chroms = set(self.fasta.fasta.keys())
-        exon_chroms = set(self.exons['CHROM'])
+        exon_chroms = set(self.exons['Chromosome'])
 
         if not fasta_chroms.intersection(exon_chroms):
             raise ValueError(
@@ -400,10 +400,10 @@ class ExonDataset(ExonSplicingMixin, Dataset):
     def __getitem__(self, idx):
         row = self.exons.iloc[idx]
         exon_attrs = {k: row[k] for k in self.optional_metadata if k in row}
-        exon = Interval(row['CHROM'], row['Exon_Start'] - 1,
+        exon = Interval(row['Chromosome'], row['Exon_Start'] - 1,
                         row['Exon_End'], strand=row['Strand'],
                         attrs=exon_attrs)
-        variant = Variant(row['CHROM'], row['pos'],
+        variant = Variant(row['Chromosome'], row['pos'],
                           row['ref'], row['alt'])
         return self._next(exon, variant)
 
