@@ -4,7 +4,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from keras.models import load_model
-import joblib
+from sklearn.externals import joblib
 import concise
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency, encodeDNA, \
