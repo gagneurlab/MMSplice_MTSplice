@@ -1,5 +1,6 @@
 from pkg_resources import resource_filename
 from keras.models import load_model
+from mmsplice.layers import SplineWeight1D
 from mmsplice.utils import encodeDNA
 from mmsplice.exon_dataloader import SeqSpliter
 import numpy as np
@@ -31,6 +32,11 @@ TISSUES = [
 tissue_names = TISSUES
 
 
+custom_objects = {
+    'SplineWeight1D': SplineWeight1D
+}
+
+
 class MTSplice:
     """
     Load modules of mtsplice model, perform prediction on batch of dataloader.
@@ -47,7 +53,8 @@ class MTSplice:
     """
 
     def __init__(self, seq_spliter=None):
-        self.mtsplice_models = [load_model(m) for m in MTSPLICE]
+        self.mtsplice_models = [load_model(
+            m, custom_objects=custom_objects) for m in MTSPLICE]
         self.spliter = seq_spliter or SeqSpliter()
 
     def predict_on_batch(self, batch):
