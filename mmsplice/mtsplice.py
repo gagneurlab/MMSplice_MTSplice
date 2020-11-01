@@ -51,7 +51,7 @@ class MTSplice:
     """
 
     def __init__(self, seq_spliter=None, deep=False, deep55=False):
-        assert not deep and deep55
+        assert not (deep and deep55)
         if deep:
             self.mtsplice_models = [load_model(m) for m in MTSPLICE_DEEP]
         elif deep55:

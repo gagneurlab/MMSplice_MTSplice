@@ -62,7 +62,7 @@ class MMSplice(object):
                                 compile=False)
         self.donorM = load_model(donorM, compile=False)
         self.donor_intronM = load_model(donor_intronM, compile=False)
-        assert not deep and deep55
+        assert not (deep and deep55)
         self.deep = deep
         self.deep55 = deep55
         if deep55:
