@@ -6,8 +6,10 @@ import numpy as np
 
 _MODELS = ['models/mtsplice'+str(i)+'.h5' for i in range(8)]
 _MODELS_DEEP = ['models/mtsplice_deep'+str(i)+'.h5' for i in range(4)]
+_MODELS_DEEP55 = ['models/mtsplice_deep55_'+str(i)+'.h5' for i in range(2)]
 MTSPLICE = [resource_filename('mmsplice', m) for m in _MODELS]
 MTSPLICE_DEEP = [resource_filename('mmsplice', m) for m in _MODELS_DEEP]
+MTSPLICE_DEEP55 = [resource_filename('mmsplice', m) for m in _MODELS_DEEP55]
 
 TISSUES = [
     'Retina - Eye', 'RPE/Choroid/Sclera - Eye', 'Subcutaneous - Adipose',
@@ -48,9 +50,12 @@ class MTSplice:
       donor_intronM: donor intron model, score donor intron sequence.
     """
 
-    def __init__(self, seq_spliter=None, deep=False):
+    def __init__(self, seq_spliter=None, deep=False, deep55=False):
+        assert not deep and deep55
         if deep:
             self.mtsplice_models = [load_model(m) for m in MTSPLICE_DEEP]
+        elif deep55:
+            self.mtsplice_models = [load_model(m) for m in MTSPLICE_DEEP55]
         else:
             self.mtsplice_models = [load_model(m) for m in MTSPLICE]
         self.spliter = seq_spliter or SeqSpliter()

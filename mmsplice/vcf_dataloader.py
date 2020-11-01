@@ -28,9 +28,9 @@ def read_exon_pyranges(gtf_file, overhang=(100, 100), first_last=True):
     '''
 
     def _exon_filter(df, overhang=overhang, first_last=first_last):
+        df = df[['Chromosome', 'Start', 'End', 'Strand',
+                 'exon_id', 'gene_id', 'gene_name', 'transcript_id']]
         df_exons = df[df['Feature'] == 'exon']
-        df_exons = df_exons[['Chromosome', 'Start', 'End', 'Strand',
-                            'exon_id', 'gene_id', 'gene_name', 'transcript_id']]
 
         if first_last:
             df_genes = df[df['Feature'] == 'transcript']

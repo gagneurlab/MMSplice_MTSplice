@@ -51,7 +51,8 @@ class MMSplice(object):
                  donorM=DONOR,
                  donor_intronM=DONOR_INTRON,
                  seq_spliter=None,
-                 deep=False):
+                 deep=False,
+                 deep55=False):
         self.spliter = seq_spliter or SeqSpliter()
         self.acceptor_intronM = load_model(acceptor_intronM, compile=False)
         self.acceptorM = load_model(acceptorM, compile=False)
@@ -61,7 +62,12 @@ class MMSplice(object):
                                 compile=False)
         self.donorM = load_model(donorM, compile=False)
         self.donor_intronM = load_model(donor_intronM, compile=False)
+        assert not deep and deep55
         self.deep = deep
+        self.deep55 = deep55
+        if deep55:
+            tissue_names.remove('Testis')
+        self.tissues =tissue_names
 
     def predict_on_batch(self, batch):
         warnings.warn(
@@ -145,7 +151,7 @@ class MMSplice(object):
             batch['inputs']['tissue_seq'])
         X_tissue += np.expand_dims(
             df['delta_logit_psi'].values, axis=1)
-        tissue_pred = pd.DataFrame(X_tissue, columns=tissue_names)
+        tissue_pred = pd.DataFrame(X_tissue, columns=self.tissues)
         df = pd.concat([df, tissue_pred], axis=1)
 
         if natural_scale:
@@ -187,7 +193,7 @@ class MMSplice(object):
             "Unknown dataloader type"
 
         if dataloader.tissue_specific:
-            mtsplice = MTSplice(deep=self.deep)
+            mtsplice = MTSplice(deep=self.deep, deep55=self.deep55)
             if natural_scale:
                 df_ref = read_ref_psi_annotation(
                     ref_psi_version, set(dataloader.vcf.seqnames))
