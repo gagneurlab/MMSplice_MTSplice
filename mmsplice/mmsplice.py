@@ -5,14 +5,14 @@ import numpy as np
 import pandas as pd
 from keras.models import load_model
 from sklearn.externals import joblib
-import concise
+# import concise
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency, encodeDNA, \
     read_ref_psi_annotation, delta_logit_PSI_to_delta_PSI, \
     mmsplice_ref_modules, mmsplice_alt_modules, df_batch_writer
 from mmsplice.exon_dataloader import SeqSpliter
 from mmsplice.mtsplice import MTSplice, tissue_names
-from mmsplice.layers import GlobalAveragePooling1D_Mask0
+from mmsplice.layers import GlobalAveragePooling1D_Mask0, ConvDNA
 
 
 ACCEPTOR_INTRON = resource_filename('mmsplice', 'models/Intron3.h5')
@@ -27,6 +27,11 @@ LOGISTIC_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/Pathogenicity.pkl'))
 EFFICIENCY_MODEL = joblib.load(resource_filename(
     'mmsplice', 'models/splicing_efficiency.pkl'))
+
+
+custom_objects = {
+    'ConvDNA': ConvDNA
+}
 
 
 class MMSplice(object):
@@ -52,14 +57,19 @@ class MMSplice(object):
                  donor_intronM=DONOR_INTRON,
                  seq_spliter=None):
         self.spliter = seq_spliter or SeqSpliter()
-        self.acceptor_intronM = load_model(acceptor_intronM, compile=False)
-        self.acceptorM = load_model(acceptorM, compile=False)
-        self.exonM = load_model(exonM,
-                                custom_objects={"GlobalAveragePooling1D_Mask0":
-                                                GlobalAveragePooling1D_Mask0},
-                                compile=False)
-        self.donorM = load_model(donorM, compile=False)
-        self.donor_intronM = load_model(donor_intronM, compile=False)
+        self.acceptor_intronM = load_model(
+            acceptor_intronM, compile=False,
+            custom_objects=custom_objects)
+        self.acceptorM = load_model(acceptorM, compile=False,
+                                    custom_objects=custom_objects)
+        self.exonM = load_model(exonM, compile=False, custom_objects={
+            "GlobalAveragePooling1D_Mask0": GlobalAveragePooling1D_Mask0,
+            'ConvDNA': ConvDNA
+        })
+        self.donorM = load_model(donorM, compile=False,
+                                 custom_objects=custom_objects)
+        self.donor_intronM = load_model(donor_intronM, compile=False,
+                                        custom_objects=custom_objects)
 
     def predict_on_batch(self, batch):
         warnings.warn(
