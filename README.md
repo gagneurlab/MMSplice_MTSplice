@@ -98,7 +98,7 @@ model = MMSplice()
 predictions = predict_all_table(model, dl, pathogenicity=True, splicing_efficiency=True)
 ```
 
-To predict variant effect on <img src="https://render.githubusercontent.com/render/math?math=\Delta \Psi"> scale instead of <img src="https://render.githubusercontent.com/render/math?math=\Delta \text{logit}(\Psi)">:
+To predict variant effect on <img src="https://render.githubusercontent.com/render/math?math=\Delta \Psi"> scale instead of <img src="https://render.githubusercontent.com/render/math?math=\Delta \text{logit}(\Psi)">. This option only works with tissue specific predictions `dl = SplicingVCFDataloader(..., tissue_specific=True)`:
 ```python
 # Or predict and return as df
 predictions = predict_all_table(model, dl, natural_scale=True)
