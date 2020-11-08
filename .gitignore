@@ -112,3 +112,4 @@ variant_effect_output.txt_warnings.txt
 env*
 notebooks/pred.csv
 notebooks/pred_exon.csv
+tests/data/test-out.vcf

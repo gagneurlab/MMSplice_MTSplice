@@ -201,6 +201,10 @@ class MMSplice(object):
                     ref_psi_version, set(dataloader.vcf.seqnames))
             else:
                 df_ref = None
+        else:
+            if natural_scale:
+                warnings.warn("`natural_scale=True` will be ignored"
+                              " because `dataloader.tissue_specific=False`")
 
         dt_iter = dataloader.batch_iter(batch_size=batch_size)
         if progress:
