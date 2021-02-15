@@ -15,6 +15,7 @@ requirements = [
     'setuptools',
     'scikit-learn==0.19.2',
     'kipoiseq>=0.3.0',
+    'numpy==1.18.5',
     'tensorflow',
     'keras',
     'pandas',
@@ -30,8 +31,8 @@ setup_requirements = ['pytest-runner', ]
 test_requirements = ['pytest', 'pytest-benchmark']
 
 setup(
-    author="Jun Cheng",
-    author_email='chengju@in.tum.de',
+    author="Jun Cheng, Muhammed Hasan Çelik",
+    author_email='chengju@in.tum.de, muhammedhasancelik@gmail.com',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
