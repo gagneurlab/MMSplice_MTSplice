@@ -55,7 +55,8 @@ class MMSplice(object):
                  exonM=EXON,
                  donorM=DONOR,
                  donor_intronM=DONOR_INTRON,
-                 seq_spliter=None):
+                 seq_spliter=None,
+                 deep=False):
         self.spliter = seq_spliter or SeqSpliter()
         self.acceptor_intronM = load_model(
             acceptor_intronM, compile=False,
@@ -70,6 +71,7 @@ class MMSplice(object):
                                  custom_objects=custom_objects)
         self.donor_intronM = load_model(donor_intronM, compile=False,
                                         custom_objects=custom_objects)
+        self.deep = deep
 
     def predict_on_batch(self, batch):
         warnings.warn(
@@ -195,7 +197,7 @@ class MMSplice(object):
             "Unknown dataloader type"
 
         if dataloader.tissue_specific:
-            mtsplice = MTSplice()
+            mtsplice = MTSplice(deep=self.deep)
             if natural_scale:
                 df_ref = read_ref_psi_annotation(
                     ref_psi_version, set(dataloader.vcf.seqnames))
