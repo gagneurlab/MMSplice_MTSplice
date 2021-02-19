@@ -57,7 +57,8 @@ class MTSplice:
             self.mtsplice_models = [load_model(
                 m, custom_objects=custom_objects) for m in MTSPLICE]
         else:
-            self.mtsplice_models = [load_model(m) for m in MTSPLICE]
+            self.mtsplice_models = [load_model(
+                m, custom_objects=custom_objects) for m in MTSPLICE]
         self.spliter = seq_spliter or SeqSpliter()
 
     def predict_on_batch(self, batch):

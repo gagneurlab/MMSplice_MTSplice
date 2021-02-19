@@ -1,7 +1,7 @@
 """Top-level package for mmsplice."""
 
 __author__ = """Jun Cheng & M.Hasan Celik"""
-__email__ = 'chengju@in.tum.de'
+__email__ = 's6juncheng@gmail.com'
 __version__ = '2.1.1'
 
 from keras.models import load_model
