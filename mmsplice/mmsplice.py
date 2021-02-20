@@ -56,7 +56,7 @@ class MMSplice(object):
                  donorM=DONOR,
                  donor_intronM=DONOR_INTRON,
                  seq_spliter=None,
-                 deep=False):
+                 deep=True):
         self.spliter = seq_spliter or SeqSpliter()
         self.acceptor_intronM = load_model(
             acceptor_intronM, compile=False,

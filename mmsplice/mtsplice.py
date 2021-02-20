@@ -6,7 +6,9 @@ from mmsplice.exon_dataloader import SeqSpliter
 import numpy as np
 
 _MODELS = ['models/mtsplice'+str(i)+'.h5' for i in range(8)]
+_MODELS_DEEP = ['models/mtsplice_deep'+str(i)+'.h5' for i in range(4)]
 MTSPLICE = [resource_filename('mmsplice', m) for m in _MODELS]
+MTSPLICE_DEEP = [resource_filename('mmsplice', m) for m in _MODELS_DEEP]
 
 TISSUES = [
     'Retina - Eye', 'RPE/Choroid/Sclera - Eye', 'Subcutaneous - Adipose',
@@ -55,7 +57,7 @@ class MTSplice:
     def __init__(self, seq_spliter=None, deep=True):
         if deep:
             self.mtsplice_models = [load_model(
-                m, custom_objects=custom_objects) for m in MTSPLICE]
+                m, custom_objects=custom_objects) for m in MTSPLICE_DEEP]
         else:
             self.mtsplice_models = [load_model(
                 m, custom_objects=custom_objects) for m in MTSPLICE]
