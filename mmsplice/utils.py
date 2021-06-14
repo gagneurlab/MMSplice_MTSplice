@@ -250,7 +250,7 @@ def onehot(seq):
 def encodeDNA(seq_vec):
     max_len = max(map(len, seq_vec))
     return np.array([
-        F.one_hot(F.pad(seq, max_len, anchor="start"), neutral_value=0)
+        F.one_hot(F.pad(seq, max_len, anchor="start"), neutral_value=0, neutral_alphabet=['N', '*'])
         for seq in seq_vec
     ])
 
