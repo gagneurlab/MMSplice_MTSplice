@@ -17,6 +17,7 @@ requirements = [
     'kipoiseq>=0.3.0',
     'numpy==1.18.5',
     'tensorflow',
+    'scipy',
     'pandas',
     'pybedtools',
     'pyfaidx',
