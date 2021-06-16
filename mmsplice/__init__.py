@@ -4,7 +4,7 @@ __author__ = """Jun Cheng & M.Hasan Celik"""
 __email__ = 'chengju@in.tum.de'
 __version__ = '2.2.0'
 
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from mmsplice.mmsplice import MMSplice, \
     writeVCF, \
     predict_save, \

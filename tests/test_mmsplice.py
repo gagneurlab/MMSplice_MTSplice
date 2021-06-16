@@ -29,7 +29,7 @@ def test_predict_all_table(vcf_path):
                            splicing_efficiency=True)
 
     assert len(df['delta_logit_psi']) == len(variants) - 1
-    assert df.shape[1] == 7 + 10 + 2
+    assert df.shape[1] == 8 + 10 + 2
 
 
 def test_predict_all_table_tissue_specific(vcf_path):
@@ -40,7 +40,7 @@ def test_predict_all_table_tissue_specific(vcf_path):
                            ref_psi_version='grch37')
     assert len(df['delta_logit_psi']) == len(variants) - 1
 
-    assert df.shape[1] == 7 + 10 + 56 + 54 * 2
+    assert df.shape[1] == 8 + 10 + 56 + 54 * 2
 
     assert all(df['Whole Blood_ref'] == 1)
 
@@ -66,7 +66,7 @@ def test_predict_all_table_tissue_specific_exon_dataloader():
     df = predict_all_table(model, dl)
 
     assert len(df['delta_logit_psi']) == df_exons.shape[0]
-    assert df.shape[1] == 3 + 10 + 56
+    assert df.shape[1] == 4 + 10 + 56
 
 
 def test_exon_model_masking():

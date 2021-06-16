@@ -45,7 +45,8 @@ def test_JunctionPSI5Dataset__getitem__():
             'pos': 18159808,
             'ref': 'C',
             'alt': 'G',
-            'annotation': '17:18159808:C>G'
+            'annotation': '17:18159808:C>G',
+            'region': 'intronic'
         },
         'exon': {
             'chrom': '17',
@@ -84,7 +85,8 @@ def test_JunctionPSI5Dataset__getitem__():
             'pos': 18159815,
             'ref': 'C',
             'alt': 'T',
-            'annotation': '17:18159815:C>T'
+            'annotation': '17:18159815:C>T',
+            'region': 'exonic'
         },
         'exon': {
             'chrom': '17',
@@ -135,7 +137,8 @@ def test_JunctionPSI3Dataset__getitem__():
             'ref': 'C',
             'pos': 18159808,
             'chrom': '17',
-            'alt': 'G'
+            'alt': 'G',
+            'region': 'exonic'
         },
         'exon': {
             'chrom': '17',
@@ -174,7 +177,8 @@ def test_JunctionPSI3Dataset__getitem__():
             'pos': 18159815,
             'ref': 'C',
             'alt': 'T',
-            'annotation': '17:18159815:C>T'
+            'annotation': '17:18159815:C>T',
+            'region': 'intronic'
         },
         'exon': {
             'chrom': '17',
@@ -327,14 +331,3 @@ def test_predict_all_table(vcf_path):
                            splicing_efficiency=True)
     assert 'junction' in df.columns
     assert len(df['delta_logit_psi']) > 0
-
-
-def test_JunctionDataloader_samples():
-    model = MMSplice()
-    dl = JunctionPSI5VCFDataloader(
-        junction_file, fasta_file, multi_vcf,
-        samples=True, maf=True)
-    df = predict_all_table(model, dl)
-
-    assert df['maf'].tolist() == [0.5, 0.5]
-    assert df['samples'].tolist() == ['NA00002;NA00003', 'NA00003']

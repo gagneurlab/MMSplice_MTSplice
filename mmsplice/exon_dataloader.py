@@ -3,7 +3,7 @@ import pandas as pd
 from kipoiseq.dataclasses import Interval, Variant
 from kipoi.data import Dataset
 from kipoiseq.extractors import VariantSeqExtractor
-from mmsplice.utils import encodeDNA
+from mmsplice.utils import encodeDNA, region_annotate
 
 logger = logging.getLogger('mmsplice')
 
@@ -214,9 +214,7 @@ class ExonSplicingMixin:
         tissue specific model. The current model only accepts 300.
     """
     optional_metadata = ('exon_id', 'gene_id', 'gene_name',
-                         'transcript_id', 'junction', 'side',
-                         'maf', 'samples', 'genotype',
-                         'GQ', 'DP_ALT')
+                         'transcript_id', 'junction', 'side', 'region')
 
     def __init__(self, fasta_file, split_seq=True, encode=True,
                  overhang=(100, 100), seq_spliter=None,
@@ -276,7 +274,7 @@ class ExonSplicingMixin:
         return {
             'inputs': inputs,
             'metadata': {
-                'variant': self._variant_to_dict(variant),
+                'variant': self._variant_to_dict(variant, exon),
                 'exon': self._exon_to_dict(exon, overhang)
             }
         }
@@ -305,13 +303,14 @@ class ExonSplicingMixin:
     def _encode_seq(self, seq):
         return {k: encodeDNA([v]) for k, v in seq.items()}
 
-    def _variant_to_dict(self, variant):
+    def _variant_to_dict(self, variant, exon):
         return {
             'chrom': variant.chrom,
             'pos': variant.pos,
             'ref': variant.ref,
             'alt': variant.alt,
-            'annotation': str(variant)
+            'annotation': str(variant),
+            'region': region_annotate(variant, exon)
         }
 
     def _exon_to_dict(self, exon, overhang):

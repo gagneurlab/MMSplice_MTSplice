@@ -121,21 +121,21 @@ class _JunctionVCFDataloader(SplicingVCFMixin, SampleIterator):
 
     def __init__(self, intron_annotation, fasta_file, vcf_file,
                  event_type, split_seq=True, encode=True,
-                 overhang=(100, 100), seq_spliter=None, exon_len=100,
-                 maf=False, samples=False, quality=False):
+                 overhang=(100, 100), seq_spliter=None, exon_len=100):
         self.event_type = event_type
         pr_exons = self._read_junction(intron_annotation, event_type,
                                        overhang, exon_len)
         super().__init__(pr_exons, intron_annotation, fasta_file, vcf_file,
                          split_seq, encode, overhang, seq_spliter,
                          interval_attrs=('junction',))
-        self.maf = maf
-        self.samples = samples
-        self.quality = quality
 
     @staticmethod
     def _read_junction(intron_annotation, event_type, overhang=(100, 100), exon_len=100):
-        df = pd.read_csv(intron_annotation, dtype={'Chromosome': str})
+        if type(intron_annotation) == str:
+            df = pd.read_csv(intron_annotation, dtype={'Chromosome': str})
+        else:
+            df = intron_annotation
+            df['Chromosome'] = df['Chromosome'].astype(str)
 
         # TODO: rearrange overhang
         # TO REFACTOR: refactor with junction_loader classes.
@@ -210,27 +210,6 @@ class _JunctionVCFDataloader(SplicingVCFMixin, SampleIterator):
 
         row = self._next(exon, variant, overhang, mask)
 
-        if self.maf:
-            row['metadata']['variant']['maf'] = variant.source.aaf
-
-        if self.samples:
-            samples = self.vcf.get_samples(variant)
-            row['metadata']['variant']['samples'] = ';'.join(samples)
-            row['metadata']['variant']['genotype'] = ';'.join(
-                map(str, samples.values()))
-
-            if self.quality:
-                GQ = (
-                    variant.source.gt_quals[self.vcf.sample_mapping[sample_id]]
-                    for sample_id in samples
-                )
-                row['metadata']['variant']['GQ'] = ';'.join(map(str, GQ))
-                dp_alt = (
-                    variant.source.gt_alt_depths[self.vcf.sample_mapping[sample_id]]
-                    for sample_id in samples
-                )
-                row['metadata']['variant']['DP_ALT'] = ';'.join(
-                    map(str, dp_alt))
         return row
 
     def __iter__(self):
@@ -240,20 +219,18 @@ class _JunctionVCFDataloader(SplicingVCFMixin, SampleIterator):
 class JunctionPSI5VCFDataloader(_JunctionVCFDataloader):
     def __init__(self, intron_annotation, fasta_file, vcf_file,
                  split_seq=True, encode=True, overhang=(100, 100),
-                 seq_spliter=None, exon_len=100,
-                 maf=False, samples=False, **kwargs):
+                 seq_spliter=None, exon_len=100, **kwargs):
         super().__init__(intron_annotation, fasta_file, vcf_file,
                          'psi5', split_seq=split_seq, encode=encode,
                          overhang=overhang, seq_spliter=seq_spliter,
-                         exon_len=exon_len, maf=maf, samples=samples, **kwargs)
+                         exon_len=exon_len, **kwargs)
 
 
 class JunctionPSI3VCFDataloader(_JunctionVCFDataloader):
     def __init__(self, intron_annotation, fasta_file, vcf_file,
                  split_seq=True, encode=True, overhang=(100, 100),
-                 seq_spliter=None, exon_len=100,
-                 maf=False, samples=False, **kwargs):
+                 seq_spliter=None, exon_len=100, **kwargs):
         super().__init__(intron_annotation, fasta_file, vcf_file, 'psi3',
                          split_seq=split_seq, encode=encode,
                          overhang=overhang, seq_spliter=seq_spliter,
-                         exon_len=exon_len, maf=maf, samples=samples, **kwargs)
+                         exon_len=exon_len, **kwargs)

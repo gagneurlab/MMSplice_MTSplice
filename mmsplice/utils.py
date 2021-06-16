@@ -1,3 +1,4 @@
+from kipoiseq.dataclasses import Variant, Interval
 import pandas as pd
 import numpy as np
 import pyranges
@@ -234,6 +235,38 @@ def get_var_side(variant, exon):
             return "exon"
 
 
+def region_annotate(variant: Variant, exon: Interval) -> str:
+    pos = variant.pos
+    start = exon.start+1
+    end = exon.end
+    if exon.strand == '+':
+        if pos < start-20 or pos > end+5:
+            return 'intronic'
+        if start-2 <= pos < start:
+            return 'acceptor_dinu'
+        if start-20 <= pos < start+3:
+            return 'acceptor'
+        if start+3 <= pos <= end-3:
+            return 'exonic'
+        if end < pos <= end+2:
+            return 'donor_dinu'
+        if end-3 < pos <= end+5:
+            return 'donor'
+    else:
+        if pos < start-5 or pos > end+20:
+            return 'intronic'
+        if start-2 <= pos < start:
+            return 'donor_dinu'
+        if start-5 <= pos < start+3:
+            return 'donor'
+        if start+3 <= pos <= end-3:
+            return 'exonic'
+        if end < pos <= end+2:
+            return 'acceptor_dinu'
+        if end-3 < pos <= end+20:
+            return 'acceptor'
+
+
 bases = ['A', 'C', 'G', 'T']
 
 
@@ -349,6 +382,7 @@ def delta_logit_PSI_to_delta_PSI(delta_logit_psi, ref_psi,
                             pred_psi)
 
     return pred_psi - ref_psi
+
 
 def writeVCF(vcf_in, vcf_out, predictions):
     from cyvcf2 import Writer, VCF

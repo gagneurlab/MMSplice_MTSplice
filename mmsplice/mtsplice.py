@@ -1,5 +1,5 @@
 from pkg_resources import resource_filename
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from mmsplice.layers import SplineWeight1D
 from mmsplice.utils import encodeDNA
 from mmsplice.exon_dataloader import SeqSpliter
