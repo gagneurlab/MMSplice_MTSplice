@@ -3,7 +3,7 @@ from pkg_resources import resource_filename
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from sklearn.externals import joblib
 # import concise
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
