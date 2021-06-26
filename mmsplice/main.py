@@ -3,7 +3,6 @@ import json
 
 import click
 import numpy as np
-from keras import backend as K
 
 from mmsplice import MMSplice
 from mmsplice.exon_dataloader import SeqSpliter
@@ -19,7 +18,6 @@ def cli():
 def run():
     options = json.loads(sys.stdin.readline().strip())
 
-    K.clear_session()
     psi_model = MMSplice(
         **{k: v for k, v in options.items() if v})
     psi_model.spliter = SeqSpliter(pattern_warning=False)
