@@ -50,6 +50,16 @@ def df_batch_writer(df_iter, output):
             df.to_csv(f, index=False, header=False)
 
 
+def df_batch_writer_parquet(df_iter, output_dir):
+    if not os.path.isdir(output_dir):
+        output_dir.mkdir(exist_ok=True)
+
+    for batch_num, df in enumerate(df_iter):
+        part_file = output_dir / f"{batch_num}.parquet"
+        df.to_parquet(part_file, index=False, engine='pyarrow')
+
+
+
 def left_normalized(variant):
     """
     Left normalizated version of variant object.
