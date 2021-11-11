@@ -261,21 +261,23 @@ class MMSplice(object):
 
 # TODO: implement prediction methods within MMSplice class,
 #   should be more error prone
-def predict_save(model, dataloader, output_path, batch_size=512, progress=True,
+def predict_save(model, dataloader, output_path, batch_size=512, batch_size_parquet=1000000, progress=True,
                  pathogenicity=False, splicing_efficiency=False):
     from mmsplice import MMSplice
     assert isinstance(model, MMSplice), \
         "model should be a mmsplice.MMSplice class instance"
 
     df_iter = model._predict_on_dataloader(
-        dataloader, progress=progress,
+        dataloader, 
+        progress=progress, 
+        batch_size=batch_size,
         pathogenicity=pathogenicity,
         splicing_efficiency=splicing_efficiency)
 
     if output_path.suffix.lower() == '.csv':
         df_batch_writer(df_iter, output_path)
     elif output_path.suffix.lower() == '.parquet':
-        df_batch_writer_parquet(df_iter, output_path)
+        df_batch_writer_parquet(df_iter, output_path, batch_size_parquet)
 
 
 def predict_all_table(model, dataloader, batch_size=512, progress=True,
