@@ -94,7 +94,7 @@ class ConvSequence(Conv1D):
         self.seq_length = seq_length
 
     def build(self, input_shape):
-        if input_shape[-1] is not len(self.VOCAB):
+        if int(input_shape[-1]) != len(self.VOCAB):
             raise ValueError("{cls} requires input_shape[-1] == {n}. Given: {s}".
                              format(cls=self.__class__.__name__, n=len(self.VOCAB), s=input_shape[-1]))
         return super(ConvSequence, self).build(input_shape)
@@ -368,8 +368,8 @@ class SplineWeight1D(Layer):
         # input_shape = (None, steps, filters)
 
         start = 0
-        end = input_shape[1]
-        filters = input_shape[2]
+        end = int(input_shape[1])
+        filters = int(input_shape[2])
 
         if self.share_splines:
             n_spline_tracks = 1
