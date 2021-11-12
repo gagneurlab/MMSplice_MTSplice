@@ -7,6 +7,7 @@ import kipoiseq.transforms.functional as F
 from kipoiseq.extractors import MultiSampleVCF
 from sklearn.externals import joblib
 from pkg_resources import resource_filename
+import os
 
 
 mmsplice_module_names = [
@@ -45,9 +46,32 @@ def df_batch_writer(df_iter, output):
     with open(output, 'w') as f:
         df.to_csv(f, index=False)
 
-    for df in df_iter:
-        with open(output, 'a') as f:
+    with open(output, 'a') as f:
+        for df in df_iter:
             df.to_csv(f, index=False, header=False)
+
+
+def df_batch_writer_parquet(df_iter, output_dir, batch_size_parquet=1000000):
+    if not os.path.isdir(output_dir):
+        output_dir.mkdir(exist_ok=True)
+
+    dfs = list()
+    num_rows = 0
+    
+    for batch_num, df in enumerate(df_iter):
+        dfs.append(df)
+        num_rows += df.shape[0]
+        if num_rows >= batch_size_parquet:
+            df_all = pd.concat(dfs, axis=0)
+            part_file = output_dir / f"{batch_num}.parquet"
+            df_all.to_parquet(part_file, index=False, engine='pyarrow')
+            dfs = list()
+            num_rows = 0
+    if num_rows > 0:
+        batch_num += 1
+        df_all = pd.concat(dfs, axis=0)
+        part_file = output_dir / f"{batch_num}.parquet"
+        df_all.to_parquet(part_file, index=False, engine='pyarrow')
 
 
 def left_normalized(variant):

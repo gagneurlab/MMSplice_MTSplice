@@ -9,7 +9,8 @@ from sklearn.externals import joblib
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency, encodeDNA, \
     read_ref_psi_annotation, delta_logit_PSI_to_delta_PSI, \
-    mmsplice_ref_modules, mmsplice_alt_modules, df_batch_writer
+    mmsplice_ref_modules, mmsplice_alt_modules, \
+    df_batch_writer, df_batch_writer_parquet
 from mmsplice.exon_dataloader import SeqSpliter
 from mmsplice.mtsplice import MTSplice, tissue_names
 from mmsplice.layers import GlobalAveragePooling1D_Mask0, ConvDNA
@@ -260,18 +261,23 @@ class MMSplice(object):
 
 # TODO: implement prediction methods within MMSplice class,
 #   should be more error prone
-def predict_save(model, dataloader, output_csv, batch_size=512, progress=True,
+def predict_save(model, dataloader, output_path, batch_size=512, batch_size_parquet=1000000, progress=True,
                  pathogenicity=False, splicing_efficiency=False):
     from mmsplice import MMSplice
     assert isinstance(model, MMSplice), \
         "model should be a mmsplice.MMSplice class instance"
 
     df_iter = model._predict_on_dataloader(
-        dataloader, progress=progress,
+        dataloader, 
+        progress=progress, 
+        batch_size=batch_size,
         pathogenicity=pathogenicity,
         splicing_efficiency=splicing_efficiency)
 
-    return df_batch_writer(df_iter, output_csv)
+    if output_path.suffix.lower() == '.csv':
+        df_batch_writer(df_iter, output_path)
+    elif output_path.suffix.lower() == '.parquet':
+        df_batch_writer_parquet(df_iter, output_path, batch_size_parquet)
 
 
 def predict_all_table(model, dataloader, batch_size=512, progress=True,
