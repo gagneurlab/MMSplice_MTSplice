@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras.models import load_model
 from sklearn.externals import joblib
+from pathlib import Path
+import pathlib
 # import concise
 from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency, encodeDNA, \
@@ -274,6 +276,8 @@ def predict_save(model, dataloader, output_path, batch_size=512, batch_size_parq
         pathogenicity=pathogenicity,
         splicing_efficiency=splicing_efficiency)
 
+    if not isinstance(output_path, pathlib.PosixPath):
+        output_path = Path(output_path)
     if output_path.suffix.lower() == '.csv':
         df_batch_writer(df_iter, output_path)
     elif output_path.suffix.lower() == '.parquet':
