@@ -1,11 +1,9 @@
-from kipoiseq.dataclasses import Variant, Interval
 import pandas as pd
 import numpy as np
 import pyranges
-from kipoiseq.dataclasses import Variant
+from kipoiseq.dataclasses import Variant, Interval
 import kipoiseq.transforms.functional as F
 from kipoiseq.extractors import MultiSampleVCF
-from sklearn.externals import joblib
 from pkg_resources import resource_filename
 import os
 
@@ -26,12 +24,52 @@ mmsplice_modules = [
 ]
 
 
-LINEAR_MODEL = joblib.load(resource_filename(
-    'mmsplice', 'models/linear_model.pkl'))
-LOGISTIC_MODEL = joblib.load(resource_filename(
-    'mmsplice', 'models/Pathogenicity.pkl'))
-EFFICIENCY_MODEL = joblib.load(resource_filename(
-    'mmsplice', 'models/splicing_efficiency.pkl'))
+class _LINEAR_MODEL:
+
+    def __init__(self):
+        self.coef = np.array([0.49685773, 0.72322957, 1.54760024,
+                              0.75011527, 2.26187717,  -0.69419094,
+                              2.40138709,  0.88148553])
+        self.intercept = 0.0006480262366686865
+
+    def predict(self, X):
+        return np.array(X) @ self.coef + self.intercept
+
+
+class _LOGISTIC_MODEL:
+
+    def __init__(self):
+        self.mean = np.array([
+            1.59150963e-16, -5.17240629e-17, -2.30768896e-16, 1.34283625e-17,
+            -2.12201284e-17, 2.12201284e-16,  3.97877407e-17, 2.38726444e-17,
+            3.84614827e-17, 1.06100642e-17, -8.62067715e-17, -7.16179332e-17,
+            -8.22279974e-17
+        ])
+        self.coef = np.array([
+            1.02831554,  3.31378717, -0.43812655,  2.15091432,  0.16565594,
+            -1.08152271, -3.50915318,  0.32264241, -2.69134854, -0.09424334,
+            0.23300564, -1.16765913, -0.8762778
+        ])
+        self.intercept = 0.912602
+
+    def predict_proba(self, X):
+        return expit((X - self.mean) @ self.coef + self.intercept)
+
+
+class _EFFICIENCY_MODEL:
+
+    def __init__(self):
+        self.coef = np.array([0.4306642, 3.83603188, 1.04443485, -2.25699023])
+        self.intercept = -0.12248809929900793,
+
+    def predict(self, X):
+        return np.array(X) @ self.coef + self.intercept
+
+
+LINEAR_MODEL = _LINEAR_MODEL()
+LOGISTIC_MODEL = _LOGISTIC_MODEL()
+EFFICIENCY_MODEL = _EFFICIENCY_MODEL()
+
 
 ref_psi_annotation = {
     'grch37': resource_filename(
@@ -57,7 +95,7 @@ def df_batch_writer_parquet(df_iter, output_dir, batch_size_parquet=1000000):
 
     dfs = list()
     num_rows = 0
-    
+
     for batch_num, df in enumerate(df_iter):
         dfs.append(df)
         num_rows += df.shape[0]
@@ -177,7 +215,7 @@ def predict_deltaLogitPsi(X_ref, X_alt):
 def predict_pathogenicity(X_ref, X_alt):
     X = transform(X_alt - X_ref, region_only=True)
     X = np.concatenate([X_ref, X_alt, X[:, -3:]], axis=-1)
-    return LOGISTIC_MODEL.predict_proba(X)[:, 1]
+    return LOGISTIC_MODEL.predict_proba(X)
 
 
 def predict_splicing_efficiency(X_ref, X_alt):
@@ -424,8 +462,6 @@ def writeVCF(vcf_in, vcf_out, predictions):
         'ref_donorIntron',
         'ref_exon'
     ]
-    m = 'mmsplice_'
-
     vcf = VCF(vcf_in)
     vcf.add_info_to_header({
         'ID': 'CSQ',

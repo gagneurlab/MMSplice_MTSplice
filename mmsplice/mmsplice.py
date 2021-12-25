@@ -4,7 +4,6 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from tensorflow.keras.models import load_model
-from sklearn.externals import joblib
 from pathlib import Path
 import pathlib
 # import concise
@@ -24,13 +23,6 @@ EXON = resource_filename('mmsplice', 'models/Exon.h5')
 EXON3 = resource_filename('mmsplice', 'models/Exon_prime3.h5')
 ACCEPTOR = resource_filename('mmsplice', 'models/Acceptor.h5')
 DONOR_INTRON = resource_filename('mmsplice', 'models/Intron5.h5')
-LINEAR_MODEL = joblib.load(resource_filename(
-    'mmsplice', 'models/linear_model.pkl'))
-LOGISTIC_MODEL = joblib.load(resource_filename(
-    'mmsplice', 'models/Pathogenicity.pkl'))
-EFFICIENCY_MODEL = joblib.load(resource_filename(
-    'mmsplice', 'models/splicing_efficiency.pkl'))
-
 
 custom_objects = {
     'ConvDNA': ConvDNA
@@ -263,15 +255,16 @@ class MMSplice(object):
 
 # TODO: implement prediction methods within MMSplice class,
 #   should be more error prone
-def predict_save(model, dataloader, output_path, batch_size=512, batch_size_parquet=1000000, progress=True,
+def predict_save(model, dataloader, output_path, batch_size=512,
+                 batch_size_parquet=1000000, progress=True,
                  pathogenicity=False, splicing_efficiency=False):
     from mmsplice import MMSplice
     assert isinstance(model, MMSplice), \
         "model should be a mmsplice.MMSplice class instance"
 
     df_iter = model._predict_on_dataloader(
-        dataloader, 
-        progress=progress, 
+        dataloader,
+        progress=progress,
         batch_size=batch_size,
         pathogenicity=pathogenicity,
         splicing_efficiency=splicing_efficiency)

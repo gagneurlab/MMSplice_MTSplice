@@ -14,12 +14,11 @@ from mmsplice.mmsplice import MMSplice, \
     EXON, \
     EXON3,\
     DONOR, \
-    DONOR_INTRON, \
-    LINEAR_MODEL, \
-    LOGISTIC_MODEL,\
-    EFFICIENCY_MODEL
+    DONOR_INTRON
+
 
 from mmsplice.mtsplice import MTSPLICE, MTSplice
+
 
 __all__ = [
     'load_model',
@@ -33,9 +32,6 @@ __all__ = [
     'EXON3',
     'DONOR',
     'DONOR_INTRON',
-    'LINEAR_MODEL',
-    'LOGISTIC_MODEL',
-    'EFFICIENCY_MODEL',
     'MTSPLICE',
     'MTSplice'
 ]
