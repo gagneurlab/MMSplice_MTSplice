@@ -81,4 +81,3 @@ workflows:
   workflow:
     jobs:
     - build
-    - docker_testing
