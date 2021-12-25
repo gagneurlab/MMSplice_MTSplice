@@ -385,7 +385,12 @@ def test_splicing_vcf_loads_snps(vcf_path):
     }
 
     rows = list(dl)
-    d = rows[11]
+    # d = rows[11]
+
+    for i in rows:
+        if '17:41276033:C>G' == i['metadata']['variant']['annotation']:
+            d = i
+
     assert d['inputs']['seq'] == expected_snps_seq['seq']
     assert d['inputs']['mut_seq'] == expected_snps_seq['alt_seq']
 
@@ -393,8 +398,9 @@ def test_splicing_vcf_loads_snps(vcf_path):
 def test_splicing_vcf_loads_deletions(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
                                split_seq=False, encode=False)
-    expected_snps_seq = [
-        {
+
+    expected_snps_seq = {
+        '17:41267740:TACTT>A': {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
             'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
@@ -408,7 +414,7 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'AGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTTCA'
             'TAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAATTA'
         },
-        {
+        '17:41267741:ACTT>AC': {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
             'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
@@ -422,7 +428,7 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'TAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTT'
             'CATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         },
-        {
+        '17:41267742:CTTGCAAAATATGTGGTCACACTTTGTGGAGACAGGTTCCTTGATCAACTCCAGA>C': {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
             'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
@@ -435,7 +441,7 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'AAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTTC'
             'ATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         },
-        {
+        '17:41267742:CTT>C': {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
             'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
@@ -449,7 +455,7 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'TAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTT'
             'CATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         },
-        {
+        '17:41267795:GAC>GA': {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
             'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
@@ -463,7 +469,7 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
             'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         },
-        {
+        '17:41267795:GA>G': {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
             'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
@@ -477,7 +483,7 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'GTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCT'
             'TCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         },
-        {
+        '17:41267796:ACT>A': {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATA'
             'AATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTC'
@@ -491,22 +497,24 @@ def test_splicing_vcf_loads_deletions(vcf_path):
             'AGTAAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCC'
             'TTCATAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         }
-    ]
+    }
 
     rows = list(dl)
 
-    for i, j in enumerate(list(range(0, 5)) + [6, 7]):
-        d = rows[j]
-        assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
-        assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']
+    for d in rows:
+        variant = d['metadata']['variant']['annotation']
+
+        if variant in expected_snps_seq:
+            assert d['inputs']['seq'] == expected_snps_seq[variant]['seq']
+            assert d['inputs']['mut_seq'] == expected_snps_seq[variant]['alt_seq']
 
 
 def test_splicing_vcf_loads_insertions(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path,
                                split_seq=False, encode=False)
 
-    expected_snps_seq = [
-        {
+    expected_snps_seq = {
+        '17:41267795:G>GAA': {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATAA'
             'ATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTCTG'
@@ -520,7 +528,7 @@ def test_splicing_vcf_loads_insertions(vcf_path):
             'AAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTTCA'
             'TAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         },
-        {
+        '17:41267797:CT>CTAA': {
             'seq':
             'TAACAGCTCAAAGTTGAACTTATTCACTAAGAATAGCTTTATTTTTAAATAA'
             'ATTATTGAGCCTCATTTATTTTCTTTTTCTCCCCCCCTACCCTGCTAGTCTG'
@@ -534,7 +542,7 @@ def test_splicing_vcf_loads_insertions(vcf_path):
             'AAGTTTGAATGTGTTATGTGGCTCCATTATTAGCTTTTGTTTTTGTCCTTCA'
             'TAACCCAGGAAACACCTAACTTTATAGAAGCTTTACTTTCTTCAAT'
         },
-        {
+        '17:41276032:AC>ACCA': {
             'seq':
             'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTTTA'
             'TAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCA'
@@ -550,7 +558,7 @@ def test_splicing_vcf_loads_insertions(vcf_path):
             'AGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCAAATG'
             'AACAGAATTGACCTTACATACTAGGGAAGAAAAGACATG'
         },
-        {
+        '17:41276033:C>CCAGATG': {
             'seq':
             'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGTCATTTTA'
             'TAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTAAAGTTCA'
@@ -566,7 +574,7 @@ def test_splicing_vcf_loads_insertions(vcf_path):
             'AGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTCCTATGCA'
             'AATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGA'
         },
-        {
+        '17:41276132:A>ACT': {
             'seq': 'CAAATCTTAAATTTACTTTATTTTAAAATGATAAAATGAAGTTGT'
             'CATTTTATAAACCTTTTAAAAAGATATATATATATGTTTTTCTAATGTGTTA'
             'AAGTTCATTGGAACAGAAAGAAATGGATTTATCTGCTCTTCGCGTTGAAGAA'
@@ -580,11 +588,13 @@ def test_splicing_vcf_loads_insertions(vcf_path):
             'TCTGGTAAGTCAGCACAAGAGTGTATTAATTTGGGATTCCTATGATTATCTC'
             'CTATGCAAATGAACAGAATTGACCTTACATACTAGGGAAGAAAAGACATGTC'
         }
-    ]
+    }
 
     rows = list(dl)
 
-    for i, j in enumerate([5] + list(range(8, 11)) + [12]):
-        d = rows[j]
-        assert d['inputs']['seq'] == expected_snps_seq[i]['seq']
-        assert d['inputs']['mut_seq'] == expected_snps_seq[i]['alt_seq']
+    for d in rows:
+        variant = d['metadata']['variant']['annotation']
+
+        if variant in expected_snps_seq:
+            assert d['inputs']['seq'] == expected_snps_seq[variant]['seq']
+            assert d['inputs']['mut_seq'] == expected_snps_seq[variant]['alt_seq']

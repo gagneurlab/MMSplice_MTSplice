@@ -13,13 +13,11 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'setuptools',
-    'scikit-learn==0.19.2',
-    'kipoiseq>=0.3.0',
-    'numpy==1.18.5',
+    'kipoiseq>=0.7',
+    'cyvcf2',
     'tensorflow',
     'scipy',
     'pandas',
-    'pybedtools',
     'pyfaidx',
     'tqdm',
     'click',
@@ -59,6 +57,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/gagneurlab/mmsplice',
-    version='2.2.0',
+    version='2.3.0',
     zip_safe=False
 )

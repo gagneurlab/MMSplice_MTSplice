@@ -76,23 +76,8 @@ jobs:
     - *test_cli
     - *run_tests
 
-  docker_testing:
-    docker:
-    - image: continuumio/miniconda3:latest
-    steps:
-    - checkout
-    - setup_remote_docker
-    - *install_docker
-    - *update_conda
-    - *install_dependencies
-    - *install_mmsplice
-    - *build_docker
-    - *run_vep
-    - *test_docker
-
 workflows:
   version: 2
   workflow:
     jobs:
     - build
-    - docker_testing

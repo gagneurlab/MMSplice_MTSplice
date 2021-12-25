@@ -32,10 +32,14 @@ def run():
         variant = json.loads(sys.stdin.readline().strip())
 
         overhang = (variant['intronl_len'], variant['intronr_len'])
-        ref_scores = np.matrix(psi_model.predict(variant['ref_seq'], overhang))
-        alt_scores = np.matrix(psi_model.predict(variant['alt_seq'], overhang))
-        scores = np.hstack([ref_scores, alt_scores]).tolist()[0]
+        ref_scores = np.array([
+            psi_model.predict(variant['ref_seq'], overhang)
+        ])
+        alt_scores = np.array([
+            psi_model.predict(variant['alt_seq'], overhang)
+        ])
 
+        scores = np.hstack([ref_scores[0], alt_scores[0]]).tolist()
         scores.extend([
             predict_deltaLogitPsi(ref_scores, alt_scores)[0],
             predict_pathogenicity(ref_scores, alt_scores)[0]
