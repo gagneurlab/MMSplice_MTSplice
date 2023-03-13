@@ -3,7 +3,7 @@ import pandas as pd
 from kipoiseq.dataclasses import Interval, Variant
 from kipoi.data import Dataset
 from kipoiseq.extractors import VariantSeqExtractor
-from mmsplice.utils import encodeDNA, region_annotate
+from mmsplice.utils import encodeDNA, region_annotate, normalise_chrom
 
 logger = logging.getLogger('mmsplice')
 
@@ -226,11 +226,26 @@ class ExonSplicingMixin:
         self.spliter = seq_spliter or SeqSpliter()
         self.vseq_extractor = ExonVariantSeqExtrator(fasta_file)
         self.fasta = self.vseq_extractor.fasta
+        self.fasta_contains_chr = self._fasta_contains_chr()
         self.tissue_specific = tissue_specific
         self.tissue_overhang = tissue_overhang
+        
+    def _fasta_contains_chr(self):
+        fasta_chroms = set(self.fasta.fasta.keys())
+        return any(chrom.startswith('chr')
+                   for chrom in fasta_chroms)
+        
+    def _normalise_chrom_to_fasta(self, chrom):
+        if self.fasta_contains_chr:
+            chrom = normalise_chrom(chrom, 'chr1') #add 'chr' to chrom
+        else:
+            chrom = normalise_chrom(chrom, '1') #remove 'chr' from chrom
+        return chrom
 
     def _next(self, exon, variant, overhang=None, mask_module=None):
         overhang = overhang or self.overhang
+
+        exon._chrom = self._normalise_chrom_to_fasta(exon.chrom)
 
         inputs = {
             'seq': self.fasta.extract(Interval(
@@ -271,6 +286,9 @@ class ExonSplicingMixin:
             if self.encode:
                 inputs = {k: self._encode_seq(v) for k, v in inputs.items()}
 
+        # normalise chrom annotation for output
+        exon._chrom = normalise_chrom(exon.chrom, variant.chrom)
+        
         return {
             'inputs': inputs,
             'metadata': {
@@ -388,6 +406,16 @@ class ExonDataset(ExonSplicingMixin, Dataset):
         fasta_chroms = set(self.fasta.fasta.keys())
         exon_chroms = set(self.exons['Chromosome'])
 
+        if not fasta_chroms.intersection(exon_chroms):
+            logger.warning(
+                'Mismatch of chromosome names in Fasta and VCF file.')
+            chr_annotaion = any(chrom.startswith('chr')
+                                for chrom in exon_chroms)
+            if not chr_annotaion:
+                fasta_chroms = set([normalise_chrom(x, '1') for x in sorted(fasta_chroms)])
+            else:
+                fasta_chroms = set([normalise_chrom(x, 'chr1') for x in sorted(fasta_chroms)])
+                
         if not fasta_chroms.intersection(exon_chroms):
             raise ValueError(
                 'Fasta chrom names do not match with vcf chrom names')
