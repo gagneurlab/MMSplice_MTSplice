@@ -12,7 +12,8 @@ multi_vcf = 'tests/data/multi_test.vcf.gz'
 
 
 snps = [
-    "17:41276033:C:['G']"
+    "17:41276033:C:['G']",
+    "17:41203228:T:['A']", # delta_logit_psi over 10
 ]
 
 deletions = [
