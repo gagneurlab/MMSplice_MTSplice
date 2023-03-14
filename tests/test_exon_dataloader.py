@@ -1,6 +1,7 @@
 import pandas as pd
 from conftest import fasta_file, exon_file
-from mmsplice.exon_dataloader import ExonDataset
+from mmsplice.exon_dataloader import ExonDataset, ExonSplicingMixin
+from kipoiseq.dataclasses import Interval, Variant
 
 
 def test_ExonDataset():
@@ -62,3 +63,24 @@ def test_ExonDataset__len__():
     dl = ExonDataset(exon_file, fasta_file)
     df = pd.read_csv(exon_file)
     assert len(dl) == df.shape[0]
+    
+    
+def test_ExonSplicingMixin_extract_seq_in_mmsplice(vcf_path):
+    import numpy as np
+    from conftest import gtf_file, fasta_file
+    from mmsplice.vcf_dataloader import SplicingVCFDataloader
+    
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+
+    rows = list(dl) 
+    row = rows[0]
+    assert 41203228 == row['metadata']['variant']['pos']
+
+    mutated_seq = False   
+    for module in ['acceptor_intron', 'acceptor', 'exon', 'donor', 'donor_intron']:
+        # for snvs there should be only one mutated nucleotide -> sum over different entries in one-hot encoded vector == 2
+        assert (pd.DataFrame(row['inputs'])['seq'][module] != pd.DataFrame(row['inputs'])['mut_seq'][module]).sum() <= 2
+        if (pd.DataFrame(row['inputs'])['seq'][module] != pd.DataFrame(row['inputs'])['mut_seq'][module]).sum() == 2:
+            mutated_seq = True
+
+    assert mutated_seq == True
