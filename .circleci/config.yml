@@ -8,7 +8,7 @@ variables:
       command: |
         conda install -c conda-forge mamba -y
         mamba env create -f environment.yaml
-        conda activate mmsplice_dev
+        source activate mmsplice_dev
   install_mmsplice: &install_mmsplice
     run:
       name: Install mmsplice
