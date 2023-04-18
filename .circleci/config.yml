@@ -6,7 +6,8 @@ variables:
     run:
       name: Update conda
       command: |
-        conda env create -f environment.yaml
+        conda install mamba
+        mamba env create -f environment.yaml
         conda activate mmsplice_dev
   install_mmsplice: &install_mmsplice
     run:
