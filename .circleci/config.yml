@@ -7,6 +7,7 @@ variables:
       name: Update conda
       command: |
         conda env create -f environment.yaml
+        conda activate mmsplice_dev
   install_mmsplice: &install_mmsplice
     run:
       name: Install mmsplice
