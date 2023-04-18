@@ -14,12 +14,12 @@ variables:
       name: Install mmsplice
       command: |
         pip install -e '.'
-  # install_dependencies: &install_dependencies
-  #   run:
-  #     name: Install dependencies not in miniconda3
-  #     command: |
-  #       apt-get update && \
-  #       apt-get install -y build-essential libz-dev libcurl3-dev gcc libssl-dev libbz2-dev
+  install_dependencies: &install_dependencies
+    run:
+      name: Install dependencies not in miniconda3
+      command: |
+        apt-get update && \
+        apt-get install -y build-essential libz-dev libcurl3-dev gcc libssl-dev libbz2-dev
   test_cli: &test_cli
     run:
       name: Test cli
@@ -65,7 +65,7 @@ jobs:
     steps:
     - checkout
     - *update_conda
-    # - *install_dependencies
+    - *install_dependencies
     - *install_mmsplice
     - *test_cli
     - *run_tests
