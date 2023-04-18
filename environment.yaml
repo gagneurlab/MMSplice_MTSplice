@@ -5,6 +5,7 @@ channels:
 dependencies:
   - 'python=3.7'
   - 'cython'
+  - 'pybigwig'
   - 'setuptools'
   - 'kipoiseq>=0.7,<0.8'
   - 'cyvcf2'
