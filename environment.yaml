@@ -1,0 +1,22 @@
+name: mmsplice_dev
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - 'python=3.7'
+  - 'cython'
+  - 'pybigwig'
+  - 'setuptools'
+  - 'kipoiseq>=0.7,<0.8'
+  - 'cyvcf2'
+  - 'tensorflow'
+  - 'scipy'
+  - 'pandas'
+  - 'pyfaidx'
+  - 'tqdm'
+  - 'click'
+  - 'pyranges>=0.0.71'
+  - 'pip'
+  - 'pytest'
+  - 'pytest-runner'
+  - 'pytest-benchmark'

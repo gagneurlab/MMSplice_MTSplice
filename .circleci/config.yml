@@ -6,34 +6,34 @@ variables:
     run:
       name: Update conda
       command: |
-        conda install python=3.6 -y
-        conda update --yes conda
-        conda update setuptools
-        conda config --add channels bioconda
-        conda config --add channels conda-forge
+        conda install -c conda-forge mamba -y
+        mamba env create -f environment.yaml
+        source activate mmsplice_dev
   install_mmsplice: &install_mmsplice
     run:
       name: Install mmsplice
       command: |
-        conda install cyvcf2 -y
-        conda install cython -y
-        conda install pybigwig -y
+        source activate mmsplice_dev
         pip install -e '.'
-        pip install pytest pytest-runner pytest-benchmark
   install_dependencies: &install_dependencies
     run:
       name: Install dependencies not in miniconda3
       command: |
+        source activate mmsplice_dev
         apt-get update && \
         apt-get install -y build-essential libz-dev libcurl3-dev gcc libssl-dev libbz2-dev
   test_cli: &test_cli
     run:
       name: Test cli
-      command: mmsplice
+      command: |
+        source activate mmsplice_dev
+        mmsplice
   run_tests: &run_tests
     run:
       name: Run tests
-      command: pytest
+      command: |
+        source activate mmsplice_dev
+        pytest
   install_docker: &install_docker
     run:
       name: Install Docker client
