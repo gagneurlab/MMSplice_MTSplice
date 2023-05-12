@@ -3,10 +3,12 @@ import json
 
 import click
 import numpy as np
+import tensorflow as tf
 
 from mmsplice import MMSplice
 from mmsplice.exon_dataloader import SeqSpliter
 from mmsplice.utils import predict_deltaLogitPsi, predict_pathogenicity
+
 
 
 @click.group()
@@ -16,6 +18,8 @@ def cli():
 
 @cli.command(name='run')
 def run():
+    tf.get_logger().setLevel('INFO')
+
     options = json.loads(sys.stdin.readline().strip())
 
     psi_model = MMSplice(

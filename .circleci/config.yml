@@ -1,6 +1,5 @@
 version: 2
 
-
 variables:
   update_conda: &update_conda
     run:
@@ -9,15 +8,11 @@ variables:
         conda install python=3.6 -y
         conda update --yes conda
         conda update setuptools
-        conda config --add channels bioconda
-        conda config --add channels conda-forge
   install_mmsplice: &install_mmsplice
     run:
       name: Install mmsplice
       command: |
-        conda install cyvcf2 -y
-        conda install cython -y
-        conda install pybigwig -y
+        pip install cython cyvcf2 pybigwig
         pip install -e '.'
         pip install pytest pytest-runner pytest-benchmark
   install_dependencies: &install_dependencies
@@ -62,22 +57,20 @@ variables:
       command: |
         pytest -s tests/test_vep_plugin.py
 
-
 jobs:
   build:
     docker:
-    - image: continuumio/miniconda3:latest
+      - image: continuumio/miniconda3:latest
     working_directory: ~/repo
     steps:
-    - checkout
-    - *update_conda
-    - *install_dependencies
-    - *install_mmsplice
-    - *test_cli
-    - *run_tests
+      - checkout
+      - *install_dependencies
+      - *install_mmsplice
+      - *test_cli
+      - *run_tests
 
 workflows:
   version: 2
   workflow:
     jobs:
-    - build
+      - build
