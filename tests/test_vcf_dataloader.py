@@ -55,6 +55,19 @@ def test_splicing_vcf_dataloader_prebuild_grch38(vcf_path):
 
 
 def test_splicing_vcf_loads_all(vcf_path):
+    def _format_variants(variant):
+        chrom = variant.split(':')[0]
+        pos = variant.split(':')[1]
+        ref = variant.split(':')[2]
+        alt = variant.split(':')[3].split("'")[1]
+        return chrom + ':' + pos + ':' + ref + '>' + alt
+        
+    dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
+    variants_dl = [i['metadata']['variant']['annotation'] for i in dl]
+    variants_dl = [x.strip('chr') for x in variants_dl]
+    variants_conftest = [_format_variants(x) for x in variants]
+    assert len(set(variants_conftest).difference(set(variants_dl))) == 1
+    
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
     assert sum(1 for i in dl) == len(variants) - 1
 
@@ -385,10 +398,9 @@ def test_splicing_vcf_loads_snps(vcf_path):
     }
 
     rows = list(dl)
-    # d = rows[11]
 
     for i in rows:
-        if '17:41276033:C>G' == i['metadata']['variant']['annotation']:
+        if '17:41276033:C>G' in i['metadata']['variant']['annotation']: # use 'in' here because could be with or without 'chr' annotation
             d = i
 
     assert d['inputs']['seq'] == expected_snps_seq['seq']

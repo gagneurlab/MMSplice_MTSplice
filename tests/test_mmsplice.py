@@ -27,7 +27,9 @@ def test_predict_all_table(vcf_path):
     dl = SplicingVCFDataloader(gtf_file, fasta_file, vcf_path)
     df = predict_all_table(model, dl, pathogenicity=True,
                            splicing_efficiency=True)
-
+    
+    assert df[df['ID'] == 'chr17:41203228:T>A'].iloc[0]['delta_logit_psi'] < 10
+    
     assert len(df['delta_logit_psi']) == len(variants) - 1
     assert df.shape[1] == 8 + 10 + 2
 

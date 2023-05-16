@@ -5,7 +5,7 @@ import pyranges
 from kipoi.data import SampleIterator
 from kipoiseq.extractors import MultiSampleVCF, SingleVariantMatcher
 from mmsplice.utils import pyrange_remove_chr_from_chrom_annotation,\
-    pyrange_add_chr_from_chrom_annotation
+    pyrange_add_chr_from_chrom_annotation, normalise_chrom
 from mmsplice.exon_dataloader import ExonSplicingMixin
 
 logger = logging.getLogger('mmsplice')
@@ -80,6 +80,16 @@ class SplicingVCFMixin(ExonSplicingMixin):
     def _check_chrom_annotation(self):
         fasta_chroms = set(self.fasta.fasta.keys())
         vcf_chroms = set(self.vcf.seqnames)
+
+        if not fasta_chroms.intersection(vcf_chroms):
+            logger.warning(
+                'Mismatch of chromosome names in Fasta and VCF file.')
+            chr_annotaion = any(chrom.startswith('chr')
+                                for chrom in vcf_chroms)
+            if not chr_annotaion:
+                fasta_chroms = set([normalise_chrom(x, '1') for x in sorted(fasta_chroms)])
+            else:
+                fasta_chroms = set([normalise_chrom(x, 'chr1') for x in sorted(fasta_chroms)])
 
         if not fasta_chroms.intersection(vcf_chroms):
             raise ValueError(

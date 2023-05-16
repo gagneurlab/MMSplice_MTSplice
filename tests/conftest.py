@@ -12,7 +12,8 @@ multi_vcf = 'tests/data/multi_test.vcf.gz'
 
 
 snps = [
-    "17:41276033:C:['G']"
+    "17:41276033:C:['G']",
+    "17:41203228:T:['A']", # delta_logit_psi over 10, potential minus strand error due to kipoiseq version
 ]
 
 deletions = [
@@ -51,13 +52,18 @@ def parse_vcf_id(vcf_id):
 
 @pytest.fixture
 def vcf_path():
+    
+    chr_annotation = 'chr'
+    # chr_annotation = ''
+    
     with tempfile.NamedTemporaryFile('w') as temp_vcf:
         temp_vcf.write('##fileformat=VCFv4.0\n')
-        temp_vcf.write('##contig=<ID=13,length=115169878>\n')
-        temp_vcf.write('##contig=<ID=17,length=81195210>\n')
+        temp_vcf.write(f'##contig=<ID={chr_annotation}13,length=115169878>\n')
+        temp_vcf.write(f'##contig=<ID={chr_annotation}17,length=81195210>\n')
         temp_vcf.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n')
 
         for v in variants:
+            v = chr_annotation + v
             temp_vcf.write('%s\t%s\t1\t%s\t%s\t.\t.\t.\n'
                            % tuple(parse_vcf_id(v)))
 

@@ -158,6 +158,19 @@ def pyrange_add_chr_from_chrom_annotation(pr):
     return pyranges.PyRanges(df)
 
 
+def normalise_chrom(source, target):
+    
+    def has_prefix(x):
+        return x.startswith('chr')
+
+    if has_prefix(source) and not has_prefix(target):
+        return source.strip('chr')
+    elif not has_prefix(source) and has_prefix(target):
+        return 'chr'+source
+
+    return source
+
+
 def max_varEff(df):
     """ Summarize largest absolute effect per variant across all affected exons.
     Args:

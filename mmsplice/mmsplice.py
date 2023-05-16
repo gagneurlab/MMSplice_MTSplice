@@ -11,7 +11,7 @@ from mmsplice.utils import logit, predict_deltaLogitPsi, \
     predict_pathogenicity, predict_splicing_efficiency, encodeDNA, \
     read_ref_psi_annotation, delta_logit_PSI_to_delta_PSI, \
     mmsplice_ref_modules, mmsplice_alt_modules, \
-    df_batch_writer, df_batch_writer_parquet
+    df_batch_writer, df_batch_writer_parquet, normalise_chrom
 from mmsplice.exon_dataloader import SeqSpliter
 from mmsplice.mtsplice import MTSplice, tissue_names
 from mmsplice.layers import GlobalAveragePooling1D_Mask0, ConvDNA
@@ -154,6 +154,17 @@ class MMSplice(object):
         df = pd.concat([df, tissue_pred], axis=1)
 
         if natural_scale:
+            
+            chr_ref = any(chrom.startswith('chr') for chrom in df_ref.index)
+            chr_preds = any(chrom.startswith('chr') for chrom in df['exons'].values)
+            if chr_ref != chr_preds:
+                df_ref = df_ref.reset_index()
+                if chr_preds:
+                    df_ref['exons'] = df_ref['exons'].apply(lambda x: normalise_chrom(x, 'chr1'))
+                else:
+                    df_ref['exons'] = df_ref['exons'].apply(lambda x: normalise_chrom(x, '1'))
+                df_ref = df_ref.set_index('exons')
+                    
             df_ref = df_ref[df_ref.columns[6:]]
             df = df.join(df_ref, on='exons', rsuffix='_ref')
 
