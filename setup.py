@@ -13,7 +13,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'setuptools',
-    'kipoiseq>=0.7,<0.8',
+    'kipoiseq',
     'cyvcf2',
     'tensorflow',
     'scipy',
