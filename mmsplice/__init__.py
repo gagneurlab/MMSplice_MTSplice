@@ -2,7 +2,7 @@
 
 __author__ = """Jun Cheng & M.Hasan Celik"""
 __email__ = 'chengju@in.tum.de'
-__version__ = '2.3.0'
+__version__ = '2.4.0'
 
 from tensorflow.keras.models import load_model
 from mmsplice.mmsplice import MMSplice, \
