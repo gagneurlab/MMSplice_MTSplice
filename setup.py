@@ -22,7 +22,7 @@ requirements = [
     'tqdm',
     'click',
     'cyvcf2<=0.30.15',
-    'pyranges>=0.0.71'
+    'pyranges>=0.0.71,<0.0.126',
 ]
 
 setup_requirements = ['pytest-runner', ]
