@@ -235,7 +235,7 @@ class ExonSplicingMixin:
         inputs = {
             'seq': self.fasta.extract(Interval(
                 exon.chrom, exon.start - overhang[0],
-                exon.end + overhang[1], strand=exon.strand)).upper(),
+                exon.end + overhang[1], strand=exon.strand), use_strand=True).upper(),
             'mut_seq': self.vseq_extractor.extract(
                 exon, [variant], overhang=overhang).upper()
         }

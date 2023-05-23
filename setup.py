@@ -13,7 +13,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'setuptools',
-    'kipoiseq>=0.7,<0.8',
+    'kipoiseq',
     'cyvcf2',
     'tensorflow',
     'scipy',
@@ -21,7 +21,8 @@ requirements = [
     'pyfaidx',
     'tqdm',
     'click',
-    'pyranges>=0.0.71'
+    'cyvcf2<=0.30.15',
+    'pyranges>=0.0.71,<0.0.126',
 ]
 
 setup_requirements = ['pytest-runner', ]
@@ -57,6 +58,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/gagneurlab/mmsplice',
-    version='2.3.0',
+    version='2.4.0',
     zip_safe=False
 )
