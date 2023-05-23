@@ -21,6 +21,7 @@ requirements = [
     'pyfaidx',
     'tqdm',
     'click',
+    'cyvcf2<=0.30.15',
     'pyranges>=0.0.71'
 ]
 
